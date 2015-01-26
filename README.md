@@ -4,7 +4,7 @@ lxnet
 is the game network library
 
 
-## What is (in Chinese) 
+## What this (in Chinese) 
 它是什么：
 
 是一个tcp的非通用网络库，在考虑空间占用、性能、功能性的基础上，结合项目需求而产生的。
