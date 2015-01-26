@@ -8,11 +8,10 @@
 #define _H_NET_COMMON_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
-#include "alway_inline.h"
-
+#include "platform_config.h"
 
 #ifdef WIN32
 
@@ -27,7 +26,7 @@ extern "C"{
 	((e) == WSAEWOULDBLOCK ||			\
 	 (e) == WSAEINTR ||					\
 	 (e) == WSAEINPROGRESS ||			\
-	 (e) == WSAEINVAL)
+	 (e) == WSAEALREADY)
 
 /* refused connect. */
 #define SOCKET_ERR_CONNECT_REFUSED(e)	\
@@ -75,15 +74,15 @@ extern "C"{
 
 #endif
 
-net_socket socket_create ();
+net_socket socket_create();
 
-int socket_close (net_socket *sockfd);
+int socket_close(net_socket *sockfd);
 
-bool socket_setopt_for_connect (net_socket sockfd);
+bool socket_setopt_for_connect(net_socket sockfd);
 
-bool socket_setopt_for_listen (net_socket sockfd);
+bool socket_setopt_for_listen(net_socket sockfd);
 
-int socket_can_read (net_socket fd);
+int socket_can_read(net_socket fd);
 
 #ifdef __cplusplus
 }

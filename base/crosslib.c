@@ -9,16 +9,13 @@
 #ifdef WIN32
 #include <windows.h>
 
-struct _tp_integer
-{
+struct _tp_integer {
 	int isinit;
 	LARGE_INTEGER liCounter;
 };
 static struct _tp_integer s_larget_int = {0};
-static __inline int64 __GetSecondCount__()
-{
-	if (0 == s_larget_int.isinit)
-	{
+static __inline int64 __GetSecondCount__() {
+	if (0 == s_larget_int.isinit) {
 		QueryPerformanceFrequency(&s_larget_int.liCounter);
 		s_larget_int.isinit = 1;
 	}
@@ -27,8 +24,7 @@ static __inline int64 __GetSecondCount__()
 /*
  * get current millisecond time
  */
-int64 high_millisecond_()
-{
+int64 high_millisecond_() {
 	double tmp;
 	LARGE_INTEGER liCurrent;
 	QueryPerformanceCounter(&liCurrent);
@@ -37,8 +33,7 @@ int64 high_millisecond_()
 }
 
 /* get current microsecond time */
-int64 high_microsecond_()
-{
+int64 high_microsecond_() {
 	double tmp;
 	LARGE_INTEGER liCurrent;
 	QueryPerformanceCounter(&liCurrent);
@@ -46,8 +41,7 @@ int64 high_microsecond_()
 	return (int64)(tmp * 1000000);
 }
 
-void delay_delay(unsigned long millisecond)
-{
+void delay_delay(unsigned long millisecond) {
 	Sleep(millisecond);
 }
 
@@ -57,8 +51,7 @@ void delay_delay(unsigned long millisecond)
 #include <unistd.h>
 
 /* get current millisecond time */
-int64 high_millisecond_()
-{
+int64 high_millisecond_() {
 	struct timeval tv;
 	int64 res;
 	gettimeofday(&tv, NULL);
@@ -67,8 +60,7 @@ int64 high_millisecond_()
 }
 
 /* get current microsecond time */
-int64 high_microsecond_()
-{
+int64 high_microsecond_() {
 	struct timeval tv;
 	int64 res;
 	gettimeofday(&tv, NULL);
@@ -76,8 +68,7 @@ int64 high_microsecond_()
 	return res;
 }
 
-void delay_delay (unsigned long millisecond)
-{
+void delay_delay(unsigned long millisecond) {
 	usleep(millisecond*1000);
 }
 

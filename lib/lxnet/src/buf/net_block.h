@@ -8,12 +8,11 @@
 #define _H_NET_BLOCK_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
-#include <stddef.h>
 #include <assert.h>
-#include "alway_inline.h"
+#include "platform_config.h"
 #include "buf_info.h"
 
 #ifndef min
@@ -21,8 +20,7 @@ extern "C"{
 #endif
 
 /* block buffer. */
-struct block
-{
+struct block {
 	volatile size_t read;
 	volatile size_t write;
 	size_t encrypt_pos;	/* encrypt pos. */
@@ -31,8 +29,7 @@ struct block
 	char buf[0];
 };
 
-static inline struct bufinfo block_get_encrypt (struct block *self)
-{
+static inline struct bufinfo block_get_encrypt(struct block *self) {
 	struct bufinfo encryptbuf;
 	
 	assert(self->maxsize > self->write);
@@ -41,8 +38,7 @@ static inline struct bufinfo block_get_encrypt (struct block *self)
 
 	encryptbuf.buf = &self->buf[self->encrypt_pos];
 	encryptbuf.len = 0;
-	if (self->write > self->encrypt_pos)
-	{
+	if (self->write > self->encrypt_pos) {
 		encryptbuf.len = self->write - self->encrypt_pos;
 		assert(encryptbuf.len > 0);
 		assert(self->write >= encryptbuf.len);
@@ -53,58 +49,50 @@ static inline struct bufinfo block_get_encrypt (struct block *self)
 	return encryptbuf;
 }
 
-static inline bool block_is_full (struct block *self)
-{
+static inline bool block_is_full(struct block *self) {
 	return ((self->read == (self->maxsize - 1)) && (self->write == (self->maxsize - 1)));
 }
 
-static inline size_t block_getreadsize (struct block *self)
-{
+static inline size_t block_getreadsize(struct block *self) {
 	assert(self != NULL);
 	assert(self->write >= self->read);
 	return (self->write - self->read);
 }
 
-static inline void block_addwrite (struct block *self, int len)
-{
+static inline void block_addwrite(struct block *self, int len) {
 	assert(self != NULL);
 	assert(len >= 0);
 	assert(self->maxsize > (self->write + len));
 	self->write += len;
 }
 
-static inline void block_addread (struct block *self, int len)
-{
+static inline void block_addread(struct block *self, int len) {
 	assert(self != NULL);
 	assert(len >= 0);
 	assert(self->write >= (self->read + len));
 	self->read += len;
 }
 
-static inline size_t block_getwritesize (struct block *self)
-{
+static inline size_t block_getwritesize(struct block *self) {
 	assert(self != NULL);
 	assert(self->maxsize > self->write);
 	return (self->maxsize - self->write - 1);
 }
 
-static inline char *block_getreadbuf (struct block *self)
-{
+static inline char *block_getreadbuf(struct block *self) {
 	assert(self != NULL);
 	assert(self->write >= self->read);
 	assert(self->maxsize > self->read);
 	return &self->buf[self->read];
 }
 
-static inline char *block_getwritebuf (struct block *self)
-{
+static inline char *block_getwritebuf(struct block *self) {
 	assert(self != NULL);
 	assert(self->maxsize > self->write);
 	return &self->buf[self->write];
 }
 
-static inline size_t block_push (struct block *self, void *data, size_t len)
-{
+static inline size_t block_push(struct block *self, void *data, size_t len) {
 	int writesize;
 	assert(self != NULL);
 	assert(self->maxsize > self->write);
@@ -117,8 +105,7 @@ static inline size_t block_push (struct block *self, void *data, size_t len)
 	return writesize;
 }
 
-static inline size_t block_get (struct block *self, void *data, size_t len)
-{
+static inline size_t block_get(struct block *self, void *data, size_t len) {
 	int readsize;
 	assert(self != NULL);
 	assert(self->write >= self->read);
@@ -131,10 +118,8 @@ static inline size_t block_get (struct block *self, void *data, size_t len)
 	return readsize;
 }
 
-static inline bool block_init (struct block *self, size_t size)
-{
-	if (size <= sizeof(struct block))
-	{
+static inline bool block_init(struct block *self, size_t size) {
+	if (size <= sizeof(struct block)) {
 		return false;
 	}
 	assert(self != NULL);

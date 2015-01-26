@@ -8,14 +8,13 @@
 #define _H_NET_BLOCKLIST_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 #include "ossome.h"
 #include "net_block.h"
 
-struct blocklist
-{
+struct blocklist {
 	bool isbigblock;		/* small or big block ? */
 	bool isnewmsg;			/* is new packet ? */
 	int msglen;				/* current packet length. */
@@ -26,15 +25,14 @@ struct blocklist
 	struct block *head;
 	struct block *tail;
 
-	LOCK_struct list_lock;
+	spin_lock_struct list_lock;
 
 	volatile long datasize;	/* this block list data total, pusher and getter all maintenance. */
 };
 
-static inline void blocklist_init (struct blocklist *self, bool bigblock)
-{
+static inline void blocklist_init(struct blocklist *self, bool bigblock) {
 	assert(self != NULL);
-	LOCK_INIT(&self->list_lock);
+	spin_lock_init(&self->list_lock);
 	self->isbigblock = bigblock;
 	self->isnewmsg = false;
 	self->msglen = 0;
@@ -45,39 +43,32 @@ static inline void blocklist_init (struct blocklist *self, bool bigblock)
 	self->tail = NULL;
 }
 
-static inline struct block *blocklist_popfront (struct blocklist *self)
-{
+static inline struct block *blocklist_popfront(struct blocklist *self) {
 	struct block *bk;
-	LOCK_LOCK(&self->list_lock);
+	spin_lock_lock(&self->list_lock);
 	bk = self->head;
-	if (self->head)
-	{
+	if (self->head) {
 		self->head = self->head->next;
-		if (self->tail == bk)
-		{
+		if (self->tail == bk) {
 			self->tail = NULL;
 			assert(self->head == NULL);
 		}
 	}
-	LOCK_UNLOCK(&self->list_lock);
+	spin_lock_unlock(&self->list_lock);
 	return bk;
 }
 
-static inline void blocklist_pushback (struct blocklist *self, struct block *bk)
-{
-	LOCK_LOCK(&self->list_lock);
+static inline void blocklist_pushback(struct blocklist *self, struct block *bk) {
+	spin_lock_lock(&self->list_lock);
 	bk->next = NULL;
-	if (self->tail)
-	{
+	if (self->tail) {
 		self->tail->next = bk;
-	}
-	else
-	{
+	} else {
 		assert(self->head == NULL);
 		self->head = bk;
 	}
 	self->tail = bk;
-	LOCK_UNLOCK(&self->list_lock);
+	spin_lock_unlock(&self->list_lock);
 }
 
 #ifdef __cplusplus

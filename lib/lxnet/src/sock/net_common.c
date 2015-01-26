@@ -21,13 +21,11 @@
 
 #endif
 
-net_socket socket_create ()
-{
+net_socket socket_create() {
 	return socket(AF_INET, SOCK_STREAM, 0);
 }
 
-int socket_close (net_socket *sockfd)
-{
+int socket_close(net_socket *sockfd) {
 	int res;
 	net_socket temp = *sockfd;
 	*sockfd = NET_INVALID_SOCKET;
@@ -39,8 +37,7 @@ int socket_close (net_socket *sockfd)
 	return res;
 }
 
-static bool socket_set_nonblock (net_socket sockfd)
-{
+static bool socket_set_nonblock(net_socket sockfd) {
 #ifdef WIN32
 	{
 		unsigned long nonblocking = 1;
@@ -59,8 +56,7 @@ static bool socket_set_nonblock (net_socket sockfd)
 	return true;
 }
 
-bool socket_setopt_for_connect (net_socket sockfd)
-{
+bool socket_setopt_for_connect(net_socket sockfd) {
 	if (!socket_set_nonblock(sockfd))
 		return false;
 
@@ -90,8 +86,7 @@ bool socket_setopt_for_connect (net_socket sockfd)
 	return true;
 }
 
-static bool set_reuseaddr (net_socket fd)
-{
+static bool set_reuseaddr(net_socket fd) {
 #ifdef WIN32
 	return true;
 #else
@@ -100,13 +95,11 @@ static bool set_reuseaddr (net_socket fd)
 #endif
 }
 
-bool socket_setopt_for_listen (net_socket sockfd)
-{
+bool socket_setopt_for_listen(net_socket sockfd) {
 	return socket_set_nonblock(sockfd) && set_reuseaddr(sockfd);
 }
 
-int socket_can_read (net_socket fd)
-{
+int socket_can_read(net_socket fd) {
 #ifdef WIN32
 
 	fd_set set;

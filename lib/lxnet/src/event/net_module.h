@@ -8,10 +8,9 @@
 #define _H_NET_MODULE_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
-#include "alway_inline.h"
 #include "_netlisten.h"
 #include "_netsocket.h"
 
@@ -27,17 +26,17 @@ extern "C"{
  * socket num --- socketer object num.
  * threadnum --- network thread num, if less than 0, then start by the number of cpu threads .
  */
-bool netinit (size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t smallbufnum,
+bool netinit(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t smallbufnum,
 		size_t listenernum, size_t socketnum, int threadnum);
 
 /* release network. */
-void netrelease ();
+void netrelease();
 
 /* network run. */
-void netrun ();
+void netrun();
 
 /* get network memory info. */
-void netmemory_info (char *buf, size_t bufsize);
+void netmemory_info(char *buf, size_t bufsize);
 
 #ifdef __cplusplus
 }

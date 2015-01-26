@@ -16,3 +16,18 @@
 *.exe
 *.out
 *.app
+
+# vim tmp file
+*.swp
+*~
+
+# vs file
+*.obj
+*.lib
+*.sdf
+*.suo
+*.ncb
+*.user
+
+# ignore dir
+lib/lxnet/Debug/*.*

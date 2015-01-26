@@ -8,11 +8,10 @@
 #define _H_NET_POOL_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
-#include <stddef.h>
-#include "alway_inline.h"
+#include "platform_config.h"
 
 /* 
  * create and init net some pool.
@@ -22,21 +21,21 @@ extern "C"{
  * listennum --- listen object num.
  * listensize --- listen object size.
  * */
-bool netpool_init (size_t socketnum, size_t socketsize, size_t listennum, size_t listensize);
+bool netpool_init(size_t socketnum, size_t socketsize, size_t listennum, size_t listensize);
 
 /* release net some pool. */
-void netpool_release ();
+void netpool_release();
 
-void *netpool_createsocket ();
+void *netpool_createsocket();
 
-void netpool_releasesocket (void *self);
+void netpool_releasesocket(void *self);
 
-void *netpool_createlisten ();
+void *netpool_createlisten();
 
-void netpool_releaselisten (void *self);
+void netpool_releaselisten(void *self);
 
 /* get net some pool info. */
-void netpool_meminfo (char *buf, size_t bufsize);
+void netpool_meminfo(char *buf, size_t bufsize);
 
 #ifdef __cplusplus
 }

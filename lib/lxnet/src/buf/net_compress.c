@@ -24,8 +24,7 @@
  *
  * Attention: Will remove the original header length, and then uncompress, because the header length is the compressed added.
  * */
-struct bufinfo compressmgr_uncompressdata (char *uncompressbuf, int uncompresslen, char *quicklzbuf, char *data, int len)
-{
+struct bufinfo compressmgr_uncompressdata(char *uncompressbuf, int uncompresslen, char *quicklzbuf, char *data, int len) {
 	size_t needsize;
 	struct bufinfo resbuf;
 	resbuf.buf= NULL;
@@ -41,7 +40,7 @@ struct bufinfo compressmgr_uncompressdata (char *uncompressbuf, int uncompressle
 		return resbuf;
 	}
 	resbuf.buf = uncompressbuf;
-	resbuf.len = (int)qlz_decompress(&data[sizeof(int)], resbuf.buf, quicklzbuf);
+	resbuf.len = (int)qlz_decompress(&data[sizeof(int)], resbuf.buf, (qlz_state_decompress *)quicklzbuf);
 
 	print_debug("un compress end, msg len:%d\n", resbuf.len);
 	return resbuf;
@@ -57,15 +56,14 @@ struct bufinfo compressmgr_uncompressdata (char *uncompressbuf, int uncompressle
  * 
  * Attention: Will form a compressed data packet, plus the header length.
  * */
-struct bufinfo compressmgr_do_compressdata (char *compressbuf, char *quicklzbuf, char *data, int len)
-{
+struct bufinfo compressmgr_do_compressdata(char *compressbuf, char *quicklzbuf, char *data, int len) {
 	struct bufinfo resbuf;
 	assert(data != NULL);
 	assert(len > 0);
 	print_debug("compress before, msg len:%d\n", len);
 
 	resbuf.buf = compressbuf;
-	resbuf.len = (int)qlz_compress(data, &resbuf.buf[sizeof(int)], len, quicklzbuf);
+	resbuf.len = (int)qlz_compress(data, &resbuf.buf[sizeof(int)], len, (qlz_state_compress *)quicklzbuf);
 
 	resbuf.len += sizeof(int);
 	*(int *)resbuf.buf = resbuf.len;

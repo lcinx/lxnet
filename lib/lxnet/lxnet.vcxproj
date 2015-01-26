@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{CB583C72-DDA2-4F0B-9838-21F853F4CF3A}</ProjectGuid>
+    <RootNamespace>lxnet</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>11.0.50727.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\base;..\..\3rd\quicklz;.\src\buf;.\src\sock;.\src\event;.\src\threadpool;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Lib>
+      <OutputFile>.\$(ProjectName)-debug.lib</OutputFile>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\..\base;.\src\buf;.\src\sock;.\src\event;.\src\threadpool;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Lib>
+      <OutputFile>.\$(ProjectName)-release.lib</OutputFile>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\3rd\quicklz\quicklz.h" />
+    <ClInclude Include="..\..\base\crosslib.h" />
+    <ClInclude Include="..\..\base\log.h" />
+    <ClInclude Include="..\..\base\ossome.h" />
+    <ClInclude Include="..\..\base\pool.h" />
+    <ClInclude Include="lxnet.h" />
+    <ClInclude Include="msgbase.h" />
+    <ClInclude Include="src\buf\buf_info.h" />
+    <ClInclude Include="src\buf\net_block.h" />
+    <ClInclude Include="src\buf\net_blocklist.h" />
+    <ClInclude Include="src\buf\net_buf.h" />
+    <ClInclude Include="src\buf\net_bufpool.h" />
+    <ClInclude Include="src\buf\net_compress.h" />
+    <ClInclude Include="src\buf\net_crypt.h" />
+    <ClInclude Include="src\buf\net_thread_buf.h" />
+    <ClInclude Include="src\event\net_eventmgr.h" />
+    <ClInclude Include="src\event\net_module.h" />
+    <ClInclude Include="src\sock\_netlisten.h" />
+    <ClInclude Include="src\sock\_netsocket.h" />
+    <ClInclude Include="src\sock\net_common.h" />
+    <ClInclude Include="src\sock\net_pool.h" />
+    <ClInclude Include="src\sock\socket_internal.h" />
+    <ClInclude Include="src\threadpool\net_thread.h" />
+    <ClInclude Include="src\threadpool\net_threadlist.h" />
+    <ClInclude Include="src\threadpool\threadpool.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\3rd\quicklz\quicklz.c" />
+    <ClCompile Include="..\..\base\crosslib.c" />
+    <ClCompile Include="..\..\base\log.c" />
+    <ClCompile Include="..\..\base\pool.c" />
+    <ClCompile Include="lxnet.cpp" />
+    <ClCompile Include="src\buf\net_buf.c" />
+    <ClCompile Include="src\buf\net_bufpool.c" />
+    <ClCompile Include="src\buf\net_compress.c" />
+    <ClCompile Include="src\buf\net_thread_buf.c" />
+    <ClCompile Include="src\event\linux_eventmgr.c" />
+    <ClCompile Include="src\event\net_module.c" />
+    <ClCompile Include="src\event\win32_eventmgr.c" />
+    <ClCompile Include="src\sock\_netlisten.c" />
+    <ClCompile Include="src\sock\_netsocket.c" />
+    <ClCompile Include="src\sock\net_common.c" />
+    <ClCompile Include="src\sock\net_pool.c" />
+    <ClCompile Include="src\threadpool\threadpool.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

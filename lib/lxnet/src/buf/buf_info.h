@@ -8,12 +8,11 @@
 #define _H_BUF_INFO_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 
-struct bufinfo
-{
+struct bufinfo {
 	char *buf;
 	int len;
 };

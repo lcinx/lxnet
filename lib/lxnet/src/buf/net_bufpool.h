@@ -11,8 +11,7 @@
 extern "C" {
 #endif
 
-#include <stddef.h>
-#include "alway_inline.h"
+#include "platform_config.h"
 
 /* 
  * create and init buf pool.
@@ -25,39 +24,39 @@ extern "C" {
  * bufnum --- is buf num.
  * bufsize --- is buf size.
  * */
-bool bufpool_init (size_t bigblocknum, size_t bigblocksize, size_t smallblocknum, size_t smallblocksize, size_t bufnum, size_t bufsize);
+bool bufpool_init(size_t bigblocknum, size_t bigblocksize, size_t smallblocknum, size_t smallblocksize, size_t bufnum, size_t bufsize);
 
 /* release buf pool. */
-void bufpool_release ();
+void bufpool_release();
 
-void *bufpool_createbigblock ();
+void *bufpool_createbigblock();
 
-void bufpool_releasebigblock (void *self);
+void bufpool_releasebigblock(void *self);
 
-void *bufpool_createsmallblock ();
+void *bufpool_createsmallblock();
 
-void bufpool_releasesmallblock (void *self);
+void bufpool_releasesmallblock(void *self);
 
-void bufpool_bigblock_lock ();
+void bufpool_bigblock_lock();
 
-void bufpool_bigblock_unlock ();
+void bufpool_bigblock_unlock();
 
 /* release bigblock, but not lock. */
-void bufpool_releasebigblock_notlock (void *self);
+void bufpool_releasebigblock_notlock(void *self);
 
-void bufpool_smallblock_lock ();
+void bufpool_smallblock_lock();
 
-void bufpool_smallblock_unlock ();
+void bufpool_smallblock_unlock();
 
 /* release smallblock, but not lock. */
-void bufpool_releasesmallblock_notlock (void *self);
+void bufpool_releasesmallblock_notlock(void *self);
 
-void *bufpool_createbuf ();
+void *bufpool_createbuf();
 
-void bufpool_releasebuf (void *self);
+void bufpool_releasebuf(void *self);
 
 /* get buf pool memory info. */
-void bufpool_meminfo (char *buf, size_t bufsize);
+void bufpool_meminfo(char *buf, size_t bufsize);
 
 #ifdef __cplusplus
 }

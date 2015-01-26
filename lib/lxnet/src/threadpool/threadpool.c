@@ -25,8 +25,7 @@
 #define min(a, b) (((a) < (b))? (a) : (b))
 #endif
 
-struct threadmgr
-{
+struct threadmgr {
 	struct threadlist suspendlist;	/* suspend thread list. */
 	pthread_mutex_t setup_mutex;	/* Initialized using locks. */
 	do_func task_f;					/* task function. */
@@ -38,41 +37,33 @@ struct threadmgr
 	volatile long activitynum;		/* activity thread number. */
 };
 
-struct tempinfo
-{
+struct tempinfo {
 	struct threadmgr *mgr;
 	struct threadinfo *th;
 };
 
-static inline void threadlist_resume_numthread (struct threadmgr *self, int num)
-{
+static inline void threadlist_resume_numthread(struct threadmgr *self, int num) {
 	struct threadinfo *th;
-	while (num > 0)
-	{
+	while (num > 0) {
 		th = threadlist_popfront(&self->suspendlist);
 		if (!th)
 			break;
-		if (pthread_mutex_trylock(&th->mutex) == 0)
-		{
+		if (pthread_mutex_trylock(&th->mutex) == 0) {
 			atom_inc(&self->activitynum);
 			thread_resume(th);
 			pthread_mutex_unlock(&th->mutex);
-		}
-		else
-		{
+		} else {
 			threadlist_pushback(&self->suspendlist, th);
 		}
 		--num;
 	}
 }
 
-static inline void threadlist_resume_allthread (struct threadmgr *self)
-{
+static inline void threadlist_resume_allthread(struct threadmgr *self) {
 	struct threadinfo *th;
 	int num = 0;
 	usleep(300000);
-	for (;;)
-	{
+	for (;;) {
 		th = threadlist_popfront(&self->suspendlist);
 		if (!th)
 			break;
@@ -83,11 +74,9 @@ static inline void threadlist_resume_allthread (struct threadmgr *self)
 }
 
 /* called when the thread needs to exit. */
-static inline void thread_do_exit (struct tempinfo *self)
-{
+static inline void thread_do_exit(struct tempinfo *self) {
 	/* if is leader. */
-	if (thread_is_header(self->th))
-	{
+	if (thread_is_header(self->th)) {
 		debuglog("[leader as exit] threadid:%d exit...", self->th->threadid);
 
 		/* change to followers. */
@@ -114,8 +103,7 @@ static inline void thread_do_exit (struct tempinfo *self)
 	free(self->th);
 }
 
-static void *thread_proc (void *param)
-{
+static void *thread_proc(void *param) {
 	int tasknum;
 	int num;
 	struct tempinfo info;
@@ -128,19 +116,16 @@ static void *thread_proc (void *param)
 	pthread_mutex_lock(&info.mgr->setup_mutex);
 	debuglog("start thread:%x, argv thread hand:%x", CURRENT_THREAD, info.th->handle);
 	pthread_mutex_unlock(&info.mgr->setup_mutex);
-	for (;;)
-	{
+	for (;;) {
 		/* if is leader. */
-		if (thread_is_header(info.th))
-		{
+		if (thread_is_header(info.th)) {
 			/* do leader function, 
 			 * if return value less than 0, then exit. 
 			 * if return value greater than 0, then is need resume thread num.
 			 * if return value is equal 0, then overtime.
 			 */
 			tasknum = info.mgr->lead_f(info.mgr->argv);
-			if (tasknum > 0)
-			{
+			if (tasknum > 0) {
 				debuglog("[new task list] leader:%d, tasknum:%d, suspendlist num:%d, activitynum:%d, has_leader:%d", info.th->threadid,\
 						tasknum, threadlist_threadnum(&info.mgr->suspendlist),\
 						info.mgr->activitynum, info.mgr->has_leader);
@@ -156,23 +141,19 @@ static void *thread_proc (void *param)
 				tasknum--;
 				num = min(tasknum, threadlist_threadnum(&info.mgr->suspendlist));
 				threadlist_resume_numthread(info.mgr, num);
-			}
-			else if (tasknum < 0)
-			{
+			} else if (tasknum < 0) {
 				debuglog("[thread pool exit] leader:%d exit... suspendlist num:%d, activitynum:%d, has_leader:%d", info.th->threadid, \
-						threadlist_threadnum(info.mgr->suspendlist), \
+						threadlist_threadnum(&info.mgr->suspendlist), \
 						info.mgr->activitynum, info.mgr->has_leader);
 				
 				thread_do_exit(&info);
 				/* return. */
 				return NULL;
 			}
-		}
-		else
-		{
+
+		} else {
 			/* do task function, the return value is not equal to 0, then exit. */
-			if (info.mgr->task_f(info.mgr->argv) != 0)
-			{
+			if (info.mgr->task_f(info.mgr->argv) != 0) {
 				debuglog("[thread exit] threadi:%d exit", info.th->threadid);
 				thread_do_exit(&info);
 				/* return. */
@@ -180,11 +161,11 @@ static void *thread_proc (void *param)
 			}
 
 			/* If own is the last activity of the followers, set own to leader. */
-			if (atom_dec(&info.mgr->activitynum) == 0)
-			{
+			if (atom_dec(&info.mgr->activitynum) == 0) {
+				
 				/* competition leader. */
-				if (atom_compare_and_swap(&info.mgr->has_leader, 0, 1) == 0)	/* if old is 0, then set 1, return old value. */
-				{
+				/* if old is 0, then set 1, return old value. */
+				if (atom_compare_and_swap(&info.mgr->has_leader, 0, 1) == 0) {
 					debuglog("[change to leader] threadid:%d, suspendlist num:%d, activitynum:%d, has_leader:%d", \
 							info.th->threadid, threadlist_threadnum(&info.mgr->suspendlist), \
 							info.mgr->activitynum, info.mgr->has_leader);
@@ -192,16 +173,13 @@ static void *thread_proc (void *param)
 					/*  change own to leader. */
 					thread_change_to_header(info.th);
 					atom_inc(&info.mgr->activitynum);
-				}
-				else
-				{
+				} else {
 					debuglog("thread change leader failed:%x, activitynum:%ld, has_leader:%ld\n", CURRENT_THREAD, info.mgr->activitynum, info.mgr->has_leader);
 					assert(false && "is last activitynum, but not change leader..., error!");
 					log_error("is last activitynum, but not change leader..., error!");
 				}
-			}
-			else
-			{
+
+			} else {
 				threadlist_pushback(&info.mgr->suspendlist, info.th);
 
 				debuglog("[suspend thread] threadid:%d, self suspend. suspendlist num:%d, activitynum:%d, has_leader:%d", \
@@ -222,8 +200,7 @@ static void *thread_proc (void *param)
  * lfunc --- is leader function,  return need to resume threads num. if less than 0, then exit.
  * argv --- is function parameters, normally , is task manager pointer.
  */
-struct threadmgr *threadmgr_create (int threadnum, do_func tfunc, do_func lfunc, void *argv)
-{
+struct threadmgr *threadmgr_create(int threadnum, do_func tfunc, do_func lfunc, void *argv) {
 	struct threadmgr *mgr;
 	int i;
 	pthread_t thandle;
@@ -251,18 +228,16 @@ struct threadmgr *threadmgr_create (int threadnum, do_func tfunc, do_func lfunc,
 	pthread_mutex_lock(&mgr->setup_mutex);
 
 	/* create thread. */
-	for (i = 0; i < threadnum; ++i)
-	{
+	for (i = 0; i < threadnum; ++i) {
 		tinfo = (struct threadinfo *)malloc(sizeof(struct threadinfo));
-		if (!tinfo)
-		{
+		if (!tinfo) {
 			log_error("create threadinfo failed, function malloc return null!");
 			mgr = NULL;
 			goto end;
 		}
+
 		info = (struct tempinfo *)malloc(sizeof(struct tempinfo));
-		if (!info)
-		{
+		if (!info) {
 			log_error("create tempinfo failed, function malloc return null!");
 			mgr = NULL;
 			goto end;
@@ -271,8 +246,7 @@ struct threadmgr *threadmgr_create (int threadnum, do_func tfunc, do_func lfunc,
 		info->th = tinfo;
 		thread_init(tinfo);
 		tinfo->threadid = i;
-		if (pthread_create(&thandle, NULL, &thread_proc, (void *)info) != 0)
-		{
+		if (pthread_create(&thandle, NULL, &thread_proc, (void *)info) != 0) {
 			log_error("pthread_create create thread error!, errno:%d", errno);
 			mgr = NULL;
 			goto end;
@@ -286,15 +260,13 @@ end:
 
 
 /* release thread pool. */
-void threadmgr_release (struct threadmgr *self)
-{
+void threadmgr_release(struct threadmgr *self) {
 	if (!self)
 		return;
 	/* pop all the suspend thread that resume it. */
 	threadlist_resume_allthread(self);
 
-	while (self->exit_num != self->threadnum)
-	{
+	while (self->exit_num != self->threadnum) {
 		assert(self->exit_num >= 0);
 		assert(self->exit_num <= self->threadnum);
 		usleep(100000);	/* 100 ms */

@@ -8,7 +8,7 @@
 #define _H_NET_CRYPT_FUNCTION_DEF_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 typedef void (*dofunc_f) (void *logicdata, char *buf, int len);

@@ -8,7 +8,7 @@
 #define _H_NET_COMPRESS_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 #include "buf_info.h"
@@ -25,7 +25,7 @@ extern "C"{
  *
  * Attention: Will remove the original header length, and then uncompress, because the header length is the compressed added.
  * */
-struct bufinfo compressmgr_uncompressdata (char *uncompressbuf, int uncompresslen, char *quicklzbuf, char *data, int len);
+struct bufinfo compressmgr_uncompressdata(char *uncompressbuf, int uncompresslen, char *quicklzbuf, char *data, int len);
 
 /* compress data.
  * compressbuf --- is compress buffer.
@@ -37,7 +37,7 @@ struct bufinfo compressmgr_uncompressdata (char *uncompressbuf, int uncompressle
  * 
  * Attention: Will form a compressed data packet, plus the header length.
  * */
-struct bufinfo compressmgr_do_compressdata (char *compressbuf, char *quicklzbuf, char *data, int len);
+struct bufinfo compressmgr_do_compressdata(char *compressbuf, char *quicklzbuf, char *data, int len);
 
 #ifdef __cplusplus
 }

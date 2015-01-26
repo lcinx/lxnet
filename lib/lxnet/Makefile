@@ -7,17 +7,18 @@
 BIN = liblxnet.a
 CC = gcc
 CPP = g++
+RM = rm -f
 #系统库的包含路径、库列表
 INCS = 
 LIBS = 
 SUBDIRS =
 
 #源文件包含路径、库列表
-SOURCEINC = -I"./../../base/" -I"./src/buf/" -I"./src/event/" -I"./src/sock/" -I"./src/threadpool/"
+SOURCEINC = -I"./../../base/" -I"./src/buf/" -I"./src/event/" -I"./src/sock/" -I"./src/threadpool/" -I"./../../3rd/quicklz/"
 #
 #
 #maintest.c tree/rbtree.c  多了子目录，那就直接添加 目录/*.c即可   所有的源文件--  .c文件列表
-CSRCS = $(wildcard  ./*.c ./../../base/crosslib.c ./../../base/log.c ./../../base/pool.c ./src/buf/*.c ./src/event/*.c ./src/sock/*.c ./src/threadpool/*.c)
+CSRCS = $(wildcard  ./*.c ./../../base/crosslib.c ./../../base/log.c ./../../base/pool.c ./src/buf/*.c ./src/event/*.c ./src/sock/*.c ./src/threadpool/*.c ./../../3rd/quicklz/*.c)
 CPPSRCS = $(wildcard ./*.cpp)
 
 #
@@ -73,7 +74,7 @@ $(CPPOBJS) : %.o: %.cpp
 $(BIN) : $(COBJS) $(CPPOBJS)
 	ar r $(BIN) $(COBJS) $(CPPOBJS)
 	ranlib $(BIN)
-	-rm $(COBJS) $(CPPOBJS)
+	$(RM) $(COBJS) $(CPPOBJS)
 # 链接为最终目标
 
 
@@ -85,8 +86,8 @@ $(BIN) : $(COBJS) $(CPPOBJS)
 
 #清除所有目标文件以及生成的最终目标文件
 clean:			
-	-rm $(BIN) $(COBJS) $(CPPOBJS)
+	$(RM) $(BIN) $(COBJS) $(CPPOBJS)
 #rm *.d
 cleanall:
-	-rm $(BIN) $(COBJS) $(CPPOBJS)
+	$(RM) $(BIN) $(COBJS) $(CPPOBJS)
 

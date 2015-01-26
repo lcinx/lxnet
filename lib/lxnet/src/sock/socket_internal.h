@@ -8,23 +8,20 @@
 #define _H_SOCKET_INTERNAL_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 #include "net_common.h"
-#include "configtype.h"
 
 #ifdef WIN32
-struct overlappedstruct
-{
+struct overlappedstruct {
 	OVERLAPPED m_overlap;				/* overlap struct. */
 	int m_event;						/* event type for iocp. */
 };
 #endif
 
 struct net_buf;
-struct socketer
-{
+struct socketer {
 #ifdef WIN32
 	struct overlappedstruct recv_event;
 	struct overlappedstruct send_event;

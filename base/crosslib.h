@@ -8,10 +8,10 @@
 #define _H_CROSSLIB_MY_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
-#include "configtype.h"
+#include "platform_config.h"
 
 int64 high_millisecond_();
 int64 high_microsecond_();
@@ -23,7 +23,7 @@ int64 high_microsecond_();
 #define get_microsecond() high_microsecond_()
 
 /* sleep some millisecond */
-void delay_delay (unsigned long millisecond);
+void delay_delay(unsigned long millisecond);
 
 #ifdef __cplusplus
 }

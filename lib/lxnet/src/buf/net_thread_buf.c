@@ -12,17 +12,23 @@
 #include "quicklz.h"
 #include "log.h"
 
+#if QLZ_STREAMING_BUFFER != 0 || QLZ_COMPRESSION_LEVEL != 1
+    #error define QLZ_STREAMING_BUFFER to the zero value and define QLZ_COMPRESSION_LEVEL to the 1 for this lib
+#endif
+
+#ifndef max
+#define max(a, b) (((a) > (b))? (a) : (b))
+#endif
+
 /* max thread num. _MAX_SAFE_THREAD_NUM*/
 #define _MAX_SAFE_THREAD_NUM 64
 
-struct thread_localuse
-{
+struct thread_localuse {
 	THREAD_ID threadid;	/* thread id */
 	char *buf;			/* buffer */
 };
 
-struct threadinfo
-{
+struct threadinfo {
 	bool isinit;
 	size_t msgmaxsize;
 	size_t compressmaxsize;
@@ -37,19 +43,15 @@ struct threadinfo
 };
 static struct threadinfo s_threadlock = {false};
 
-static void *threadlocal_getbuf (struct thread_localuse self[_MAX_SAFE_THREAD_NUM], size_t needsize, volatile long *freeindex)
-{
+static void *threadlocal_getbuf(struct thread_localuse self[_MAX_SAFE_THREAD_NUM], size_t needsize, volatile long *freeindex) {
 	THREAD_ID currentthreadid = CURRENT_THREAD;
 	int index;
-	for (index = 0; index < _MAX_SAFE_THREAD_NUM; ++index)
-	{
+	for (index = 0; index < _MAX_SAFE_THREAD_NUM; ++index) {
 		/* it insert from 0, so if threadid is 0, then is can use. */
 		if (self[index].threadid == 0)
 			break;
-		if (self[index].threadid == currentthreadid)
-		{
-			if (self[index].buf == NULL)
-			{
+		if (self[index].threadid == currentthreadid) {
+			if (self[index].buf == NULL) {
 				log_error("if (self[index].buf == NULL)");
 				exit(1);
 			}
@@ -58,15 +60,13 @@ static void *threadlocal_getbuf (struct thread_localuse self[_MAX_SAFE_THREAD_NU
 	}
 	/* check index and max thread num. */
 	index = (int)atom_fetch_add(freeindex, 1);
-	if (index < 0 || index >= _MAX_SAFE_THREAD_NUM)
-	{
+	if (index < 0 || index >= _MAX_SAFE_THREAD_NUM) {
 		log_error("if (index < 0 || index >= _MAX_SAFE_THREAD_NUM) index:%d, _MAX_SAFE_THREAD_NUM:%d", index, _MAX_SAFE_THREAD_NUM);
 		exit(1);
 	}
 	/* if index can use, then create new thread buffer. */
 	self[index].buf = (char *)malloc(needsize);
-	if (!self[index].buf)
-	{
+	if (!self[index].buf) {
 		log_error("if (!self[index])");
 		exit(1);
 	}
@@ -75,10 +75,8 @@ static void *threadlocal_getbuf (struct thread_localuse self[_MAX_SAFE_THREAD_NU
 }
 
 /* get temp packet buf. */
-void *threadbuf_get_msg_buf ()
-{
-	if (!s_threadlock.isinit)
-	{
+void *threadbuf_get_msg_buf() {
+	if (!s_threadlock.isinit) {
 		log_error("if (!s_threadlock.isinit)");
 		exit(1);
 	}
@@ -86,11 +84,9 @@ void *threadbuf_get_msg_buf ()
 }
 
 /* get temp compress/uncompress buf. */
-struct bufinfo threadbuf_get_compress_buf ()
-{
+struct bufinfo threadbuf_get_compress_buf() {
 	struct bufinfo tempbuf;
-	if (!s_threadlock.isinit)
-	{
+	if (!s_threadlock.isinit) {
 		log_error("if (!s_threadlock.isinit)");
 		exit(1);
 	}
@@ -100,10 +96,8 @@ struct bufinfo threadbuf_get_compress_buf ()
 }
 
 /* get quicklz compress lib buf. */
-void *threadbuf_get_quicklz_buf ()
-{
-	if (!s_threadlock.isinit)
-	{
+void *threadbuf_get_quicklz_buf() {
+	if (!s_threadlock.isinit) {
 		log_error("if (!s_threadlock.isinit)");
 		exit(1);
 	}
@@ -111,24 +105,19 @@ void *threadbuf_get_quicklz_buf ()
 }
 
 
-static void threadlocal_init (struct thread_localuse self[_MAX_SAFE_THREAD_NUM])
-{
+static void threadlocal_init(struct thread_localuse self[_MAX_SAFE_THREAD_NUM]) {
 	int i;
-	for (i = 0; i < _MAX_SAFE_THREAD_NUM; ++i)
-	{
+	for (i = 0; i < _MAX_SAFE_THREAD_NUM; ++i) {
 		self[i].threadid = 0;
 		self[i].buf = NULL;
 	}
 }
 
-static void threadlocal_release (struct thread_localuse self[_MAX_SAFE_THREAD_NUM])
-{
+static void threadlocal_release(struct thread_localuse self[_MAX_SAFE_THREAD_NUM]) {
 	int i;
-	for (i = 0; i < _MAX_SAFE_THREAD_NUM; ++i)
-	{
+	for (i = 0; i < _MAX_SAFE_THREAD_NUM; ++i) {
 		self[i].threadid = 0;
-		if (self[i].buf)
-		{
+		if (self[i].buf) {
 			free(self[i].buf);
 			self[i].buf = NULL;
 		}
@@ -141,15 +130,16 @@ static void threadlocal_release (struct thread_localuse self[_MAX_SAFE_THREAD_NU
  * msgmaxsize --- max packet size.
  * compressmaxsize --- max compress/uncompress buffer size.
  */
-bool threadbuf_init (size_t msgmaxsize, size_t compressmaxsize)
-{
+bool threadbuf_init(size_t msgmaxsize, size_t compressmaxsize) {
 	if (s_threadlock.isinit)
 		return false;
+
 	if ((msgmaxsize == 0) || (compressmaxsize == 0))
 		return false;
+
 	s_threadlock.msgmaxsize = msgmaxsize;
 	s_threadlock.compressmaxsize = compressmaxsize;
-	s_threadlock.quicklz_size = QLZ_SCRATCH_COMPRESS;
+	s_threadlock.quicklz_size = max(sizeof(qlz_state_compress), sizeof(qlz_state_decompress));
 	threadlocal_init(s_threadlock.msgbuf);
 	threadlocal_init(s_threadlock.compressbuf);
 	threadlocal_init(s_threadlock.quicklzbuf);
@@ -161,15 +151,14 @@ bool threadbuf_init (size_t msgmaxsize, size_t compressmaxsize)
 }
 
 /* release thread private buffer set. */
-void threadbuf_release ()
-{
+void threadbuf_release() {
 	if (!s_threadlock.isinit)
 		return;
+
 	s_threadlock.isinit = false;
 	threadlocal_release(s_threadlock.msgbuf);
 	threadlocal_release(s_threadlock.compressbuf);
 	threadlocal_release(s_threadlock.quicklzbuf);
 }
-
 
 

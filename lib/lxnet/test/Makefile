@@ -13,9 +13,9 @@ win32-release:
 
 linux-debug:
 	g++ -o connect connect.cpp -I"/usr/include" -I"./../" -I"./../../../base" -L"/usr/lib" -Wall -DDEBUG -g -L"./../" -llxnet -lpthread
-	g++ -o listen listen.cpp -I"/usr/include" -I"./../" -I"./../../../base" -L"/usr/lib" -Wall -DDEBUG -O2 -L"./../" -llxnet -lpthread
+	g++ -o listen listen.cpp -I"/usr/include" -I"./../" -I"./../../../base" -L"/usr/lib" -Wall -DDEBUG -g -L"./../" -llxnet -lpthread
 
 
 linux-release:
 	g++ -o connect connect.cpp -I"/usr/include" -I"./../" -I"./../../../base" -L"/usr/lib" -Wall -DNDEBUG -O2 -L"./../" -llxnet -lpthread
-	g++ -o listen listen.cpp -I"/usr/include" -I"./../" -I"./../../../base" -L"/usr/lib" -Wall -DNDEBUG -g -L"./../" -llxnet -lpthread
+	g++ -o listen listen.cpp -I"/usr/include" -I"./../" -I"./../../../base" -L"/usr/lib" -Wall -DNDEBUG -O2 -L"./../" -llxnet -lpthread
