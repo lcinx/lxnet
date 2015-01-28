@@ -69,7 +69,7 @@ struct MessagePack:public Msg {
 			return;
 		}
 
-		if ((index + size) >= e_thismessage_max_size) {
+		if ((index + size) > e_thismessage_max_size) {
 			assert(false && "is overflow!!! error!");
 			return;
 		}
@@ -78,7 +78,7 @@ struct MessagePack:public Msg {
 	}
 
 	bool CanPush(size_t size) {
-		if ((m_index + size) >= e_thismessage_max_size)
+		if ((m_index + size) > e_thismessage_max_size)
 			return false;
 		return true;
 	}
@@ -86,7 +86,7 @@ struct MessagePack:public Msg {
 	bool PushBlock(void *data, size_t size) {
 		if (!data)
 			return false;
-		if ((m_index + size) >= e_thismessage_max_size) {
+		if ((m_index + size) > e_thismessage_max_size) {
 			assert(false && "error!");
 			return false;
 		}
@@ -156,7 +156,7 @@ struct MessagePack:public Msg {
 	}
 
 	void PushInt64(int64 data) {
-		if ((m_index + sizeof(data)) >= e_thismessage_max_size) {
+		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
 			assert(false && "error!");
 			return;
 		}
@@ -167,7 +167,7 @@ struct MessagePack:public Msg {
 	}
 
 	void PushInt32(int32 data) {
-		if ((m_index + sizeof(data)) >= e_thismessage_max_size) {
+		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
 			assert(false && "error!");
 			return;
 		}
@@ -178,7 +178,7 @@ struct MessagePack:public Msg {
 	}
 
 	void PushInt16(int16 data) {
-		if ((m_index + sizeof(data)) >= e_thismessage_max_size) {
+		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
 			assert(false && "error!");
 			return;
 		}
@@ -189,7 +189,7 @@ struct MessagePack:public Msg {
 	}
 
 	void PushInt8(int8 data) {
-		if ((m_index + sizeof(data)) >= e_thismessage_max_size) {
+		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
 			assert(false && "error!");
 			return;
 		}
@@ -204,7 +204,7 @@ struct MessagePack:public Msg {
 	}
 
 	void PushFloat(float data) {
-		if ((m_index + sizeof(data)) >= e_thismessage_max_size) {
+		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
 			assert(false && "error!");
 			return;
 		}
@@ -215,7 +215,7 @@ struct MessagePack:public Msg {
 	}
 
 	void PushDouble(double data) {
-		if ((m_index + sizeof(data)) >= e_thismessage_max_size) {
+		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
 			assert(false && "error!");
 			return;
 		}
@@ -226,12 +226,13 @@ struct MessagePack:public Msg {
 	}
 
 	bool GetBlock(void *data, size_t size) {
-		if ((size == 0 ) || (size >= e_thismessage_max_size))
+		if (size == 0)
 			return false;
 		if (int(m_index + size) > m_maxindex) {
 			assert(false && "error!");
 			return false;
 		}
+
 		memcpy(data, &m_buf[m_index], size);
 		m_index += size;
 		return true;
@@ -246,6 +247,11 @@ struct MessagePack:public Msg {
 
 		if (0 == size)
 			return "";
+
+		if (int(m_index + size) > m_maxindex) {
+			assert(false && "error!");
+			return NULL;
+		}
 
 		const char *data = &m_buf[m_index];
 		*datalen = (size_t)size;
@@ -283,6 +289,11 @@ struct MessagePack:public Msg {
 
 		if (0 == size)
 			return "";
+
+		if (int(m_index + size) > m_maxindex) {
+			assert(false && "error!");
+			return NULL;
+		}
 
 		const char *data = &m_buf[m_index];
 		*datalen = size;
