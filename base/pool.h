@@ -40,4 +40,3 @@ void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize);
 #endif
 #endif
 
-
