@@ -614,7 +614,7 @@ void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize) {
 	(unsigned long)totalsize, (unsigned long)totalsize/1024, (unsigned long)totalsize/(1024*1024), \
 	(unsigned long)self->free_pool_num_for_shrink, self->free_node_ratio_for_shrink);
 #else
-	snprintf(buf, bufsize, "not use pools!");
+	snprintf(buf, bufsize, "%s not use pools!\n", self->name);
 #endif
 
 	buf[bufsize-1] = 0;
