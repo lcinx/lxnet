@@ -15,8 +15,8 @@ extern "C" {
 #include "buf_info.h"
 #include "net_crypt.h"
 
-/* max packet size --- 256K. */
-#define _MAX_MSG_LEN (1024*256)
+/* max packet size --- 136K. */
+#define _MAX_MSG_LEN (1024 * 136)
 struct net_buf;
 /* 
  * create buf.
@@ -27,7 +27,7 @@ struct net_buf *buf_create(bool bigbuf);
 /*
  * set buf encrypt function or decrypt function, and some logic data.
  * */
-void buf_setdofunc(struct net_buf *self, dofunc_f func, void (*release_logicdata) (void *logicdata), void *logicdata);
+void buf_setdofunc(struct net_buf *self, dofunc_f func, void (*release_logicdata)(void *logicdata), void *logicdata);
 
 /* release buf. */
 void buf_release(struct net_buf *self);
@@ -47,6 +47,8 @@ void buf_use_tgw(struct net_buf *self);
 
 void buf_set_raw_datasize(struct net_buf *self, size_t size);
 
+long buf_get_data_size(struct net_buf *self);
+
 /* push len, if is more than the limit, return true.*/
 bool buf_add_islimit(struct net_buf *self, size_t len);
 
@@ -62,7 +64,7 @@ bool buf_can_not_send(struct net_buf *self);
  * */
 
 /* get write buffer info. */
-struct bufinfo buf_getwritebufinfo(struct net_buf *self);
+struct buf_info buf_getwritebufinfo(struct net_buf *self);
 
 /* add write position. */
 void buf_addwrite(struct net_buf *self, char *buf, int len);
@@ -78,7 +80,7 @@ bool buf_recv_end_do(struct net_buf *self);
  * */
 
 /* get read buffer info. */
-struct bufinfo buf_getreadbufinfo(struct net_buf *self);
+struct buf_info buf_getreadbufinfo(struct net_buf *self);
 
 /* add read positon. */
 void buf_addread(struct net_buf *self, int len);
@@ -91,7 +93,7 @@ void buf_send_before_do(struct net_buf *self);
 bool buf_pushmessage(struct net_buf *self, const char *msgbuf, int len);
 
 /* get packet from the buffer, if error, then needclose is true. */
-char *buf_getmessage(struct net_buf *self, bool *needclose, char *buf, size_t bufsize, int sockfd);
+char *buf_getmessage(struct net_buf *self, bool *needclose, char *buf, size_t bufsize);
 
 /* get data from the buffer, if error, then needclose is true. */
 char *buf_getdata(struct net_buf *self, bool *needclose, char *buf, int bufsize, int *datalen);

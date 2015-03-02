@@ -108,6 +108,9 @@ public:
 	/* 获取此客户端ip地址*/
 	void GetIP(char *ip, size_t len);
 
+	/* 获取发送缓冲待发送字节数(若为0表示不存在待发送数据或数据已写入系统缓冲) */
+	long GetSendBufferByteSize();
+
 	/* 发送数据，仅仅是把数据压入包队列中，adddata为附加到pMsg后面的数据，当然会自动修改pMsg的长度，addsize指定adddata的长度*/
 	bool SendMsg(Msg *pMsg, void *adddata = 0, size_t addsize = 0);
 

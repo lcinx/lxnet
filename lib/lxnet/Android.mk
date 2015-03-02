@@ -23,6 +23,7 @@ LOCAL_SRC_FILES := ./../../base/crosslib.c \
 					./lxnet.cpp
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../base \
+					$(LOCAL_PATH)/../../base/buf \
 					$(LOCAL_PATH)/../../3rd/quicklz \
                     $(LOCAL_PATH)/src/buf \
 					$(LOCAL_PATH)/src/event \

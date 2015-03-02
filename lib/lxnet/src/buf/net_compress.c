@@ -24,9 +24,9 @@
  *
  * Attention: Will remove the original header length, and then uncompress, because the header length is the compressed added.
  * */
-struct bufinfo compressmgr_uncompressdata(char *uncompressbuf, int uncompresslen, char *quicklzbuf, char *data, int len) {
+struct buf_info compressmgr_uncompressdata(char *uncompressbuf, int uncompresslen, char *quicklzbuf, char *data, int len) {
 	size_t needsize;
-	struct bufinfo resbuf;
+	struct buf_info resbuf;
 	resbuf.buf= NULL;
 	resbuf.len = 0;
 	
@@ -56,8 +56,8 @@ struct bufinfo compressmgr_uncompressdata(char *uncompressbuf, int uncompresslen
  * 
  * Attention: Will form a compressed data packet, plus the header length.
  * */
-struct bufinfo compressmgr_do_compressdata(char *compressbuf, char *quicklzbuf, char *data, int len) {
-	struct bufinfo resbuf;
+struct buf_info compressmgr_do_compressdata(char *compressbuf, char *quicklzbuf, char *data, int len) {
+	struct buf_info resbuf;
 	assert(data != NULL);
 	assert(len > 0);
 	print_debug("compress before, msg len:%d\n", len);

@@ -50,12 +50,12 @@ typedef uint8_t uint8;
 		#define snprintf(buf, bufsize, fmt, ...) \
 			(((buf)[(bufsize) - 1] = '\0'), _snprintf((buf), (size_t)(bufsize) - 1, fmt, __VA_ARGS__))
 
-		#define safe_localtime(timep, tm_result) (localtime_s((tm_result), (timep)), (tm_result))
-		#define safe_gmtime(timep, tm_result) (gmtime_s((tm_result), (timep)), (tm_result))
+		#define safe_localtime(timep, tm_result)	(localtime_s((tm_result), (timep)), (tm_result))
+		#define safe_gmtime(timep, tm_result)		(gmtime_s((tm_result), (timep)), (tm_result))
 	#else
 		#define snprintf _snprintf
-		#define safe_localtime(timep, tm_result) (((void)tm_result), localtime(timep))
-		#define safe_gmtime(timep, tm_result) (((void)tm_result), gmtime(timep))
+		#define safe_localtime(timep, tm_result)	(((void)tm_result), localtime(timep))
+		#define safe_gmtime(timep, tm_result)		(((void)tm_result), gmtime(timep))
 	#endif
 
 	#define _FORMAT_64D_NUM "%I64d"

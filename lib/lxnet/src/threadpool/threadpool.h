@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 struct threadmgr;
-typedef int (*do_func) (void *argv);
+typedef int (*do_func)(void *argv);
 
 /* 
  * Create a thread pool that has threadnum threads, and suspend all.

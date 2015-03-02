@@ -97,6 +97,22 @@ struct MessagePack:public Msg {
 		return true;
 	}
 
+	bool PushLBlock(void *data, size_t size) {
+		if (!data)
+			return false;
+		if ((m_index + size + sizeof(int32)) > e_thismessage_max_size) {
+			assert(false && "error!");
+			return false;
+		}
+
+		PushInt32(size);
+
+		memcpy(&m_buf[m_index], data, size);
+		m_index += size;
+		header.msglength += size;
+		return true;
+	}
+
 	bool PushLString(const char *str, size_t strsize, int16 maxpush = SHRT_MAX - 3) {
 		assert(strsize < SHRT_MAX - 3);
 		int16 size = (int16)strsize;
@@ -236,6 +252,27 @@ struct MessagePack:public Msg {
 		memcpy(data, &m_buf[m_index], size);
 		m_index += size;
 		return true;
+	}
+
+	const char *GetLBlock(size_t *datalen) {
+		*datalen = 0;
+		int32 size = GetInt32();
+		assert(size >= 0);
+		if (size < 0)
+			return NULL;
+		
+		if (0 == size)
+			return "";
+
+		if (int(m_index + size) > m_maxindex) {
+			assert(false && "error!");
+			return NULL;
+		}
+		
+		const char *data = &m_buf[m_index];
+		*datalen = (size_t)size;
+		m_index += size;
+		return data;
 	}
 
 	const char *GetLString(size_t *datalen) {

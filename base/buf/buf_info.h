@@ -11,12 +11,10 @@
 extern "C" {
 #endif
 
-
-struct bufinfo {
+struct buf_info {
 	char *buf;
 	int len;
 };
-
 
 #ifdef __cplusplus
 }

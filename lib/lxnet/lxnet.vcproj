@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\base;..\..\3rd\quicklz;.\src\buf;.\src\sock;.\src\event;.\src\threadpool"
+				AdditionalIncludeDirectories="..\..\base;..\..\base\buf;..\..\3rd\quicklz;.\src\buf;.\src\sock;.\src\event;.\src\threadpool"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -106,7 +106,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\..\base;.\src\buf;.\src\sock;.\src\event;.\src\threadpool"
+				AdditionalIncludeDirectories="..\..\base;..\..\base\buf;..\..\3rd\quicklz;.\src\buf;.\src\sock;.\src\event;.\src\threadpool"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
@@ -183,6 +183,22 @@
 					RelativePath="..\..\base\pool.h"
 					>
 				</File>
+				<Filter
+					Name="buf"
+					>
+					<File
+						RelativePath="..\..\base\buf\block.h"
+						>
+					</File>
+					<File
+						RelativePath="..\..\base\buf\block_list.h"
+						>
+					</File>
+					<File
+						RelativePath="..\..\base\buf\buf_info.h"
+						>
+					</File>
+				</Filter>
 			</Filter>
 			<Filter
 				Name="src"
@@ -202,18 +218,6 @@
 				<Filter
 					Name="buf"
 					>
-					<File
-						RelativePath=".\src\buf\buf_info.h"
-						>
-					</File>
-					<File
-						RelativePath=".\src\buf\net_block.h"
-						>
-					</File>
-					<File
-						RelativePath=".\src\buf\net_blocklist.h"
-						>
-					</File>
 					<File
 						RelativePath=".\src\buf\net_buf.c"
 						>

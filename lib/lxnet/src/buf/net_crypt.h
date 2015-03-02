@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-typedef void (*dofunc_f) (void *logicdata, char *buf, int len);
+typedef void (*dofunc_f)(void *logicdata, char *buf, int len);
 
 #ifdef __cplusplus
 }

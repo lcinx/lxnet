@@ -344,7 +344,7 @@ static inline struct node *poolmgr_nodepool_alloc_node(struct poolmgr *self) {
 }
 #endif
 
-#define F_MAKE_ALIGNMENT(num, align) (((num) + ((align)-1)) & (~((align)-1)))
+#define F_MAKE_ALIGNMENT(num, align) (((num) + ((align) - 1)) & (~((align) - 1)))
 static inline bool alignment_check(size_t alignment) {
 	switch (alignment) {
 	case 1:

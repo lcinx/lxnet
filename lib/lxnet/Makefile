@@ -14,7 +14,7 @@ LIBS =
 SUBDIRS =
 
 #源文件包含路径、库列表
-SOURCEINC = -I"./../../base/" -I"./src/buf/" -I"./src/event/" -I"./src/sock/" -I"./src/threadpool/" -I"./../../3rd/quicklz/"
+SOURCEINC = -I"./../../base/" -I"./../../base/buf/" -I"./src/buf/" -I"./src/event/" -I"./src/sock/" -I"./src/threadpool/" -I"./../../3rd/quicklz/"
 #
 #
 #maintest.c tree/rbtree.c  多了子目录，那就直接添加 目录/*.c即可   所有的源文件--  .c文件列表

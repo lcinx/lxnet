@@ -281,6 +281,16 @@ void socketer_getip(struct socketer *self, char *ip, size_t len) {
 	ip[len-1] = '\0';
 }
 
+long socketer_get_send_buffer_byte_size(struct socketer *self) {
+	if (!self)
+		return 0;
+
+	if (!self->sendbuf)
+		return 0;
+
+	return buf_get_data_size(self->sendbuf);
+}
+
 bool socketer_gethostname(char *name, size_t len) {
 	if (gethostname(name, len) == 0) {
 		name[len - 1] = '\0';
@@ -359,7 +369,7 @@ void *socketer_getmsg(struct socketer *self, char *buf, size_t bufsize) {
 	if (!self)
 		return NULL;
 	socketer_initrecvbuf(self);
-	msg = buf_getmessage(self->recvbuf, &needclose, buf, bufsize, self->sockfd);
+	msg = buf_getmessage(self->recvbuf, &needclose, buf, bufsize);
 	if (needclose)
 		socketer_close(self);
 	return msg;
@@ -440,7 +450,7 @@ void socketer_use_uncompress(struct socketer *self) {
 }
 
 /* set encrypt function and logic data. */
-void socketer_set_encrypt_function(struct socketer *self, dofunc_f encrypt_func, void (*release_logicdata) (void *), void *logicdata) {
+void socketer_set_encrypt_function(struct socketer *self, dofunc_f encrypt_func, void (*release_logicdata)(void *), void *logicdata) {
 	assert(self != NULL);
 	if (!self || !encrypt_func)
 		return;
@@ -450,7 +460,7 @@ void socketer_set_encrypt_function(struct socketer *self, dofunc_f encrypt_func,
 }
 
 /* set encrypt function and logic data. */
-void socketer_set_decrypt_function(struct socketer *self, dofunc_f decrypt_func, void (*release_logicdata) (void *), void *logicdata) {
+void socketer_set_decrypt_function(struct socketer *self, dofunc_f decrypt_func, void (*release_logicdata)(void *), void *logicdata) {
 	assert(self != NULL);
 	if (!self || !decrypt_func)
 		return;
@@ -497,7 +507,7 @@ void socketer_set_raw_datasize(struct socketer *self, size_t size) {
 
 void socketer_on_recv(struct socketer *self, int len) {
 	int res;
-	struct bufinfo writebuf;
+	struct buf_info writebuf;
 	debuglog("on recv\n");
 
 	assert(self->recvlock == 1);
@@ -589,7 +599,7 @@ void socketer_on_recv(struct socketer *self, int len) {
 
 void socketer_on_send(struct socketer *self, int len) {
 	int res;
-	struct bufinfo readbuf;
+	struct buf_info readbuf;
 	debuglog("on send\n");
 
 	assert(self->sendlock == 1);

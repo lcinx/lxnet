@@ -75,17 +75,20 @@ static void *threadlocal_getbuf(struct thread_localuse self[_MAX_SAFE_THREAD_NUM
 }
 
 /* get temp packet buf. */
-void *threadbuf_get_msg_buf() {
+struct buf_info threadbuf_get_msg_buf() {
+	struct buf_info tempbuf;
 	if (!s_threadlock.isinit) {
 		log_error("if (!s_threadlock.isinit)");
 		exit(1);
 	}
-	return threadlocal_getbuf(s_threadlock.msgbuf, s_threadlock.msgmaxsize, &s_threadlock.msgbuf_freeindex);
+	tempbuf.buf = threadlocal_getbuf(s_threadlock.msgbuf, s_threadlock.msgmaxsize, &s_threadlock.msgbuf_freeindex);
+	tempbuf.len = s_threadlock.msgmaxsize;
+	return tempbuf;
 }
 
 /* get temp compress/uncompress buf. */
-struct bufinfo threadbuf_get_compress_buf() {
-	struct bufinfo tempbuf;
+struct buf_info threadbuf_get_compress_buf() {
+	struct buf_info tempbuf;
 	if (!s_threadlock.isinit) {
 		log_error("if (!s_threadlock.isinit)");
 		exit(1);

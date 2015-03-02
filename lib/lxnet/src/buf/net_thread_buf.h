@@ -15,10 +15,10 @@ extern "C" {
 #include "buf_info.h"
 
 /* get temp packet buf. */
-void *threadbuf_get_msg_buf();
+struct buf_info threadbuf_get_msg_buf();
 
 /* get temp compress/uncompress buf. */
-struct bufinfo threadbuf_get_compress_buf();
+struct buf_info threadbuf_get_compress_buf();
 
 /* get quicklz compress lib buf. */
 void *threadbuf_get_quicklz_buf();

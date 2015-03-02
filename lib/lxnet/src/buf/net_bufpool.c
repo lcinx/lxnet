@@ -136,40 +136,6 @@ void bufpool_releasesmallblock(void *self) {
 	spin_lock_unlock(&s_pool.small_lock);
 }
 
-void bufpool_bigblock_lock() {
-	assert(s_pool.isinit);
-	spin_lock_lock(&s_pool.big_lock);
-}
-
-void bufpool_bigblock_unlock() {
-	assert(s_pool.isinit);
-	spin_lock_unlock(&s_pool.big_lock);
-}
-
-/* release bigblock, but not lock. */
-void bufpool_releasebigblock_notlock(void *self) {
-	assert(self != NULL);
-	assert(s_pool.isinit);
-	poolmgr_freeobject(s_pool.bigblockpool, self);
-}
-
-void bufpool_smallblock_lock() {
-	assert(s_pool.isinit);
-	spin_lock_lock(&s_pool.small_lock);
-}
-
-void bufpool_smallblock_unlock() {
-	assert(s_pool.isinit);
-	spin_lock_unlock(&s_pool.small_lock);
-}
-
-/* release smallblock, but not lock. */
-void bufpool_releasesmallblock_notlock(void *self) {
-	assert(self != NULL);
-	assert(s_pool.isinit);
-	poolmgr_freeobject(s_pool.smallblockpool, self);
-}
-
 void *bufpool_createbuf() {
 	void *self = NULL;
 	if (!s_pool.isinit)

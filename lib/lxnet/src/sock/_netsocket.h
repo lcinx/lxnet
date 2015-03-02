@@ -38,6 +38,8 @@ bool socketer_isclose(struct socketer *self);
 
 void socketer_getip(struct socketer *self, char *ip, size_t len);
 
+long socketer_get_send_buffer_byte_size(struct socketer *self);
+
 bool socketer_gethostname(char *name, size_t len);
 
 bool socketer_gethostbyname(const char *name, char *buf, size_t len);
@@ -73,10 +75,10 @@ void socketer_use_compress(struct socketer *self);
 void socketer_use_uncompress(struct socketer *self);
 
 /* set encrypt function and logic data. */
-void socketer_set_encrypt_function(struct socketer *self, dofunc_f encrypt_func, void (*release_logicdata) (void *), void *logicdata);
+void socketer_set_encrypt_function(struct socketer *self, dofunc_f encrypt_func, void (*release_logicdata)(void *), void *logicdata);
 
 /* set encrypt function and logic data. */
-void socketer_set_decrypt_function(struct socketer *self, dofunc_f decrypt_func, void (*release_logicdata) (void *), void *logicdata);
+void socketer_set_decrypt_function(struct socketer *self, dofunc_f decrypt_func, void (*release_logicdata)(void *), void *logicdata);
 
 void socketer_use_encrypt(struct socketer *self);
 

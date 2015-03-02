@@ -25,7 +25,7 @@ extern "C" {
  *
  * Attention: Will remove the original header length, and then uncompress, because the header length is the compressed added.
  * */
-struct bufinfo compressmgr_uncompressdata(char *uncompressbuf, int uncompresslen, char *quicklzbuf, char *data, int len);
+struct buf_info compressmgr_uncompressdata(char *uncompressbuf, int uncompresslen, char *quicklzbuf, char *data, int len);
 
 /* compress data.
  * compressbuf --- is compress buffer.
@@ -37,7 +37,7 @@ struct bufinfo compressmgr_uncompressdata(char *uncompressbuf, int uncompresslen
  * 
  * Attention: Will form a compressed data packet, plus the header length.
  * */
-struct bufinfo compressmgr_do_compressdata(char *compressbuf, char *quicklzbuf, char *data, int len);
+struct buf_info compressmgr_do_compressdata(char *compressbuf, char *quicklzbuf, char *data, int len);
 
 #ifdef __cplusplus
 }

@@ -37,20 +37,6 @@ void *bufpool_createsmallblock();
 
 void bufpool_releasesmallblock(void *self);
 
-void bufpool_bigblock_lock();
-
-void bufpool_bigblock_unlock();
-
-/* release bigblock, but not lock. */
-void bufpool_releasebigblock_notlock(void *self);
-
-void bufpool_smallblock_lock();
-
-void bufpool_smallblock_unlock();
-
-/* release smallblock, but not lock. */
-void bufpool_releasesmallblock_notlock(void *self);
-
 void *bufpool_createbuf();
 
 void bufpool_releasebuf(void *self);

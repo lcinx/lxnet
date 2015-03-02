@@ -325,6 +325,11 @@ void Socketer::GetIP(char *ip, size_t len) {
 	socketer_getip(m_self, ip, len);
 }
 
+/* 获取发送缓冲待发送字节数(若为0表示不存在待发送数据或数据已写入系统缓冲) */
+long Socketer::GetSendBufferByteSize() {
+	return socketer_get_send_buffer_byte_size(m_self);
+}
+
 /* 发送数据，仅仅是把数据压入包队列中，adddata为附加到pMsg后面的数据，当然会自动修改pMsg的长度，addsize指定adddata的长度*/
 bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 	if (!pMsg)
