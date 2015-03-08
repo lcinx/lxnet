@@ -5,6 +5,7 @@
 */
 
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 #include "ossome.h"
 #include "_netsocket.h"
@@ -200,8 +201,6 @@ void socketer_release(struct socketer *self) {
 }
 
 bool socketer_connect(struct socketer *self, const char *ip, short port) {
-	struct sockaddr_in soaddr;
-	int lasterror;
 	assert(self != NULL);
 	assert(ip != NULL);
 	if (!self || !ip || 0 == port)
@@ -209,42 +208,68 @@ bool socketer_connect(struct socketer *self, const char *ip, short port) {
 	assert(!self->connected);
 	if (self->connected)
 		return false;
+
 	if (self->sockfd == NET_INVALID_SOCKET) {
-		self->sockfd = socket_create();
+		struct addrinfo hints;
+		struct addrinfo *ai_list, *cur;
+		int status;
+		char port_buf[16];
+		int lasterror;
+
+		snprintf(port_buf, sizeof(port_buf), "%d", (int)port);
+		port_buf[sizeof(port_buf) - 1] = '\0';
+
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_protocol = IPPROTO_TCP;
+
+		status = getaddrinfo(ip, port_buf, &hints, &ai_list);
+		if (status != 0)
+			return false;
+	
+		cur = ai_list;
+		do {
+			self->sockfd = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
+			if (self->sockfd == NET_INVALID_SOCKET)
+				continue;
+
+			socket_setopt_for_connect(self->sockfd);
+
+			if (connect(self->sockfd, cur->ai_addr, cur->ai_addrlen) == 0)
+				break;
+
+			lasterror = NET_GetLastError();
+			if (SOCKET_ERR_CONNECT_RETRIABLE(lasterror) || SOCKET_ERR_CONNECT_ALREADY(lasterror))
+				break;
+			
+			socket_close(&self->sockfd);
+		} while ((cur = cur->ai_next) != NULL);
+
+		freeaddrinfo(ai_list);
+
 		if (self->sockfd == NET_INVALID_SOCKET) {
-			log_error("self->sockfd = socket_create(); is invalid socket!, error!");
+			log_error("socketer connect, but is invalid socket!, error!");
 			return false;
 		}
-		socket_setopt_for_connect(self->sockfd);
 	}
 
-	soaddr.sin_family = AF_INET;
-	soaddr.sin_addr.s_addr = inet_addr(ip);
-	if (soaddr.sin_addr.s_addr == INADDR_NONE) {
-		struct hostent *lphost = gethostbyname(ip);
-		if (lphost != NULL)
-			memcpy(&(soaddr.sin_addr), *(lphost->h_addr_list), sizeof(struct in_addr));
-		else
+	{
+		int error;
+		socklen_t len = sizeof(error);
+		int code = getsockopt(self->sockfd, SOL_SOCKET, SO_ERROR, (void *)&error, &len);
+		if (code < 0 || SOCKET_ERR_CONNECT_REFUSED(error)) {
+			socket_close(&self->sockfd);
 			return false;
-	}
-	soaddr.sin_port = htons(port);
-	if (connect(self->sockfd, (struct sockaddr *)&soaddr, (net_sock_len)sizeof(soaddr)) < 0) {
-		lasterror = NET_GetLastError();
-		if (SOCKET_ERR_CONNECT_RETRIABLE(lasterror) || 
-				SOCKET_ERR_CONNECT_REFUSED(lasterror))
-			return false;
-		if (SOCKET_ERR_CONNECT_ALREADY(lasterror)) {
+		}
+
+		if (socket_can_write(self->sockfd)) {
 			socketer_addto_eventlist(self);
 			return true;
 		}
-
-		socket_close(&self->sockfd);
-		self->sockfd = NET_INVALID_SOCKET;
-		return false;
-	} else {
-		socketer_addto_eventlist(self);
-		return true;
 	}
+
+	return false;
 }
 
 void socketer_close(struct socketer *self) {
@@ -269,16 +294,21 @@ bool socketer_isclose(struct socketer *self) {
 }
 
 void socketer_getip(struct socketer *self, char *ip, size_t len) {
-	struct sockaddr_in localaddr;
+	struct sockaddr localaddr;
 	net_sock_len isize = sizeof(localaddr);
 	assert(self != NULL);
 	assert(ip != NULL);
-	if (!self || !ip)
+	if (!self || !ip || len < 1)
 		return;
-	if (0 == getpeername(self->sockfd, (struct sockaddr*)&localaddr, &isize)) {
-		strncpy(ip, inet_ntoa(localaddr.sin_addr), len-1);
+
+	ip[0] = '\0';
+	if (getpeername(self->sockfd, &localaddr, &isize) == 0) {
+		if (getnameinfo(&localaddr, isize, ip, len, 0, 0, NI_NUMERICHOST) != 0) {
+			ip[0] = '\0';
+			return;
+		}
 	}
-	ip[len-1] = '\0';
+	ip[len - 1] = '\0';
 }
 
 long socketer_get_send_buffer_byte_size(struct socketer *self) {
@@ -301,17 +331,35 @@ bool socketer_gethostname(char *name, size_t len) {
 	return false;
 }
 
-bool socketer_gethostbyname(const char *name, char *buf, size_t len) {
-	const char *ip;
-	struct hostent *lphost = gethostbyname(name);
-	if (!lphost || len < 64)
-		return false;
-	ip = inet_ntoa(*((struct in_addr *)lphost->h_addr));
-	if (!ip)
+bool socketer_gethostbyname(const char *name, char *buf, size_t len, bool ipv6) {
+	struct addrinfo hints;
+	struct addrinfo *ai_list, *cur;
+	int status;
+	if (!name || !buf || len < 64)
 		return false;
 
-	strncpy(buf, ip, len - 1);
-	buf[len - 1] = '\0';
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = (ipv6 ? AF_INET6 : AF_INET);
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+
+	status = getaddrinfo(name, NULL, &hints, &ai_list);
+	if (status != 0)
+		return false;
+	
+	cur = ai_list;
+	do {
+		if (getnameinfo(cur->ai_addr, cur->ai_addrlen, buf, len, 0, 0, NI_NUMERICHOST) == 0)
+			break;
+
+		buf[0] = '\0';
+	} while ((cur = cur->ai_next) != NULL);
+
+	freeaddrinfo(ai_list);
+
+	if (cur == NULL)
+		return false;
+
 	return true;
 }
 

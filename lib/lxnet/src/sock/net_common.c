@@ -21,9 +21,6 @@
 
 #endif
 
-net_socket socket_create() {
-	return socket(AF_INET, SOCK_STREAM, 0);
-}
 
 int socket_close(net_socket *sockfd) {
 	int res;
@@ -91,7 +88,7 @@ static bool set_reuseaddr(net_socket fd) {
 	return true;
 #else
 	int reuseaddr = 1;
-	return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const void *) &reuseaddr, sizeof(int)) != -1;
+	return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const void *) &reuseaddr, sizeof(int)) == 0;
 #endif
 }
 
@@ -113,10 +110,31 @@ int socket_can_read(net_socket fd) {
 	
 #else
 
-	struct pollfd readset;
-	readset.fd = fd;
-	readset.events = POLLIN | POLLPRI;
-	return poll(&readset, 1, 0);
+	struct pollfd set;
+	set.fd = fd;
+	set.events = POLLIN;
+	return poll(&set, 1, 0);
+#endif
+}
+
+int socket_can_write(net_socket fd) {
+	#ifdef WIN32
+
+	fd_set set;
+	struct timeval tout;
+	tout.tv_sec = 0;
+	tout.tv_usec = 0;
+	
+	FD_ZERO(&set);
+	FD_SET(fd, &set);
+	return select((int)fd + 1, NULL, &set, NULL, &tout);
+	
+#else
+
+	struct pollfd set;
+	set.fd = fd;
+	set.events = POLLOUT;
+	return poll(&set, 1, 0);
 #endif
 }
 

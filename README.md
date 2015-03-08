@@ -12,7 +12,7 @@ is the game network library
 
 使用平台：
 
-Windows（32位可用，64位暂时未测试） 与 Linux（32位和64位都可用）
+Windows 与 Linux
 适用场合、范围:
 
 适合于这样的应用： 

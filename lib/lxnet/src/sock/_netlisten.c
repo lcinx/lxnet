@@ -5,6 +5,7 @@
 */
 
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 #include "_netlisten.h"
 #include "net_common.h"
@@ -59,29 +60,58 @@ void listener_release(struct listener *self) {
  * backlog --- listen queue, max wait connect. 
  * */
 bool listener_listen(struct listener *self, unsigned short port, int backlog) {
-	struct sockaddr_in soaddr;
+	struct addrinfo hints;
+	struct addrinfo *ai_list, *cur;
+	int status;
+	char port_buf[16];
 	assert(self != NULL);
 	assert(!self->isfree);
 	if (!self)
 		return false;
-	if (self->sockfd != NET_INVALID_SOCKET) {
+
+	if (self->sockfd != NET_INVALID_SOCKET)
 		socket_close(&self->sockfd);
-	}
-	self->sockfd = socket_create();
-	if (self->sockfd == NET_INVALID_SOCKET)
+
+	ai_list = NULL;
+
+	snprintf(port_buf, sizeof(port_buf), "%d", (int)port);
+	port_buf[sizeof(port_buf) - 1] = '\0';
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = AI_PASSIVE;
+#ifdef WIN32
+	hints.ai_family = AF_INET;
+#else
+	hints.ai_family = AF_UNSPEC;
+#endif
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+
+	status = getaddrinfo(NULL, port_buf, &hints, &ai_list);
+	if (status != 0)
 		return false;
 
-	if (!socket_setopt_for_listen(self->sockfd)) {
+	cur = ai_list;
+	do {
+		self->sockfd = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
+		if (self->sockfd == NET_INVALID_SOCKET)
+			continue;
+
+		if (!socket_setopt_for_listen(self->sockfd)) {
+			socket_close(&self->sockfd);
+			continue;
+		}
+		
+		if (bind(self->sockfd, cur->ai_addr, cur->ai_addrlen) == 0)
+			break;
+
 		socket_close(&self->sockfd);
-		return false;
-	}
 
-	memset(&soaddr, 0, sizeof(soaddr));
-	soaddr.sin_family = AF_INET;
-	soaddr.sin_addr.s_addr = INADDR_ANY;
-	soaddr.sin_port = htons(port);
+	} while ((cur = cur->ai_next) != NULL);
 
-	if (bind(self->sockfd, (struct sockaddr *)&soaddr, sizeof(soaddr)) != 0) {
+	freeaddrinfo(ai_list);
+
+	if (cur == NULL) {
 		socket_close(&self->sockfd);
 		return false;
 	}
@@ -90,6 +120,7 @@ bool listener_listen(struct listener *self, unsigned short port, int backlog) {
 		socket_close(&self->sockfd);
 		return false;
 	}
+
 	return true;
 }
 

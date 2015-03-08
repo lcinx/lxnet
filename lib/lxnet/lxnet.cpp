@@ -481,11 +481,8 @@ const char *GetHostName() {
 }
 
 /* 根据域名获取ip地址 */
-const char *GetHostIPByName(const char *hostname) {
-	static char buf[128];
-	buf[0] = '\0';
-	socketer_gethostbyname(hostname, buf, sizeof(buf));
-	return buf;
+bool GetHostIPByName(const char *hostname, char *buf, size_t buflen, bool ipv6) {
+	return socketer_gethostbyname(hostname, buf, buflen, ipv6);
 }
 
 /* 启用/禁用接受的连接导致的错误日志，并返回之前的值 */

@@ -15,7 +15,15 @@ extern "C" {
 
 #ifdef WIN32
 
+#ifdef __GNUC__
+#if (_WIN32_WINNT < 0x0501)
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
+#endif
+#endif
+
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #define net_socket SOCKET
 #define net_sock_len int
 #define NET_INVALID_SOCKET	INVALID_SOCKET
@@ -83,6 +91,8 @@ bool socket_setopt_for_connect(net_socket sockfd);
 bool socket_setopt_for_listen(net_socket sockfd);
 
 int socket_can_read(net_socket fd);
+
+int socket_can_write(net_socket fd);
 
 #ifdef __cplusplus
 }

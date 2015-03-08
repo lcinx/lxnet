@@ -153,7 +153,7 @@ bool net_init(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t s
 const char *GetHostName();
 
 /* 根据域名获取ip地址 */
-const char *GetHostIPByName(const char *hostname);
+bool GetHostIPByName(const char *hostname, char *buf, size_t buflen, bool ipv6 = false);
 
 /* 启用/禁用接受的连接导致的错误日志，并返回之前的值 */
 bool SetEnableErrorLog(bool flag);
