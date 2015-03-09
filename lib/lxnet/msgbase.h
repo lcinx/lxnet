@@ -63,7 +63,7 @@ struct MessagePack:public Msg {
 	}
 
 	//用于覆盖数据。不做包长度的累加
-	void PutDataNotAddLength(size_t index, void *data, size_t size) {
+	void PutDataNotAddLength(size_t index, const void *data, size_t size) {
 		if (!data) {
 			assert(false && "data is NULL !!");
 			return;
@@ -83,7 +83,7 @@ struct MessagePack:public Msg {
 		return true;
 	}
 
-	bool PushBlock(void *data, size_t size) {
+	bool PushBlock(const void *data, size_t size) {
 		if (!data)
 			return false;
 		if ((m_index + size) > e_thismessage_max_size) {
@@ -97,7 +97,7 @@ struct MessagePack:public Msg {
 		return true;
 	}
 
-	bool PushLBlock(void *data, size_t size) {
+	bool PushLBlock(const void *data, size_t size) {
 		if (!data)
 			return false;
 		if ((m_index + size + sizeof(int32)) > e_thismessage_max_size) {
@@ -124,7 +124,7 @@ struct MessagePack:public Msg {
 		PushInt16(size);
 		if (0 == size)
 			return true;
-		return PushBlock((void *)str, size);
+		return PushBlock(str, size);
 	}
 
 	bool PushString(const char *str, int16 maxpush = SHRT_MAX - 3) {
@@ -139,7 +139,7 @@ struct MessagePack:public Msg {
 		PushInt16(size);
 		if (0 == size)
 			return true;
-		return PushBlock((void *)str, size);
+		return PushBlock(str, size);
 	}
 
 	bool PushLBigString(const char *str, size_t strsize, int32 maxpush = INT_MAX - 3) {
@@ -153,7 +153,7 @@ struct MessagePack:public Msg {
 		PushInt32(size);
 		if (0 == size)
 			return true;
-		return PushBlock((void *)str, size);
+		return PushBlock(str, size);
 	}	
 
 	bool PushBigString(const char *str, int32 maxpush = INT_MAX - 3) {
@@ -168,7 +168,7 @@ struct MessagePack:public Msg {
 		PushInt32(size);
 		if (0 == size)
 			return true;
-		return PushBlock((void *)str, size);
+		return PushBlock(str, size);
 	}
 
 	void PushInt64(int64 data) {

@@ -168,7 +168,7 @@ static bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, 
 	int readsize, needread, getsize;
 	assert(self != NULL);
 	assert(buf != NULL);
-	assert(buf_size > 0);
+	assert(buf_size >= 0);
 
 	*read_len = 0;
 	readsize = 0;
@@ -186,7 +186,7 @@ static bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, 
 		readsize += getsize;
 	}
 
-	assert(needread > 0);
+	assert(needread >= 0);
 
 	atom_fetch_add(&self->datasize, (-needread));
 	*read_len = needread;
