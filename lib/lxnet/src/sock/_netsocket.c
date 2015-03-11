@@ -294,7 +294,7 @@ bool socketer_isclose(struct socketer *self) {
 }
 
 void socketer_getip(struct socketer *self, char *ip, size_t len) {
-	struct sockaddr localaddr;
+	struct sockaddr_storage localaddr;
 	net_sock_len isize = sizeof(localaddr);
 	assert(self != NULL);
 	assert(ip != NULL);
@@ -302,8 +302,8 @@ void socketer_getip(struct socketer *self, char *ip, size_t len) {
 		return;
 
 	ip[0] = '\0';
-	if (getpeername(self->sockfd, &localaddr, &isize) == 0) {
-		if (getnameinfo(&localaddr, isize, ip, len, 0, 0, NI_NUMERICHOST) != 0) {
+	if (getpeername(self->sockfd, (struct sockaddr *)&localaddr, &isize) == 0) {
+		if (getnameinfo((struct sockaddr *)&localaddr, isize, ip, len, 0, 0, NI_NUMERICHOST) != 0) {
 			ip[0] = '\0';
 			return;
 		}

@@ -53,7 +53,6 @@ typedef uint8_t uint8;
 		#define safe_localtime(timep, tm_result)	(localtime_s((tm_result), (timep)), (tm_result))
 		#define safe_gmtime(timep, tm_result)		(gmtime_s((tm_result), (timep)), (tm_result))
 	#else
-		#define snprintf _snprintf
 		#define safe_localtime(timep, tm_result)	(((void)tm_result), localtime(timep))
 		#define safe_gmtime(timep, tm_result)		(((void)tm_result), gmtime(timep))
 	#endif

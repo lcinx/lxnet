@@ -169,7 +169,7 @@ struct socketer *listener_accept(struct listener *self, bool bigbuf) {
 
 	/* can accept new connect. */
 	if (1 == e) {
-		struct sockaddr_in client_addr;		/* connect address info. */
+		struct sockaddr_storage client_addr;		/* connect address info. */
 		net_sock_len size = sizeof(client_addr);
 		struct socketer *temp;
 		net_socket new_sock = accept(self->sockfd, (struct sockaddr *)&client_addr, &size);

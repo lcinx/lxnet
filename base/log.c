@@ -12,7 +12,7 @@
 #include "log.h"
 
 #ifdef WIN32
-#include <io.h>
+#include <direct.h>
 #define my_mkdir _mkdir
 #else
 #include <sys/stat.h>
