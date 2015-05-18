@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #include <string.h>
 #include "net_module.h"

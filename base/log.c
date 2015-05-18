@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #include <time.h>
 #include <stdarg.h>
@@ -117,6 +117,16 @@ void filelog_everyflush(struct filelog *self, bool flag) {
 		return;
 
 	self->loggroup[enum_log_type_log].everyflush = flag;
+}
+
+void filelog_flush(struct filelog *self) {
+	FILE *fp;
+	if (!self)
+		return;
+
+	fp = self->loggroup[enum_log_type_log].fp;
+	if (fp)
+		fflush(fp);
 }
 
 int mymkdir_r(const char *directname) {
@@ -321,10 +331,10 @@ void _log_write_(struct filelog *log, unsigned int type, const char *filename, c
 		va_list args;
 		if (enum_log_type_log == type) {
 			if (info->logtime)
-				fprintf(info->fp, "[%04d-%02d-%02d %02d:%02d:%02d]  ", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday,
+				fprintf(info->fp, "[%04d-%02d-%02d %02d:%02d:%02d] ", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday,
 				currTM->tm_hour, currTM->tm_min, currTM->tm_sec);
 		} else {
-			fprintf(info->fp, "[%04d/%02d/%02d %02d:%02d:%02d] [file:%s, function:%s, line:%ld] ", 
+			fprintf(info->fp, "[%04d-%02d-%02d %02d:%02d:%02d] [file:%s, function:%s, line:%ld] ", 
 			currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, currTM->tm_hour, currTM->tm_min, currTM->tm_sec, 
 			filename, func,	line);
 		}

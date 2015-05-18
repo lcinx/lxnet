@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #include "net_buf.h"
 #include <assert.h>
@@ -13,7 +13,6 @@
 #include "log.h"
 #include "net_thread_buf.h"
 #include "net_compress.h"
-#include "ossome.h"
 
 
 static bool s_enable_errorlog = false;
@@ -374,7 +373,7 @@ bool buf_recv_end_do(struct net_buf *self) {
 
 			if (res < 0) {
 				if (s_enable_errorlog) {
-					log_error("msg length error. message len:%d", self->logiclist.message_len);
+					log_error("msg length error. max message len:%d, message len:%d", (int)lst->message_maxlen, (int)lst->message_len);
 				}
 				return false;
 			}
@@ -423,13 +422,12 @@ struct buf_info buf_getreadbufinfo(struct net_buf *self) {
 		lst = &self->iolist;
 	else
 		lst = &self->logiclist;
-	if (blocklist_get_datasize(lst) > 0) {
-		struct block *bk = lst->head;
-		readbuf.buf = block_getreadbuf(bk);
-		readbuf.len = block_getreadsize(bk);
+
+	readbuf = blocklist_get_read_bufinfo(lst);
+	if (readbuf.len > 0) {
 		if (buf_is_use_encrypt(self)) {
 			/* encrypt */
-			struct buf_info encrybuf = block_get_do_process(bk);
+			struct buf_info encrybuf = block_get_do_process(lst->head);
 			assert(encrybuf.len >= 0);
 			if (self->raw_size_for_encrypt <= encrybuf.len) {
 				encrybuf.len -= self->raw_size_for_encrypt;
@@ -534,7 +532,7 @@ char *buf_getmessage(struct net_buf *self, bool *needclose, char *buf, size_t bu
 	} else {
 		*needclose = true;
 		if (s_enable_errorlog) {
-			log_error("msg length error. message len:%d", self->logiclist.message_len);
+			log_error("msg length error. max message len:%d, message len:%d", (int)self->logiclist.message_maxlen, (int)self->logiclist.message_len);
 		}
 		return NULL;
 	}

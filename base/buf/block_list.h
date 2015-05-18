@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #ifndef _H_BUF_BLOCK_LIST_H_
 #define _H_BUF_BLOCK_LIST_H_
@@ -12,7 +12,8 @@ extern "C" {
 #endif
 
 #include <limits.h>
-#include "ossome.h"
+#include "catomic.h"
+#include "cthread.h"
 #include "block.h"
 #include "block_list_func.h"
 
@@ -35,7 +36,7 @@ struct blocklist {
 	void *func_arg;
 	size_t block_size;
 
-	spin_lock_struct list_lock;
+	cspin list_lock;
 };
 
 
@@ -65,7 +66,19 @@ static inline void blocklist_init(struct blocklist *self, create_block_func crea
 	self->func_arg = func_arg;
 	self->block_size = block_size;
 
-	spin_lock_init(&self->list_lock);
+	cspin_init(&self->list_lock);
+}
+
+static inline void blocklist_set_message_custom_arg(struct blocklist *self, 
+		int message_maxlen, put_message_func pfunc, get_message_func gfunc) {
+
+	assert(message_maxlen > 0);
+	if (message_maxlen <= 0)
+		return;
+
+	self->message_maxlen = message_maxlen;
+	self->custom_put_func = pfunc;
+	self->custom_get_func = gfunc;
 }
 
 static inline struct block *blocklist_popfront(struct blocklist *self);
@@ -85,7 +98,7 @@ static inline void blocklist_release(struct blocklist *self) {
 	self->is_new_message = false;
 	self->message_len = 0;
 
-	self->message_maxlen = 128 * 1024;
+	self->message_maxlen = 0;
 	self->custom_put_func = NULL;
 	self->custom_get_func = NULL;
 
@@ -97,7 +110,7 @@ static inline void blocklist_release(struct blocklist *self) {
 	self->func_arg = NULL;
 	self->block_size = 0;
 
-	spin_lock_delete(&self->list_lock);
+	cspin_destroy(&self->list_lock);
 }
 
 static inline struct block *blocklist_create_block(struct blocklist *self) {
@@ -110,7 +123,7 @@ static inline struct block *blocklist_create_block(struct blocklist *self) {
 
 static inline struct block *blocklist_popfront(struct blocklist *self) {
 	struct block *bk;
-	spin_lock_lock(&self->list_lock);
+	cspin_lock(&self->list_lock);
 	bk = self->head;
 	if (self->head) {
 		self->head = self->head->next;
@@ -120,12 +133,12 @@ static inline struct block *blocklist_popfront(struct blocklist *self) {
 			assert(bk->next == NULL);
 		}
 	}
-	spin_lock_unlock(&self->list_lock);
+	cspin_unlock(&self->list_lock);
 	return bk;
 }
 
 static inline void blocklist_pushback(struct blocklist *self, struct block *bk) {
-	spin_lock_lock(&self->list_lock);
+	cspin_lock(&self->list_lock);
 	bk->next = NULL;
 	if (self->tail) {
 		self->tail->next = bk;
@@ -134,7 +147,11 @@ static inline void blocklist_pushback(struct blocklist *self, struct block *bk) 
 		self->head = bk;
 	}
 	self->tail = bk;
-	spin_lock_unlock(&self->list_lock);
+	cspin_unlock(&self->list_lock);
+}
+
+static inline int blocklist_get_message_maxlen(struct blocklist *self) {
+	return self->message_maxlen;
 }
 
 static inline int blocklist_get_datasize(struct blocklist *self) {
@@ -150,10 +167,9 @@ static inline void blocklist_check_free_block(struct blocklist *self) {
 }
 
 static inline bool blocklist_check_alloc_block(struct blocklist *self) {
+	assert(self->can_write_size >= 0);
 	if (self->can_write_size == 0) {
-		struct block *bk;
-		assert((self->tail == NULL) || (block_getwritesize(self->tail) == 0));
-		bk = blocklist_create_block(self);
+		struct block *bk = blocklist_create_block(self);
 		if (!bk)
 			return false;
 
@@ -168,28 +184,33 @@ static bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, 
 	int readsize, needread, getsize;
 	assert(self != NULL);
 	assert(buf != NULL);
-	assert(buf_size >= 0);
+	assert(buf_size > 0);
+	assert(self->datasize > 0);
 
 	*read_len = 0;
 	readsize = 0;
 	needread = min(buf_size, self->datasize);
+	assert(needread > 0);
+
+	/* first amend datasize. */
+	catomic_fetch_add(&self->datasize, (-needread));
+
 	while (readsize < needread) {
+		blocklist_check_free_block(self);
 		if (!self->head) {
 			assert(false && "why head node is null? error!");
 			return false;
 		}
 
-		blocklist_check_free_block(self);
-		assert(self->head != NULL);
 		getsize = block_get(self->head, &buf[readsize], needread - readsize);
 		assert(getsize > 0);
 		readsize += getsize;
 	}
 
-	assert(needread >= 0);
+	assert(readsize == needread);
 
-	atom_fetch_add(&self->datasize, (-needread));
-	*read_len = needread;
+	blocklist_check_free_block(self);
+	*read_len = readsize;
 	return true;
 }
 
@@ -212,9 +233,6 @@ static bool blocklist_put_data(struct blocklist *self, const void *data, int dat
 		putsize = block_put(self->tail, (void *)&data_str[writesize], data_len - writesize);
 		assert(putsize > 0);
 
-		/* put data first, then amend datasize. */
-		atom_fetch_add(&self->datasize, putsize);
-
 		assert(self->can_write_size >= putsize);
 		self->can_write_size -= putsize;
 
@@ -222,6 +240,9 @@ static bool blocklist_put_data(struct blocklist *self, const void *data, int dat
 	}
 
 	assert(writesize == data_len);
+	
+	/* do end amend datasize. */
+	catomic_fetch_add(&self->datasize, writesize);
 	return true;	
 }
 
@@ -240,16 +261,19 @@ static inline struct buf_info blocklist_get_write_bufinfo(struct blocklist *self
 }
 
 static inline struct buf_info blocklist_get_read_bufinfo(struct blocklist *self) {
+	long datasize = self->datasize;
 	struct buf_info readbuf;
 	readbuf.buf = NULL;
 	readbuf.len = 0;
 
 	/* if datasize > 0, so has data wait send. */
-	if (self->datasize > 0) {
+	assert(datasize >= 0);
+	if (datasize > 0) {
 		readbuf.buf = block_getreadbuf(self->head);
-		readbuf.len = block_getreadsize(self->head);
+		readbuf.len = min(block_getreadsize(self->head), datasize);
 	}
 
+	assert(datasize >= readbuf.len);
 	return readbuf;
 }
 
@@ -264,15 +288,16 @@ static inline void blocklist_add_write(struct blocklist *self, int len) {
 	 * then add datasize !.*/
 	block_addwrite(self->tail, len);
 
-	atom_fetch_add(&self->datasize, len);
+	catomic_fetch_add(&self->datasize, len);
 }
 
 static inline void blocklist_add_read(struct blocklist *self, int len) {
 	assert(self != NULL);
 	assert(len > 0);
+	assert(self->datasize >= len);
 
-	/* first change datasize. */
-	atom_fetch_add(&self->datasize, (-len));
+	/* first change datasize, now do it. */
+	catomic_fetch_add(&self->datasize, (-len));
 
 	while (len > 0) {
 		int tmpsize = min(block_getreadsize(self->head), len);
@@ -338,7 +363,7 @@ static int blocklist_get_message(struct blocklist *self, char *buf, int buf_size
 
 		/* first load message length. */
 		*(int *)&buf[0] = self->message_len;
-		if (!blocklist_get_data(self, &buf[length_len], self->message_len - length_len, &tmp)) {
+		if (!blocklist_get_data(self, &buf[length_len], (self->message_len - length_len), &tmp)) {
 			assert(false && "why get new message data failed? error!");
 			return -1;
 		}
@@ -351,7 +376,7 @@ static int blocklist_get_message(struct blocklist *self, char *buf, int buf_size
 		return tmp;
 
 	} else {
-		return self->custom_get_func(blocklist_get_data, self, 
+		return self->custom_get_func(blocklist_get_data, self, self->datasize,
 									 &self->is_new_message, &self->message_len,
 									 buf, buf_size);
 	}

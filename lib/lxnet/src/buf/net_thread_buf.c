@@ -2,10 +2,11 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 
-#include "ossome.h"
+#include "catomic.h"
+#include "cthread.h"
 #include "net_thread_buf.h"
 #include <assert.h>
 #include <stdlib.h>
@@ -24,8 +25,8 @@
 #define _MAX_SAFE_THREAD_NUM 64
 
 struct thread_localuse {
-	THREAD_ID threadid;	/* thread id */
-	char *buf;			/* buffer */
+	unsigned int threadid;	/* thread id */
+	char *buf;				/* buffer */
 };
 
 struct threadinfo {
@@ -41,15 +42,17 @@ struct threadinfo {
 	volatile long compressbuf_freeindex;
 	volatile long quicklzbuf_freeindex;
 };
+
 static struct threadinfo s_threadlock = {false};
 
 static void *threadlocal_getbuf(struct thread_localuse self[_MAX_SAFE_THREAD_NUM], size_t needsize, volatile long *freeindex) {
-	THREAD_ID currentthreadid = CURRENT_THREAD;
+	unsigned int currentthreadid = cthread_self_id();
 	int index;
 	for (index = 0; index < _MAX_SAFE_THREAD_NUM; ++index) {
 		/* it insert from 0, so if threadid is 0, then is can use. */
 		if (self[index].threadid == 0)
 			break;
+
 		if (self[index].threadid == currentthreadid) {
 			if (self[index].buf == NULL) {
 				log_error("if (self[index].buf == NULL)");
@@ -58,18 +61,21 @@ static void *threadlocal_getbuf(struct thread_localuse self[_MAX_SAFE_THREAD_NUM
 			return self[index].buf;
 		}
 	}
+
 	/* check index and max thread num. */
-	index = (int)atom_fetch_add(freeindex, 1);
+	index = (int)catomic_fetch_add(freeindex, 1);
 	if (index < 0 || index >= _MAX_SAFE_THREAD_NUM) {
 		log_error("if (index < 0 || index >= _MAX_SAFE_THREAD_NUM) index:%d, _MAX_SAFE_THREAD_NUM:%d", index, _MAX_SAFE_THREAD_NUM);
 		exit(1);
 	}
+
 	/* if index can use, then create new thread buffer. */
 	self[index].buf = (char *)malloc(needsize);
 	if (!self[index].buf) {
 		log_error("if (!self[index])");
 		exit(1);
 	}
+
 	self[index].threadid = currentthreadid;
 	return self[index].buf;
 }
@@ -81,6 +87,7 @@ struct buf_info threadbuf_get_msg_buf() {
 		log_error("if (!s_threadlock.isinit)");
 		exit(1);
 	}
+
 	tempbuf.buf = threadlocal_getbuf(s_threadlock.msgbuf, s_threadlock.msgmaxsize, &s_threadlock.msgbuf_freeindex);
 	tempbuf.len = s_threadlock.msgmaxsize;
 	return tempbuf;
@@ -93,6 +100,7 @@ struct buf_info threadbuf_get_compress_buf() {
 		log_error("if (!s_threadlock.isinit)");
 		exit(1);
 	}
+
 	tempbuf.buf = threadlocal_getbuf(s_threadlock.compressbuf, s_threadlock.compressmaxsize, &s_threadlock.compressbuf_freeindex);
 	tempbuf.len = s_threadlock.compressmaxsize;
 	return tempbuf;
@@ -104,6 +112,7 @@ void *threadbuf_get_quicklz_buf() {
 		log_error("if (!s_threadlock.isinit)");
 		exit(1);
 	}
+
 	return threadlocal_getbuf(s_threadlock.quicklzbuf, s_threadlock.quicklz_size, &s_threadlock.quicklzbuf_freeindex);
 }
 
@@ -163,5 +172,4 @@ void threadbuf_release() {
 	threadlocal_release(s_threadlock.compressbuf);
 	threadlocal_release(s_threadlock.quicklzbuf);
 }
-
 

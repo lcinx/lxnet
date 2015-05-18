@@ -1,8 +1,8 @@
 
 /*
  * Copyright (C) lcinx
- * lcinx@163.com 
-*/
+ * lcinx@163.com
+ */
 
 #ifndef _H_CROSSLIB_MY_H_
 #define _H_CROSSLIB_MY_H_
@@ -24,6 +24,9 @@ int64 high_microsecond_();
 
 /* sleep some millisecond */
 void delay_delay(unsigned long millisecond);
+
+/* get cpu num */
+int get_cpu_num();
 
 #ifdef __cplusplus
 }

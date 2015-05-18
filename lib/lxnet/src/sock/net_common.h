@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #ifndef _H_NET_COMMON_H_
 #define _H_NET_COMMON_H_
@@ -51,6 +51,7 @@ extern "C" {
 
 #else
 
+#include <unistd.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>

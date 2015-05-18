@@ -2,11 +2,11 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #include <stdio.h>
 #include <string.h>
-#include "ossome.h"
+#include "cthread.h"
 #include "net_module.h"
 #include "lxnet.h"
 #include "net_buf.h"
@@ -27,13 +27,13 @@ static struct datainfomgr s_datamgr = {false};
 struct infomgr {
 	bool isinit;
 	struct poolmgr *encrypt_pool;
-	spin_lock_struct encrypt_lock;
+	cspin encrypt_lock;
 
 	struct poolmgr *socket_pool;
-	spin_lock_struct socket_lock;
+	cspin socket_lock;
 	
 	struct poolmgr *listen_pool;
-	spin_lock_struct listen_lock;
+	cspin listen_lock;
 };
 static struct infomgr s_infomgr = {false};
 
@@ -115,9 +115,9 @@ static bool infomgr_init(size_t socketnum, size_t listennum) {
 		return false;
 	}
 
-	spin_lock_init(&s_infomgr.encrypt_lock);
-	spin_lock_init(&s_infomgr.socket_lock);
-	spin_lock_init(&s_infomgr.listen_lock);
+	cspin_init(&s_infomgr.encrypt_lock);
+	cspin_init(&s_infomgr.socket_lock);
+	cspin_init(&s_infomgr.listen_lock);
 	s_infomgr.isinit = true;
 
 	s_datamgr.isinit = true;
@@ -138,23 +138,24 @@ static bool infomgr_init(size_t socketnum, size_t listennum) {
 static void infomgr_release() {
 	if (!s_infomgr.isinit)
 		return;
+
 	s_infomgr.isinit = false;
 	s_datamgr.isinit = false;
 	poolmgr_release(s_infomgr.socket_pool);
 	poolmgr_release(s_infomgr.encrypt_pool);
 	poolmgr_release(s_infomgr.listen_pool);
-	spin_lock_delete(&s_infomgr.encrypt_lock);
-	spin_lock_delete(&s_infomgr.socket_lock);
-	spin_lock_delete(&s_infomgr.listen_lock);
+	cspin_destroy(&s_infomgr.encrypt_lock);
+	cspin_destroy(&s_infomgr.socket_lock);
+	cspin_destroy(&s_infomgr.listen_lock);
 }
 
 static void encrypt_info_release(void *info) {
 	if (!s_infomgr.isinit)
 		return;
 
-	spin_lock_lock(&s_infomgr.encrypt_lock);
+	cspin_lock(&s_infomgr.encrypt_lock);
 	poolmgr_freeobject(s_infomgr.encrypt_pool, info);
-	spin_lock_unlock(&s_infomgr.encrypt_lock);
+	cspin_unlock(&s_infomgr.encrypt_lock);
 }
 
 
@@ -181,9 +182,10 @@ Socketer *Listener::Accept(bool bigbuf) {
 	struct socketer *sock = listener_accept(m_self, bigbuf);
 	if (!sock)
 		return NULL;
-	spin_lock_lock(&s_infomgr.socket_lock);
+
+	cspin_lock(&s_infomgr.socket_lock);
 	Socketer *self = (Socketer *)poolmgr_getobject(s_infomgr.socket_pool);
-	spin_lock_unlock(&s_infomgr.socket_lock);
+	cspin_unlock(&s_infomgr.socket_lock);
 	if (!self) {
 		socketer_release(sock);
 		return NULL;
@@ -247,9 +249,9 @@ void Socketer::SetEncryptKey(const char *key, int key_len) {
 		return;
 
 	if (!m_encrypt) {
-		spin_lock_lock(&s_infomgr.encrypt_lock);
+		cspin_lock(&s_infomgr.encrypt_lock);
 		m_encrypt = (struct encryptinfo *)poolmgr_getobject(s_infomgr.encrypt_pool);
-		spin_lock_unlock(&s_infomgr.encrypt_lock);
+		cspin_unlock(&s_infomgr.encrypt_lock);
 
 		if (m_encrypt) {
 			m_encrypt->maxidx = 0;
@@ -271,9 +273,9 @@ void Socketer::setDecryptKey(const char *key, int key_len) {
 		return;
 
 	if (!m_decrypt) {
-		spin_lock_lock(&s_infomgr.encrypt_lock);
+		cspin_lock(&s_infomgr.encrypt_lock);
 		m_decrypt = (struct encryptinfo *)poolmgr_getobject(s_infomgr.encrypt_pool);
-		spin_lock_unlock(&s_infomgr.encrypt_lock);
+		cspin_unlock(&s_infomgr.encrypt_lock);
 
 		if (m_decrypt) {
 			m_decrypt->maxidx = 0;
@@ -334,6 +336,7 @@ long Socketer::GetSendBufferByteSize() {
 bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 	if (!pMsg)
 		return false;
+
 	if (adddata && addsize == 0) {
 		assert(false);
 		return false;
@@ -400,6 +403,7 @@ bool Socketer::SendTGWInfo(const char *domain, int port) {
 		Close();
 		return false;
 	}
+
 	socketer_set_raw_datasize(m_self, datasize);
 	on_sendmsg(datasize);
 	return socketer_sendmsg(m_self, buf, datasize);
@@ -462,13 +466,16 @@ char *Socketer::GetData(char *buf, size_t bufsize, int *datalen) {
  */
 bool net_init(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t smallbufnum,
 		size_t listenernum, size_t socketnum, int threadnum) {
+	
 	if (!infomgr_init(socketnum, listenernum))
 		return false;
+
 	if (!netinit(bigbufsize, bigbufnum, smallbufsize, smallbufnum,
 			listenernum, socketnum, threadnum)) {
 		infomgr_release();
 		return false;
 	}
+
 	return true;
 }
 
@@ -504,13 +511,15 @@ Listener *Listener_create() {
 	struct listener *ls = listener_create();
 	if (!ls)
 		return NULL;
-	spin_lock_lock(&s_infomgr.listen_lock);
+
+	cspin_lock(&s_infomgr.listen_lock);
 	Listener *self = (Listener *)poolmgr_getobject(s_infomgr.listen_pool);
-	spin_lock_unlock(&s_infomgr.listen_lock);
+	cspin_unlock(&s_infomgr.listen_lock);
 	if (!self) {
 		listener_release(ls);
 		return NULL;
 	}
+
 	self->m_self = ls;
 	return self;
 }
@@ -519,13 +528,15 @@ Listener *Listener_create() {
 void Listener_release(Listener *self) {
 	if (!self)
 		return;
+
 	if (self->m_self) {
 		listener_release(self->m_self);
 		self->m_self = NULL;
 	}
-	spin_lock_lock(&s_infomgr.listen_lock);
+
+	cspin_lock(&s_infomgr.listen_lock);
 	poolmgr_freeobject(s_infomgr.listen_pool, self);
-	spin_lock_unlock(&s_infomgr.listen_lock);
+	cspin_unlock(&s_infomgr.listen_lock);
 }
 
 /* 创建一个Socketer对象*/
@@ -534,12 +545,14 @@ Socketer *Socketer_create(bool bigbuf) {
 		assert(false && "Csocket_create not init!");
 		return NULL;
 	}
+
 	struct socketer *so = socketer_create(bigbuf);
 	if (!so)
 		return NULL;
-	spin_lock_lock(&s_infomgr.socket_lock);
+
+	cspin_lock(&s_infomgr.socket_lock);
 	Socketer *self = (Socketer *)poolmgr_getobject(s_infomgr.socket_pool);
-	spin_lock_unlock(&s_infomgr.socket_lock);
+	cspin_unlock(&s_infomgr.socket_lock);
 	if (!self) {
 		socketer_release(so);
 		return NULL;
@@ -564,9 +577,9 @@ void Socketer_release(Socketer *self) {
 	self->m_encrypt = NULL;
 	self->m_decrypt = NULL;
 
-	spin_lock_lock(&s_infomgr.socket_lock);
+	cspin_lock(&s_infomgr.socket_lock);
 	poolmgr_freeobject(s_infomgr.socket_pool, self);
-	spin_lock_unlock(&s_infomgr.socket_lock);
+	cspin_unlock(&s_infomgr.socket_lock);
 }
 
 /* 释放网络相关*/
@@ -590,21 +603,21 @@ const char *net_memory_info() {
 	snprintf(&s_memory_info[index], sizeof(s_memory_info)-1-index, "%s", "lxnet lib memory pool info:\n<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
 	index = strlen(s_memory_info);
 
-	spin_lock_lock(&s_infomgr.encrypt_lock);
+	cspin_lock(&s_infomgr.encrypt_lock);
 	poolmgr_getinfo(s_infomgr.encrypt_pool, &s_memory_info[index], sizeof(s_memory_info)-1-index);
-	spin_lock_unlock(&s_infomgr.encrypt_lock);
+	cspin_unlock(&s_infomgr.encrypt_lock);
 
 	index = strlen(s_memory_info);
 
-	spin_lock_lock(&s_infomgr.socket_lock);
+	cspin_lock(&s_infomgr.socket_lock);
 	poolmgr_getinfo(s_infomgr.socket_pool, &s_memory_info[index], sizeof(s_memory_info)-1-index);
-	spin_lock_unlock(&s_infomgr.socket_lock);
+	cspin_unlock(&s_infomgr.socket_lock);
 	
 	index = strlen(s_memory_info);
 
-	spin_lock_lock(&s_infomgr.listen_lock);
+	cspin_lock(&s_infomgr.listen_lock);
 	poolmgr_getinfo(s_infomgr.listen_pool, &s_memory_info[index], sizeof(s_memory_info)-1-index);
-	spin_lock_unlock(&s_infomgr.listen_lock);
+	cspin_unlock(&s_infomgr.listen_lock);
 
 	index = strlen(s_memory_info);
 	netmemory_info(&s_memory_info[index], sizeof(s_memory_info)-1-index);

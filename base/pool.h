@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #ifndef _H_C_POOL_C_H_
 #define _H_C_POOL_C_H_

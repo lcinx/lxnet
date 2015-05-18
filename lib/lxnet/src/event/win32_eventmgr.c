@@ -2,11 +2,13 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #ifdef WIN32
 
-#include "ossome.h"
+#include "catomic.h"
+#include "cthread.h"
+#include "crosslib.h"
 #include <assert.h>
 #include <stdlib.h>
 #include "net_eventmgr.h"
@@ -54,8 +56,8 @@ void socket_setup_recvevent(struct socketer *self) {
 	if (!PostQueuedCompletionStatus(s_iocp.completeport, 0, (ULONG_PTR)self, &self->recv_event.m_overlap)) {
 		socketer_close(self);
 			
-		if (atom_dec(&self->ref) < 1) {
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD, self->connected, self->deleted);
+		if (catomic_dec(&self->ref) < 1) {
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
 		}
 	}
 	
@@ -76,7 +78,7 @@ void socket_recvdata(struct socketer *self, char *data, int len) {
 	assert(self->recvlock == 1);
 
 	if (self->recvlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD, self->connected, self->deleted);
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
 	}
 
 	memset(&self->recv_event, 0, sizeof(self->recv_event));
@@ -87,8 +89,8 @@ void socket_recvdata(struct socketer *self, char *data, int len) {
 			debuglog("socket_setup_recvevent error!, error:%d\n", WSAGetLastError());
 			socketer_close(self);
 			
-			if (atom_dec(&self->ref) < 1) {
-				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD, self->connected, self->deleted);
+			if (catomic_dec(&self->ref) < 1) {
+				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
 			}
 		}
 	}
@@ -100,8 +102,8 @@ void socket_setup_sendevent(struct socketer *self) {
 	if (!PostQueuedCompletionStatus(s_iocp.completeport, 0, (ULONG_PTR)self, &self->send_event.m_overlap)) {
 		socketer_close(self);
 			
-		if (atom_dec(&self->ref) < 1) {
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD, self->connected, self->deleted);
+		if (catomic_dec(&self->ref) < 1) {
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
 		}
 	}
 
@@ -122,7 +124,7 @@ void socket_senddata(struct socketer *self, char *data, int len) {
 	assert(self->sendlock == 1);
 
 	if (self->sendlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD, self->connected, self->deleted);
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
 	}
 
 	memset(&self->send_event, 0, sizeof(self->send_event));
@@ -133,8 +135,8 @@ void socket_senddata(struct socketer *self, char *data, int len) {
 			debuglog("socket_senddata error!, error:%d\n", WSAGetLastError());
 			socketer_close(self);
 			
-			if (atom_dec(&self->ref) < 1) {
-				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD, self->connected, self->deleted);
+			if (catomic_dec(&self->ref) < 1) {
+				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
 			}
 		}
 	}
@@ -167,11 +169,11 @@ static void _iocp_thread_run(void *data) {
 			/* recv. */
 			case e_socket_io_event_read_complete: {
 					if (((struct socketer *)s)->recvlock != 1) {
-						log_error("res:%d, %x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, len:%d, thread_id:%d, error:%d, connect:%d, deleted:%d", res, ((struct socketer *)s), (int)((struct socketer *)s)->recvlock, (int)((struct socketer *)s)->sendlock, ((struct socketer *)s)->sockfd, (int)((struct socketer *)s)->ref, (int)len, CURRENT_THREAD, WSAGetLastError(), ((struct socketer *)s)->connected, ((struct socketer *)s)->deleted);
+						log_error("res:%d, %x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, len:%d, thread_id:%d, error:%d, connect:%d, deleted:%d", res, ((struct socketer *)s), (int)((struct socketer *)s)->recvlock, (int)((struct socketer *)s)->sendlock, ((struct socketer *)s)->sockfd, (int)((struct socketer *)s)->ref, (int)len, cthread_self_id(), WSAGetLastError(), ((struct socketer *)s)->connected, ((struct socketer *)s)->deleted);
 					}
 
 
-					debuglog("read handle complete! line:%d  thread_id:%d\n", __LINE__, CURRENT_THREAD);
+					debuglog("read handle complete! line:%d  thread_id:%d\n", __LINE__, cthread_self_id());
 					socketer_on_recv((struct socketer *)s, (int)len);
 				}
 				break;
@@ -179,10 +181,10 @@ static void _iocp_thread_run(void *data) {
 			/* send. */
 			case e_socket_io_event_write_end: {
 					if (((struct socketer *)s)->sendlock != 1) {
-						log_error("res:%d, %x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, len:%d, thread_id:%d, error:%d, connect:%d, deleted:%d", res, ((struct socketer *)s), (int)((struct socketer *)s)->recvlock, (int)((struct socketer *)s)->sendlock, ((struct socketer *)s)->sockfd, (int)((struct socketer *)s)->ref, (int)len, CURRENT_THREAD, WSAGetLastError(), ((struct socketer *)s)->connected, ((struct socketer *)s)->deleted);
+						log_error("res:%d, %x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, len:%d, thread_id:%d, error:%d, connect:%d, deleted:%d", res, ((struct socketer *)s), (int)((struct socketer *)s)->recvlock, (int)((struct socketer *)s)->sendlock, ((struct socketer *)s)->sockfd, (int)((struct socketer *)s)->ref, (int)len, cthread_self_id(), WSAGetLastError(), ((struct socketer *)s)->connected, ((struct socketer *)s)->deleted);
 					}
 
-					debuglog("send handle complete! line:%d thread_id:%d\n", __LINE__, CURRENT_THREAD);
+					debuglog("send handle complete! line:%d thread_id:%d\n", __LINE__, cthread_self_id());
 					socketer_on_send((struct socketer *)s, (int)len);
 				}
 				break;
@@ -212,7 +214,7 @@ bool eventmgr_init(int socketnum, int threadnum) {
 	if (socketnum < 1)
 		return false;
 	if (threadnum <= 0)
-		threadnum = get_cpunum();
+		threadnum = get_cpu_num();
 	s_iocp.threadnum = threadnum;
 
 	/* create complete port, fourthly parameter is 0. */

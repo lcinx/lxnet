@@ -82,9 +82,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\3rd\quicklz\quicklz.h" />
+    <ClInclude Include="..\..\base\buf\block.h" />
+    <ClInclude Include="..\..\base\buf\block_list.h" />
+    <ClInclude Include="..\..\base\buf\block_list_func.h" />
+    <ClInclude Include="..\..\base\buf\buf_info.h" />
+    <ClInclude Include="..\..\base\catomic.h" />
     <ClInclude Include="..\..\base\crosslib.h" />
+    <ClInclude Include="..\..\base\cthread.h" />
     <ClInclude Include="..\..\base\log.h" />
-    <ClInclude Include="..\..\base\ossome.h" />
     <ClInclude Include="..\..\base\pool.h" />
     <ClInclude Include="lxnet.h" />
     <ClInclude Include="msgbase.h" />
@@ -103,13 +108,12 @@
     <ClInclude Include="src\sock\net_common.h" />
     <ClInclude Include="src\sock\net_pool.h" />
     <ClInclude Include="src\sock\socket_internal.h" />
-    <ClInclude Include="src\threadpool\net_thread.h" />
-    <ClInclude Include="src\threadpool\net_threadlist.h" />
-    <ClInclude Include="src\threadpool\threadpool.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\3rd\quicklz\quicklz.c" />
+    <ClCompile Include="..\..\base\catomic.c" />
     <ClCompile Include="..\..\base\crosslib.c" />
+    <ClCompile Include="..\..\base\cthread.c" />
     <ClCompile Include="..\..\base\log.c" />
     <ClCompile Include="..\..\base\pool.c" />
     <ClCompile Include="lxnet.cpp" />
@@ -124,7 +128,6 @@
     <ClCompile Include="src\sock\_netsocket.c" />
     <ClCompile Include="src\sock\net_common.c" />
     <ClCompile Include="src\sock\net_pool.c" />
-    <ClCompile Include="src\threadpool\threadpool.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

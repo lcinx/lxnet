@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #ifndef _H_BUF_BLOCK_H_
 #define _H_BUF_BLOCK_H_
@@ -16,7 +16,7 @@ extern "C" {
 #include "buf_info.h"
 
 #ifndef min
-#define min(a, b)	(((a) < (b))? (a) : (b))
+#define min(a, b)	(((a) < (b)) ? (a) : (b))
 #endif
 
 /* block buffer. */
@@ -57,6 +57,7 @@ static inline struct buf_info block_get_do_process(struct block *self) {
 
 		self->process_pos += pinfo.len;
 		assert(self->write >= self->process_pos);
+		assert(self->maxsize >= self->process_pos);
 	}
 	return pinfo;
 }
@@ -64,11 +65,13 @@ static inline struct buf_info block_get_do_process(struct block *self) {
 
 static inline bool block_is_read_over(struct block *self) {
 	assert(self != NULL);
+	assert(self->maxsize > 0);
 	return (self->read == self->maxsize);
 }
 
 static inline bool block_is_write_over(struct block *self) {
 	assert(self != NULL);
+	assert(self->maxsize > 0);
 	return (self->write == self->maxsize);
 }
 

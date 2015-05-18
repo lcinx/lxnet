@@ -2,10 +2,12 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #if (!defined(__linux__) && !defined(WIN32))
-#include "ossome.h"
+#include "catomic.h"
+#include "cthread.h"
+#include "crosslib.h"
 #include "net_eventmgr.h"
 #include <assert.h>
 #include <stdlib.h>
@@ -18,7 +20,7 @@
 #include "socket_internal.h"
 #include "_netsocket.h"
 #include "log.h"
-#include "threadpool.h"
+#include "cthread_pool.h"
 
 #ifdef _DEBUG_NETWORK
 #define debuglog debug_log
@@ -30,7 +32,7 @@
 #define THREAD_EVENT_SIZE (4096)
 struct kqueuemgr {
 	int threadnum;
-	struct threadmgr *threadpool;					/* thread pool. */
+	struct cthread_pool *threadpool;				/* thread pool. */
 	volatile char need_exit;						/* exit flag. */
 
 	volatile long event_num;						/* current event number. */
@@ -89,7 +91,7 @@ void socket_setup_recvevent(struct socketer *self) {
 	assert(self->recvlock == 1);
 
 	if (self->recvlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD);
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
 	}
 
 	
@@ -97,8 +99,8 @@ void socket_setup_recvevent(struct socketer *self) {
 	if (kevent(s_mgr->kqueue_fd, &ev, 1, NULL, 0, NULL) == -1) {
 		/*log_error("kqueue, setup recv event to kqueue set on fd %d error!, errno:%d", self->sockfd, NET_GetLastError());*/
 		socketer_close(self);
-		if (atom_dec(&self->ref) < 1) {
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD, self->connected, self->deleted);
+		if (catomic_dec(&self->ref) < 1) {
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
 		}
 	}
 	debuglog("setup recv event to eventmgr.");
@@ -111,7 +113,7 @@ void socket_remove_recvevent(struct socketer *self) {
 	assert(self->recvlock == 1);
 
 	if (self->recvlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD);
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
 	}
 
 	EV_SET(&ev, self->sockfd, EVFILT_READ, EV_DISABLE, 0, 0, self);
@@ -128,15 +130,15 @@ void socket_setup_sendevent(struct socketer *self) {
 
 	assert(self->sendlock == 1);
 	if (self->sendlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD);
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
 	}
 
 	EV_SET(&ev, self->sockfd, EVFILT_WRITE, EV_ENABLE, 0, 0, self);
 	if (kevent(s_mgr->kqueue_fd, &ev, 1, NULL, 0, NULL) == -1) {
 		/*log_error("kqueue, setup send event to kqueue set on fd %d error!, errno:%d", self->sockfd, NET_GetLastError());*/
 		socketer_close(self);
-		if (atom_dec(&self->ref) < 1) {
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD, self->connected, self->deleted);
+		if (catomic_dec(&self->ref) < 1) {
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
 		}
 	}
 	debuglog("setup send event to eventmgr.");
@@ -148,7 +150,7 @@ void socket_remove_sendevent(struct socketer *self) {
 
 	assert(self->sendlock == 1);
 	if (self->sendlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD);
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
 	}
 
 	EV_SET(&ev, self->sockfd, EVFILT_WRITE, EV_DISABLE, 0, 0, self);
@@ -160,7 +162,7 @@ void socket_remove_sendevent(struct socketer *self) {
 }
 
 static struct kevent *pop_event(struct kqueuemgr *self) {
-	int index = atom_dec(&self->event_num);
+	int index = catomic_dec(&self->event_num);
 	if (index < 0)
 		return NULL;
 	else
@@ -189,23 +191,23 @@ static int task_func(void *argv) {
 
 		/* can read event. */
 		if (ev->filter == EVFILT_READ) {
-			if (atom_compare_and_swap(&sock->recvlock, 0, 1) == 0) {
-				atom_inc(&sock->ref);
+			if (catomic_compare_set(&sock->recvlock, 0, 1)) {
+				catomic_inc(&sock->ref);
 			}
 			socketer_on_recv(sock, 0);
 		}
 
 		/* can write event. */
 		if (ev->filter == EVFILT_WRITE) {
-			if (atom_compare_and_swap(&sock->sendlock, 0, 1) == 0) {
-				atom_inc(&sock->ref);
+			if (catomic_compare_set(&sock->sendlock, 0, 1)) {
+				catomic_inc(&sock->ref);
 			}
 			socketer_on_send(sock, 0);
 		}
 	}
 }
 
-#define EVERY_THREAD_PROCESS_EVENT_NUM 128
+#define EVERY_THREAD_PROCESS_EVENT_NUM 8
 /* get need resume thread number. */
 static int leader_func(void *argv) {
 	struct kqueuemgr *mgr = (struct kqueuemgr *)argv;
@@ -216,11 +218,11 @@ static int leader_func(void *argv) {
 	} else {
 		struct timespec timeout;
 		timeout.tv_sec = 0;
-		timeout.tv_nsec = 100 * 1000;
+		timeout.tv_nsec = 50 * 1000000;
 		int num = kevent(mgr->kqueue_fd, NULL, 0, mgr->ev_array, THREAD_EVENT_SIZE, &timeout);
 		if (num > 0) {
-			atom_set(&mgr->event_num, num);
-			num = (num+(int)(EVERY_THREAD_PROCESS_EVENT_NUM)-1)/(int)(EVERY_THREAD_PROCESS_EVENT_NUM);
+			catomic_set(&mgr->event_num, num);
+			num = (num + (int)(EVERY_THREAD_PROCESS_EVENT_NUM) - 1) / (int)(EVERY_THREAD_PROCESS_EVENT_NUM);
 		} else if (num < 0) {
 			if (num == -1 && NET_GetLastError() == EINTR)
 				return 0;
@@ -242,7 +244,7 @@ bool eventmgr_init(int socketnum, int threadnum) {
 	if (socketnum < 1)
 		return false;
 	if (threadnum <= 0)
-		threadnum = get_cpunum();
+		threadnum = get_cpu_num();
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 		return false;
 	s_mgr = (struct kqueuemgr *)malloc(sizeof(struct kqueuemgr));
@@ -262,7 +264,7 @@ bool eventmgr_init(int socketnum, int threadnum) {
 	s_mgr->need_exit = false;
 
 	/*  first building kqueue module, and then create thread pool. */
-	s_mgr->threadpool = threadmgr_create(threadnum, task_func, leader_func, s_mgr);
+	s_mgr->threadpool = cthread_pool_create(threadnum, s_mgr, leader_func, task_func);
 	if (!s_mgr->threadpool) {
 		close(s_mgr->kqueue_fd);
 		free(s_mgr);
@@ -278,13 +280,12 @@ bool eventmgr_init(int socketnum, int threadnum) {
 void eventmgr_release() {
 	if (!s_mgr)
 		return;
+
 	/* set exit flag. */
 	s_mgr->need_exit = true;
 
-	usleep(300000);	/* 300 ms, this value need greate than kevent function last parameters. */
-
 	/* release thread pool. */
-	threadmgr_release(s_mgr->threadpool);
+	cthread_pool_release(s_mgr->threadpool);
 
 	/* close kqueue some. */
 	close(s_mgr->kqueue_fd);

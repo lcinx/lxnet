@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #ifndef _H__NETSOCKET_H_
 #define _H__NETSOCKET_H_

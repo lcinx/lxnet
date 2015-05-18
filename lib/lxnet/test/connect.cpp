@@ -30,11 +30,12 @@ int main()
 	while (!newclient->Connect("127.0.0.1", 30012))
 	{
 #ifdef WIN32
-			Sleep(0);
+			Sleep(100);
 #else
-			sleep(0);
+			usleep(100000);
 #endif
 	}
+
 	printf("connect succeed!\n");
 
 	MessagePack sendpack;
@@ -92,7 +93,7 @@ s_exit:
 #ifdef WIN32
 	Sleep(1000);
 #else
-	sleep(1);
+	usleep(1000000);
 #endif
 	lxnet::Socketer_release(newclient);
 	lxnet::net_release();

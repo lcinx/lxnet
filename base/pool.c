@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,6 +11,12 @@
 #include "pool.h"
 #include "log.h"
 #include "platform_config.h"
+
+#ifndef NDEBUG
+#define NODE_IS_USED_VALUE(mgr) ((mgr) - (0x000000AB))
+#define NODE_IS_FREED_VALUE(mgr) (mgr)
+#endif
+
 
 enum {
 	enum_unknow = 0,
@@ -21,6 +27,11 @@ enum {
 
 struct nodeflag {
 	void *pooladdr;
+
+#ifndef NDEBUG
+	void *debug_addr;
+#endif
+
 };
 
 struct node {
@@ -124,11 +135,21 @@ ret:
 
 	self->freenum--;
 	nd->flag.pooladdr = self;
+
+#ifndef NDEBUG
+	nd->flag.debug_addr = NODE_IS_USED_VALUE(mgr);
+#endif
+
 	return nd;
 }
 
 static inline void nodepool_push_node(struct poolmgr *mgr, struct nodepool *self, struct node *nd) {
 	assert(self == nd->flag.pooladdr);
+
+#ifndef NDEBUG
+	assert(nd->flag.debug_addr == NODE_IS_USED_VALUE(mgr));
+	nd->flag.debug_addr = NODE_IS_FREED_VALUE(mgr);
+#endif
 
 	mgr->node_free_total++;
 
@@ -231,9 +252,9 @@ static inline struct nodepool *poolmgr_create_nodepool(struct poolmgr *self) {
 	if (self->next_multiple == 0)
 		return NULL;
 
-	current_maxnum= self->current_maxnum * self->next_multiple;
+	current_maxnum = self->current_maxnum * self->next_multiple;
 	
-	assert(((self->block_size * current_maxnum)/self->block_size) == current_maxnum && "poolmgr_create_nodepool exist overflow!");
+	assert(((self->block_size * current_maxnum) / self->block_size) == current_maxnum && "poolmgr_create_nodepool exist overflow!");
 	mem = malloc(sizeof(struct nodepool) + self->block_size * current_maxnum);
 	if (!mem) {
 		assert(false && "poolmgr_create_nodepool malloc memory failed!");
@@ -389,7 +410,7 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment, size_t num, size_t
 	if (size < sizeof(struct node))
 		size = sizeof(struct node);
 
-	assert(((size * num)/num) == size && "poolmgr_create exist overflow!");
+	assert(((size * num) / num) == size && "poolmgr_create exist overflow!");
 
 #ifndef NOTUSE_POOL
 	mem = (char *)malloc(sizeof(struct poolmgr) + sizeof(struct nodepool) + size * num);
@@ -511,7 +532,7 @@ static bool nodepool_isin(struct poolmgr *mgr, struct nodepool *np, char *nd) {
 static bool nodepool_isbad_point(struct nodepool *np, char *bk) {
 	char *begin = np->end - (np->block_size * np->nodenum);
 	bk -= (size_t)begin;
-	if ((size_t )bk%np->block_size != 0)
+	if ((size_t )bk % np->block_size != 0)
 		return true;
 	else
 		return false;
@@ -534,6 +555,13 @@ static bool poolmgr_check_is_using(struct poolmgr *mgr, struct nodepool *np, cha
 				assert(false && "poolmgr_freeobject free the undistributed of block!");
 				return false;
 			} else {
+				if (((struct node *)nd)->flag.debug_addr == NODE_IS_FREED_VALUE(mgr)) {
+					assert(false && "poolmgr_freeobject repeated free block!");
+					return false;
+				} else if (((struct node *)nd)->flag.debug_addr != NODE_IS_USED_VALUE(mgr)) {
+					assert(false && "poolmgr_freeobject free the bad block!");
+					return false;
+				}
 				return true;
 			}
 		}
@@ -611,12 +639,12 @@ void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize) {
 	(unsigned long)self->base_block_size, (unsigned long)self->block_size, \
 	(unsigned long)self->node_total, (unsigned long)self->node_free_total, \
 	(unsigned long)self->base_num, (unsigned long)self->current_maxnum, (unsigned long)self->next_multiple, \
-	(unsigned long)totalsize, (unsigned long)totalsize/1024, (unsigned long)totalsize/(1024*1024), \
+	(unsigned long)totalsize, (unsigned long)totalsize / 1024, (unsigned long)totalsize / (1024 * 1024), \
 	(unsigned long)self->free_pool_num_for_shrink, self->free_node_ratio_for_shrink);
 #else
 	snprintf(buf, bufsize, "%s not use pools!\n", self->name);
 #endif
 
-	buf[bufsize-1] = 0;
+	buf[bufsize - 1] = 0;
 }
 

@@ -2,10 +2,12 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #ifdef __linux__
-#include "ossome.h"
+#include "catomic.h"
+#include "cthread.h"
+#include "crosslib.h"
 #include "net_eventmgr.h"
 #include <assert.h>
 #include <stdlib.h>
@@ -16,7 +18,7 @@
 #include "socket_internal.h"
 #include "_netsocket.h"
 #include "log.h"
-#include "threadpool.h"
+#include "cthread_pool.h"
 
 #ifdef _DEBUG_NETWORK
 #define debuglog debug_log
@@ -28,7 +30,7 @@
 #define THREAD_EVENT_SIZE (4096)
 struct epollmgr {
 	int threadnum;
-	struct threadmgr *threadpool;					/* thread pool. */
+	struct cthread_pool *threadpool;				/* thread pool. */
 	volatile char need_exit;						/* exit flag. */
 
 	volatile long event_num;						/* current event number. */
@@ -76,16 +78,17 @@ void socket_setup_recvevent(struct socketer *self) {
 	assert(self->recvlock == 1);
 
 	if (self->recvlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD);
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
 	}
 
-	ev.events = atom_or_fetch(&self->events, EPOLLIN);
+	catomic_fetch_or((volatile long *)&self->events, EPOLLIN);
+	ev.events = self->events;
 	ev.data.ptr = self;
 	if (epoll_ctl(s_mgr->epoll_fd, EPOLL_CTL_MOD, self->sockfd, &ev) == -1) {
 		/*log_error("epoll, setup recv event to epoll set on fd %d error!, errno:%d", self->sockfd, NET_GetLastError());*/
 		socketer_close(self);
-		if (atom_dec(&self->ref) < 1) {
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD, self->connected, self->deleted);
+		if (catomic_dec(&self->ref) < 1) {
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
 		}
 	}
 	debuglog("setup recv event to eventmgr.");
@@ -99,10 +102,11 @@ void socket_remove_recvevent(struct socketer *self) {
 	assert(self->recvlock == 1);
 
 	if (self->recvlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD);
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
 	}
 
-	ev.events = atom_and_fetch(&self->events, ~(EPOLLIN));
+	catomic_fetch_and((volatile long *)&self->events, ~(EPOLLIN));
+	ev.events = self->events;
 	ev.data.ptr = self;
 	if (epoll_ctl(s_mgr->epoll_fd, EPOLL_CTL_MOD, self->sockfd, &ev) == -1) {
 		/*log_error("epoll, remove recv event from epoll set on fd %d error!, errno:%d", self->sockfd, NET_GetLastError());*/
@@ -118,16 +122,17 @@ void socket_setup_sendevent(struct socketer *self) {
 
 	assert(self->sendlock == 1);
 	if (self->sendlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD);
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
 	}
 
-	ev.events = atom_or_fetch(&self->events, EPOLLOUT);
+	catomic_fetch_or((volatile long *)&self->events, EPOLLOUT);
+	ev.events = self->events;
 	ev.data.ptr = self;
 	if (epoll_ctl(s_mgr->epoll_fd, EPOLL_CTL_MOD, self->sockfd, &ev) == -1) {
 		/*log_error("epoll, setup send event to epoll set on fd %d error!, errno:%d", self->sockfd, NET_GetLastError());*/
 		socketer_close(self);
-		if (atom_dec(&self->ref) < 1) {
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD, self->connected, self->deleted);
+		if (catomic_dec(&self->ref) < 1) {
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
 		}
 	}
 	debuglog("setup send event to eventmgr.");
@@ -140,10 +145,11 @@ void socket_remove_sendevent(struct socketer *self) {
 
 	assert(self->sendlock == 1);
 	if (self->sendlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, CURRENT_THREAD);
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
 	}
 
-	ev.events = atom_and_fetch(&self->events, ~(EPOLLOUT));
+	catomic_fetch_and((volatile long *)&self->events, ~(EPOLLOUT));
+	ev.events = self->events;
 	ev.data.ptr = self;
 	if (epoll_ctl(s_mgr->epoll_fd, EPOLL_CTL_MOD, self->sockfd, &ev) == -1) {
 		/*log_error("epoll, remove send event from epoll set on fd %d error!, errno:%d", self->sockfd, NET_GetLastError());*/
@@ -153,7 +159,7 @@ void socket_remove_sendevent(struct socketer *self) {
 }
 
 static struct epoll_event *pop_event(struct epollmgr *self) {
-	int index = atom_dec(&self->event_num);
+	int index = catomic_dec(&self->event_num);
 	if (index < 0)
 		return NULL;
 	else
@@ -182,23 +188,23 @@ static int task_func(void *argv) {
 
 		/* can read event. */
 		if (ev->events & EPOLLIN) {
-			if (atom_compare_and_swap(&sock->recvlock, 0, 1) == 0) {
-				atom_inc(&sock->ref);
+			if (catomic_compare_set(&sock->recvlock, 0, 1)) {
+				catomic_inc(&sock->ref);
 			}
 			socketer_on_recv(sock, 0);
 		}
 
 		/* can write event. */
 		if (ev->events & EPOLLOUT) {
-			if (atom_compare_and_swap(&sock->sendlock, 0, 1) == 0) {
-				atom_inc(&sock->ref);
+			if (catomic_compare_set(&sock->sendlock, 0, 1)) {
+				catomic_inc(&sock->ref);
 			}
 			socketer_on_send(sock, 0);
 		}
 	}
 }
 
-#define EVERY_THREAD_PROCESS_EVENT_NUM 128
+#define EVERY_THREAD_PROCESS_EVENT_NUM 8
 /* get need resume thread number. */
 static int leader_func(void *argv) {
 	struct epollmgr *mgr = (struct epollmgr *)argv;
@@ -207,10 +213,10 @@ static int leader_func(void *argv) {
 	if (mgr->need_exit) {
 		return -1;
 	} else {
-		int num = epoll_wait(mgr->epoll_fd, mgr->ev_array, THREAD_EVENT_SIZE, 100);
+		int num = epoll_wait(mgr->epoll_fd, mgr->ev_array, THREAD_EVENT_SIZE, 50);
 		if (num > 0) {
-			atom_set(&mgr->event_num, num);
-			num = (num+(int)(EVERY_THREAD_PROCESS_EVENT_NUM)-1)/(int)(EVERY_THREAD_PROCESS_EVENT_NUM);
+			catomic_set(&mgr->event_num, num);
+			num = (num + (int)(EVERY_THREAD_PROCESS_EVENT_NUM) - 1) / (int)(EVERY_THREAD_PROCESS_EVENT_NUM);
 		} else if (num < 0) {
 			if (num == -1 && NET_GetLastError() == EINTR)
 				return 0;
@@ -232,7 +238,7 @@ bool eventmgr_init(int socketnum, int threadnum) {
 	if (socketnum < 1)
 		return false;
 	if (threadnum <= 0)
-		threadnum = get_cpunum();
+		threadnum = get_cpu_num();
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 		return false;
 	s_mgr = (struct epollmgr *)malloc(sizeof(struct epollmgr));
@@ -252,7 +258,7 @@ bool eventmgr_init(int socketnum, int threadnum) {
 	s_mgr->need_exit = false;
 
 	/*  first building epoll module, and then create thread pool. */
-	s_mgr->threadpool = threadmgr_create(threadnum, task_func, leader_func, s_mgr);
+	s_mgr->threadpool = cthread_pool_create(threadnum, s_mgr, leader_func, task_func);
 	if (!s_mgr->threadpool) {
 		close(s_mgr->epoll_fd);
 		free(s_mgr);
@@ -268,13 +274,12 @@ bool eventmgr_init(int socketnum, int threadnum) {
 void eventmgr_release() {
 	if (!s_mgr)
 		return;
+
 	/* set exit flag. */
 	s_mgr->need_exit = true;
 
-	usleep(300000);	/* 300 ms, this value need greate than epoll_wait function last parameters. */
-
 	/* release thread pool. */
-	threadmgr_release(s_mgr->threadpool);
+	cthread_pool_release(s_mgr->threadpool);
 
 	/* close epoll some. */
 	close(s_mgr->epoll_fd);

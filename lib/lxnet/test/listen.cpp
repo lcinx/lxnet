@@ -45,7 +45,7 @@ int main()
 #ifdef WIN32
 			Sleep(100);
 #else
-			sleep(1);
+			usleep(100000);
 #endif
 			lxnet::net_run();
 			if (!list->CanAccept())
@@ -105,7 +105,7 @@ s_exit:
 #ifdef WIN32
 	Sleep(1000);
 #else
-	sleep(2);
+	usleep(1000000);
 #endif
 	lxnet::Listener_release(list);
 	lxnet::net_release();

@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #ifndef _H_SOCKET_INTERNAL_H_
 #define _H_SOCKET_INTERNAL_H_

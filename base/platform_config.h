@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #ifndef _H_T_PLATFORM_CONFIG_T_H_
 #define _H_T_PLATFORM_CONFIG_T_H_
@@ -62,7 +62,10 @@ typedef uint8_t uint8;
 
 	
 #else
-	#if defined(__LP64__) || defined(__x86_64__)
+	#if defined(__APPLE__)
+		#define _FORMAT_64D_NUM "%lld"
+		#define _FORMAT_64X_NUM "%llx"		
+	#elif defined(__LP64__) || defined(__x86_64__)
 		#define _FORMAT_64D_NUM "%ld"
 		#define _FORMAT_64X_NUM "%lx"
 	#elif defined(__i386__)

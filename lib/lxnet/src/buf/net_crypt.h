@@ -2,7 +2,7 @@
 /*
  * Copyright (C) lcinx
  * lcinx@163.com
-*/
+ */
 
 #ifndef _H_NET_CRYPT_FUNCTION_DEF_H_
 #define _H_NET_CRYPT_FUNCTION_DEF_H_

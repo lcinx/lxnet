@@ -20,14 +20,14 @@
     <Filter Include="Source Files\src\sock">
       <UniqueIdentifier>{9f3a8036-f8e3-4c69-8e1f-a08b1d51a2af}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\src\threadpool">
-      <UniqueIdentifier>{3f269e7d-2573-4694-9514-6b4b39e60382}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\3rd">
       <UniqueIdentifier>{0b04e1ec-0c93-40a9-a043-f9b137829f6e}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\3rd\quicklz">
       <UniqueIdentifier>{74847928-0550-4458-b2cd-7234afee6aef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\base\buf">
+      <UniqueIdentifier>{695db85d-cf8e-4e0b-ae36-ae3255cec149}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -35,9 +35,6 @@
       <Filter>Source Files\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\base\log.h">
-      <Filter>Source Files\base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\base\ossome.h">
       <Filter>Source Files\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\base\pool.h">
@@ -94,17 +91,26 @@
     <ClInclude Include="src\sock\socket_internal.h">
       <Filter>Source Files\src\sock</Filter>
     </ClInclude>
-    <ClInclude Include="src\threadpool\net_thread.h">
-      <Filter>Source Files\src\threadpool</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threadpool\net_threadlist.h">
-      <Filter>Source Files\src\threadpool</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threadpool\threadpool.h">
-      <Filter>Source Files\src\threadpool</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\3rd\quicklz\quicklz.h">
       <Filter>Source Files\3rd\quicklz</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\buf\block.h">
+      <Filter>Source Files\base\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\buf\block_list.h">
+      <Filter>Source Files\base\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\buf\block_list_func.h">
+      <Filter>Source Files\base\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\buf\buf_info.h">
+      <Filter>Source Files\base\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\catomic.h">
+      <Filter>Source Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\cthread.h">
+      <Filter>Source Files\base</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -153,11 +159,14 @@
     <ClCompile Include="src\sock\net_pool.c">
       <Filter>Source Files\src\sock</Filter>
     </ClCompile>
-    <ClCompile Include="src\threadpool\threadpool.c">
-      <Filter>Source Files\src\threadpool</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\3rd\quicklz\quicklz.c">
       <Filter>Source Files\3rd\quicklz</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\base\catomic.c">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\base\cthread.c">
+      <Filter>Source Files\base</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

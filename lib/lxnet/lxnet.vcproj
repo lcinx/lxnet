@@ -156,6 +156,14 @@
 				Name="base"
 				>
 				<File
+					RelativePath="..\..\base\catomic.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\base\catomic.h"
+					>
+				</File>
+				<File
 					RelativePath="..\..\base\crosslib.c"
 					>
 				</File>
@@ -164,15 +172,19 @@
 					>
 				</File>
 				<File
+					RelativePath="..\..\base\cthread.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\base\cthread.h"
+					>
+				</File>
+				<File
 					RelativePath="..\..\base\log.c"
 					>
 				</File>
 				<File
 					RelativePath="..\..\base\log.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\base\ossome.h"
 					>
 				</File>
 				<File
@@ -192,6 +204,10 @@
 					</File>
 					<File
 						RelativePath="..\..\base\buf\block_list.h"
+						>
+					</File>
+					<File
+						RelativePath="..\..\base\buf\block_list_func.h"
 						>
 					</File>
 					<File
@@ -316,26 +332,6 @@
 					</File>
 					<File
 						RelativePath=".\src\sock\socket_internal.h"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="threadpool"
-					>
-					<File
-						RelativePath=".\src\threadpool\net_thread.h"
-						>
-					</File>
-					<File
-						RelativePath=".\src\threadpool\net_threadlist.h"
-						>
-					</File>
-					<File
-						RelativePath=".\src\threadpool\threadpool.c"
-						>
-					</File>
-					<File
-						RelativePath=".\src\threadpool\threadpool.h"
 						>
 					</File>
 				</Filter>
