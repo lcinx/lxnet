@@ -23,7 +23,9 @@
 #define debuglog(...)
 #endif
 
+#ifdef WIN32
 static const int s_datalimit = 32*1024;
+#endif
 
 enum e_control_value {
 	enum_list_run_delay = 300,

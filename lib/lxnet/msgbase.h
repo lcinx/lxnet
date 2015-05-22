@@ -49,7 +49,7 @@ struct MessagePack:public Msg {
 	void SetIndex(size_t idx) {
 		if (idx >= e_thismessage_max_size)
 			idx = e_thismessage_max_size - 1;
-		if (idx < 0)
+		if ((int)idx < 0)
 			idx = 0;
 		m_index = idx;
 		m_maxindex = GetLength() - (int)sizeof(Msg);

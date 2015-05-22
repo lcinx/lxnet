@@ -91,22 +91,36 @@ int cthread_create(cthread *tid, void *udata, void (*thread_func)(cthread *)) {
 
 	self->thread_id = 0;
 
+	/* first set. */
+	*tid = self;
+
 #ifdef WIN32
 	self->event = CreateEvent(NULL, FALSE, FALSE, NULL);
 	self->handle = (HANDLE)_beginthreadex(NULL, 0, thread_run_func, (void *)self, 0, NULL);
 #else
 	self->signal_flag = 0;
-	if (pthread_create(&self->handle, 0, thread_run_func, (void *)self) != 0) {
-		free(self);
-		return 1;
-	}
+	
+	if (pthread_cond_init(&self->cond, NULL) != 0)
+		goto err_do;
 
-	pthread_cond_init(&self->cond, NULL);
-	pthread_mutex_init(&self->mutex, NULL);
+	if (pthread_mutex_init(&self->mutex, NULL) != 0)
+		goto err_do;
+
+	if (pthread_create(&self->handle, 0, thread_run_func, (void *)self) != 0)
+		goto err_do;
+
 #endif
 
-	*tid = self;
 	return 0;
+
+#ifndef WIN32
+err_do:
+	pthread_cond_destroy(&self->cond);
+	pthread_mutex_destroy(&self->mutex);
+	free(self);
+	*tid = NULL;
+	return 1;
+#endif
 }
 
 void *cthread_get_udata(cthread *tid) {
