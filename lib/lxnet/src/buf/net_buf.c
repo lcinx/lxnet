@@ -555,6 +555,9 @@ char *buf_getdata(struct net_buf *self, bool *needclose, char *buf, int bufsize,
 	
 	if (!blocklist_get_data(lst, buf, bufsize, datalen)) {
 		*needclose = true;
+		if (s_enable_errorlog) {
+			log_error("buf_getdata error.");
+		}
 		return NULL;
 	}
 

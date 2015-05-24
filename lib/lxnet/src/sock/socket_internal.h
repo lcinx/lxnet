@@ -26,7 +26,7 @@ struct socketer {
 	struct overlappedstruct recv_event;
 	struct overlappedstruct send_event;
 #else
-	volatile int events;				/* for epoll event.*/
+	volatile long events;				/* for epoll event.*/
 #endif
 
 	net_socket sockfd;					/* socket fd. */

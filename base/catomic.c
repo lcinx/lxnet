@@ -8,17 +8,19 @@
 
 #ifdef WIN32
 #include <windows.h>
+#define win_catomic_compare_set(atom_value, old, set) (InterlockedCompareExchange(atom_value, set, old) == old)
 #endif
 
 
 
-long catomic_set(volatile long *atom_value, long value) {
-#ifdef WIN32
-	return InterlockedExchange(atom_value, value);
-#else
-	return __sync_lock_test_and_set(atom_value, value);
-#endif
+long catomic_read(volatile long *atom_value) {
+	return *atom_value;
 }
+
+void catomic_set(volatile long *atom_value, long value) {
+	*atom_value = value;
+}
+
 
 long catomic_inc(volatile long *atom_value) {
 #ifdef WIN32
@@ -50,7 +52,7 @@ long catomic_fetch_or(volatile long *atom_value, long value) {
 	do {
 		old = *atom_value;
 		newvalue = old | value;
-	} while (!catomic_compare_set(atom_value, old, newvalue));
+	} while (!win_catomic_compare_set(atom_value, old, newvalue));
 
 	return old;
 #else
@@ -64,7 +66,7 @@ long catomic_fetch_and(volatile long *atom_value, long value) {
 	do {
 		old = *atom_value;
 		newvalue = old & value;
-	} while (!catomic_compare_set(atom_value, old, newvalue));
+	} while (!win_catomic_compare_set(atom_value, old, newvalue));
 
 	return old;
 #else
@@ -72,12 +74,51 @@ long catomic_fetch_and(volatile long *atom_value, long value) {
 #endif
 }
 
+long catomic_add_fetch(volatile long *atom_value, long value) {
+#ifdef WIN32
+	long old, newvalue;
+	do {
+		old = *atom_value;
+		newvalue = old + value;
+	} while (!win_catomic_compare_set(atom_value, old, newvalue));
+
+	return newvalue;
+#else
+	return __sync_add_and_fetch(atom_value, value);
+#endif
+}
+
+long catomic_or_fetch(volatile long *atom_value, long value) {
+#ifdef WIN32
+	long old, newvalue;
+	do {
+		old = *atom_value;
+		newvalue = old | value;
+	} while (!win_catomic_compare_set(atom_value, old, newvalue));
+
+	return newvalue;
+#else
+	return __sync_or_and_fetch(atom_value, value);
+#endif
+}
+
+long catomic_and_fetch(volatile long *atom_value, long value) {
+#ifdef WIN32
+	long old, newvalue;
+	do {
+		old = *atom_value;
+		newvalue = old & value;
+	} while (!win_catomic_compare_set(atom_value, old, newvalue));
+
+	return newvalue;
+#else
+	return __sync_and_and_fetch(atom_value, value);
+#endif
+}
+
 bool catomic_compare_set(volatile long *atom_value, long old, long set) {
 #ifdef WIN32
-	if (InterlockedCompareExchange(atom_value, set, old) == old)
-		return true;
-
-	return false;
+	return win_catomic_compare_set(atom_value, old, set);
 #else
 	return __sync_bool_compare_and_swap(atom_value, old, set);
 #endif
