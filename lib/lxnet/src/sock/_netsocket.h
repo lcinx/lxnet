@@ -38,7 +38,7 @@ bool socketer_isclose(struct socketer *self);
 
 void socketer_getip(struct socketer *self, char *ip, size_t len);
 
-long socketer_get_send_buffer_byte_size(struct socketer *self);
+int socketer_get_send_buffer_byte_size(struct socketer *self);
 
 bool socketer_gethostname(char *name, size_t len);
 
@@ -65,10 +65,10 @@ void socketer_checkrecv(struct socketer *self);
 
 
 /* set recv data limit. */
-void socketer_set_recv_critical(struct socketer *self, long size);
+void socketer_set_recv_critical(struct socketer *self, int size);
 
 /* set send data limit.*/
-void socketer_set_send_critical(struct socketer *self, long size);
+void socketer_set_send_critical(struct socketer *self, int size);
 
 void socketer_use_compress(struct socketer *self);
 

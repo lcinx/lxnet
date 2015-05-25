@@ -23,7 +23,7 @@ int64 high_microsecond_();
 #define get_microsecond() high_microsecond_()
 
 /* sleep some millisecond */
-void delay_delay(unsigned long millisecond);
+void delay_delay(unsigned int millisecond);
 
 /* get cpu num */
 int get_cpu_num();

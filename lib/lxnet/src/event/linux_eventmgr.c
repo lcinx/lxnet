@@ -33,7 +33,7 @@ struct epollmgr {
 	struct cthread_pool *threadpool;				/* thread pool. */
 	volatile char need_exit;						/* exit flag. */
 
-	volatile long event_num;						/* current event number. */
+	catomic event_num;								/* current event number. */
 	int epoll_fd;									/* epoll handle. */
 	struct epoll_event ev_array[THREAD_EVENT_SIZE];	/* event array. */
 };
@@ -48,7 +48,7 @@ void socket_addto_eventmgr(struct socketer *self) {
 	catomic_set(&self->events, EPOLLHUP);
 
 	memset(&ev, 0, sizeof(ev));
-	ev.events = (uint32)self->events;
+	ev.events = (uint32)catomic_read(&self->events);
 	ev.data.ptr = self;
 	if (epoll_ctl(s_mgr->epoll_fd, EPOLL_CTL_ADD, self->sockfd, &ev) == -1) {
 		/*log_error("epoll, add event to epoll set on fd %d error!, errno:%d", ev.data.fd, NET_GetLastError());*/
@@ -75,10 +75,12 @@ void socket_setup_recvevent(struct socketer *self) {
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
 
-	assert(self->recvlock == 1);
+	assert(catomic_read(&self->recvlock) == 1);
 
-	if (self->recvlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
+	if (catomic_read(&self->recvlock) != 1) {
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", 
+				self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), 
+				self->sockfd, (int)catomic_read(&self->ref), cthread_self_id());
 	}
 
 	ev.events = (uint32)catomic_or_fetch(&self->events, EPOLLIN);
@@ -87,7 +89,9 @@ void socket_setup_recvevent(struct socketer *self) {
 		/*log_error("epoll, setup recv event to epoll set on fd %d error!, errno:%d", self->sockfd, NET_GetLastError());*/
 		socketer_close(self);
 		if (catomic_dec(&self->ref) < 1) {
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+					self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+					(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 		}
 	}
 	debuglog("setup recv event to eventmgr.");
@@ -98,10 +102,12 @@ void socket_remove_recvevent(struct socketer *self) {
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
 
-	assert(self->recvlock == 1);
+	assert(catomic_read(&self->recvlock) == 1);
 
-	if (self->recvlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
+	if (catomic_read(&self->recvlock) != 1) {
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", 
+				self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), 
+				self->sockfd, (int)catomic_read(&self->ref), cthread_self_id());
 	}
 
 	ev.events = (uint32)catomic_and_fetch(&self->events, ~(EPOLLIN));
@@ -118,9 +124,11 @@ void socket_setup_sendevent(struct socketer *self) {
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
 
-	assert(self->sendlock == 1);
-	if (self->sendlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
+	assert(catomic_read(&self->sendlock) == 1);
+	if (catomic_read(&self->sendlock) != 1) {
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", 
+				self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), 
+				self->sockfd, (int)catomic_read(&self->ref), cthread_self_id());
 	}
 
 	ev.events = (uint32)catomic_or_fetch(&self->events, EPOLLOUT);
@@ -129,7 +137,9 @@ void socket_setup_sendevent(struct socketer *self) {
 		/*log_error("epoll, setup send event to epoll set on fd %d error!, errno:%d", self->sockfd, NET_GetLastError());*/
 		socketer_close(self);
 		if (catomic_dec(&self->ref) < 1) {
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+					self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+					(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 		}
 	}
 	debuglog("setup send event to eventmgr.");
@@ -140,9 +150,11 @@ void socket_remove_sendevent(struct socketer *self) {
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
 
-	assert(self->sendlock == 1);
-	if (self->sendlock != 1) {
-		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id());
+	assert(catomic_read(&self->sendlock) == 1);
+	if (catomic_read(&self->sendlock) != 1) {
+		log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d", 
+				self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), 
+				self->sockfd, (int)catomic_read(&self->ref), cthread_self_id());
 	}
 
 	ev.events = (uint32)catomic_and_fetch(&self->events, ~(EPOLLOUT));
@@ -155,7 +167,7 @@ void socket_remove_sendevent(struct socketer *self) {
 }
 
 static struct epoll_event *pop_event(struct epollmgr *self) {
-	int index = catomic_dec(&self->event_num);
+	int index = (int)catomic_dec(&self->event_num);
 	if (index < 0)
 		return NULL;
 	else
@@ -242,7 +254,7 @@ bool eventmgr_init(int socketnum, int threadnum) {
 		return false;
 
 	/* initialize. */
-	s_mgr->event_num = 0;
+	catomic_set(&s_mgr->event_num, 0);
 	s_mgr->epoll_fd = epoll_create(1024);
 	if (s_mgr->epoll_fd == -1) {
 		free(s_mgr);

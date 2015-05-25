@@ -14,54 +14,61 @@ extern "C" {
 #include "platform_config.h"
 
 
+typedef struct {
+	volatile int64 counter;
+} catomic;
+
+#define catomic_init(i)	{ (i) }
+
+
 /*
 
-long catomic_inc(volatile long *atom_value) {
-	(*atom_value) += 1;
-	return (*atom_value);
+int64 catomic_inc(catomic *atom_value) {
+	atom_value->counter += 1;
+	return atom_value->counter;
 }
 
-long catomic_dec(volatile long *atom_value) {
-	(*atom_value) += (-1);
-	return (*atom_value);
+int64 catomic_dec(catomic *atom_value) {
+	atom_value->counter += (-1);
+	return atom_value->counter;
 }
 
-long catomic_fetch_add(volatile long *atom_value, long value) {
-	long old = *atom_value;
-	*atom_value = old + value;
+int64 catomic_fetch_add(catomic *atom_value, int64 value) {
+	int64 old = atom_value->counter;
+	atom_value->counter = old + value;
 	return old;
 }
 
-long catomic_fetch_or(volatile long *atom_value, long value) {
-	long old = *atom_value;
-	*atom_value = old | value;
+int64 catomic_fetch_or(catomic *atom_value, int64 value) {
+	int64 old = atom_value->counter;
+	atom_value->counter = old | value;
 	return old;
 }
 
-long catomic_fetch_and(volatile long *atom_value, long value) {
-	long old = *atom_value;
-	*atom_value = old & value;
+int64 catomic_fetch_and(catomic *atom_value, int64 value) {
+	int64 old = atom_value->counter;
+	atom_value->counter = old & value;
 	return old;
 }
 
-long catomic_add_fetch(volatile long *atom_value, long value) {
-	*atom_value = *atom_value + value;
-	return (*atom_value);
+int64 catomic_add_fetch(catomic *atom_value, int64 value) {
+	atom_value->counter += value;
+	return atom_value->counter;
 }
 
-long catomic_or_fetch(volatile long *atom_value, long value) {
-	*atom_value = *atom_value | value;
-	return (*atom_value);
+int64 catomic_or_fetch(catomic *atom_value, int64 value) {
+	atom_value->counter |= value;
+	return atom_value->counter;
 }
 
-long catomic_and_fetch(volatile long *atom_value, long value) {
-	*atom_value = *atom_value & value;
-	return (*atom_value);
+int64 catomic_and_fetch(catomic *atom_value, int64 value) {
+	atom_value->counter &= value;
+	return atom_value->counter;
 }
 
-bool catomic_compare_set(volatile long *atom_value, long old, long set) {
-	if (*atom_value == old) {
-		*atom_value = set;
+bool catomic_compare_set(catomic *atom_value, int64 old, int64 set) {
+	if (atom_value->counter == old) {
+		atom_value->counter = set;
 		return true;
 	}
 
@@ -72,20 +79,20 @@ bool catomic_compare_set(volatile long *atom_value, long old, long set) {
 
 
 
-long catomic_read(volatile long *atom_value);
-void catomic_set(volatile long *atom_value, long value);
+int64 catomic_read(catomic *atom_value);
+void catomic_set(catomic *atom_value, int64 value);
 
 
 
-long catomic_inc(volatile long *atom_value);
-long catomic_dec(volatile long *atom_value);
-long catomic_fetch_add(volatile long *atom_value, long value);
-long catomic_fetch_or(volatile long *atom_value, long value);
-long catomic_fetch_and(volatile long *atom_value, long value);
-long catomic_add_fetch(volatile long *atom_value, long value);
-long catomic_or_fetch(volatile long *atom_value, long value);
-long catomic_and_fetch(volatile long *atom_value, long value);
-bool catomic_compare_set(volatile long *atom_value, long old, long set);
+int64 catomic_inc(catomic *atom_value);
+int64 catomic_dec(catomic *atom_value);
+int64 catomic_fetch_add(catomic *atom_value, int64 value);
+int64 catomic_fetch_or(catomic *atom_value, int64 value);
+int64 catomic_fetch_and(catomic *atom_value, int64 value);
+int64 catomic_add_fetch(catomic *atom_value, int64 value);
+int64 catomic_or_fetch(catomic *atom_value, int64 value);
+int64 catomic_and_fetch(catomic *atom_value, int64 value);
+bool catomic_compare_set(catomic *atom_value, int64 old, int64 set);
 void catomic_synchronize();
 
 

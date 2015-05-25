@@ -58,21 +58,26 @@ typedef uint8_t uint8;
 	#endif
 
 	#define _FORMAT_64D_NUM "%I64d"
+	#define _FORMAT_64U_NUM "%I64u"
 	#define _FORMAT_64X_NUM "%I64x"
 
 	
 #else
 	#if defined(__APPLE__)
 		#define _FORMAT_64D_NUM "%lld"
+		#define _FORMAT_64U_NUM "%llu"
 		#define _FORMAT_64X_NUM "%llx"		
 	#elif defined(__LP64__) || defined(__x86_64__)
 		#define _FORMAT_64D_NUM "%ld"
+		#define _FORMAT_64U_NUM "%lu"
 		#define _FORMAT_64X_NUM "%lx"
 	#elif defined(__i386__)
 		#define _FORMAT_64D_NUM "%lld"
+		#define _FORMAT_64U_NUM "%llu"
 		#define _FORMAT_64X_NUM "%llx"
 	#else
 		#define _FORMAT_64D_NUM "%lld"
+		#define _FORMAT_64U_NUM "%llu"
 		#define _FORMAT_64X_NUM "%llx"
 	#endif
 

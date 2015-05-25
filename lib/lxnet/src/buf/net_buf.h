@@ -47,7 +47,7 @@ void buf_use_tgw(struct net_buf *self);
 
 void buf_set_raw_datasize(struct net_buf *self, size_t size);
 
-long buf_get_data_size(struct net_buf *self);
+int buf_get_data_size(struct net_buf *self);
 
 /* push len, if is more than the limit, return true.*/
 bool buf_add_islimit(struct net_buf *self, size_t len);

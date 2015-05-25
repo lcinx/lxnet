@@ -120,7 +120,7 @@ static bool socketer_init(struct socketer *self, bool bigbuf) {
 	memset(&self->recv_event, 0, sizeof(self->recv_event));
 	memset(&self->send_event, 0, sizeof(self->send_event));
 #else
-	self->events = 0;
+	catomic_set(&self->events, 0);
 #endif
 
 	self->sockfd = NET_INVALID_SOCKET;
@@ -129,13 +129,13 @@ static bool socketer_init(struct socketer *self, bool bigbuf) {
 	self->recvbuf = NULL;
 	self->sendbuf = NULL;
 
-	self->already_event = 0;
-	self->sendlock = 0;
-	self->recvlock = 0;
+	catomic_set(&self->already_event, 0);
+	catomic_set(&self->sendlock, 0);
+	catomic_set(&self->recvlock, 0);
 	self->deleted = false;
 	self->connected = false;
 	self->bigbuf = bigbuf;
-	self->ref = 1;
+	catomic_set(&self->ref, 1);
 	return true;
 }
 
@@ -327,7 +327,7 @@ void socketer_getip(struct socketer *self, char *ip, size_t len) {
 	ip[len - 1] = '\0';
 }
 
-long socketer_get_send_buffer_byte_size(struct socketer *self) {
+int socketer_get_send_buffer_byte_size(struct socketer *self) {
 	if (!self)
 		return 0;
 
@@ -425,7 +425,9 @@ void socketer_checksend(struct socketer *self) {
 	/* if 0, then set 1, and set sendevent. */
 	if (catomic_compare_set(&self->sendlock, 0, 1)) {
 		if (catomic_inc(&self->ref) <= 1) {
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+					self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+					(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 		}
 		socket_setup_sendevent(self);
 	}
@@ -477,7 +479,9 @@ void socketer_checkrecv(struct socketer *self) {
 	/* if 0, then set 1, and set recvevent.*/
 	if (catomic_compare_set(&self->recvlock, 0, 1)) {
 		if (catomic_inc(&self->ref) <= 1) {
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+					self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+					(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 		}
 
 		socket_setup_recvevent(self);
@@ -485,7 +489,7 @@ void socketer_checkrecv(struct socketer *self) {
 }
 
 /* set recv data limit. */
-void socketer_set_recv_critical(struct socketer *self, long size) {
+void socketer_set_recv_critical(struct socketer *self, int size) {
 	assert(self != NULL);
 	if (!self)
 		return;
@@ -497,7 +501,7 @@ void socketer_set_recv_critical(struct socketer *self, long size) {
 }
 
 /* set send data limit.*/
-void socketer_set_send_critical(struct socketer *self, long size) {
+void socketer_set_send_critical(struct socketer *self, int size) {
 	assert(self != NULL);
 	if (!self)
 		return;
@@ -589,7 +593,7 @@ void socketer_on_recv(struct socketer *self, int len) {
 	struct buf_info writebuf;
 	debuglog("on recv\n");
 
-	assert(self->recvlock == 1);
+	assert(catomic_read(&self->recvlock) == 1);
 	assert(len >= 0);
 
 #ifdef WIN32
@@ -611,7 +615,9 @@ void socketer_on_recv(struct socketer *self, int len) {
 				socketer_close(self);
 
 				if (catomic_dec(&self->ref) < 1) {
-					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+							self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+							(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 				}
 
 				return;
@@ -623,11 +629,15 @@ void socketer_on_recv(struct socketer *self, int len) {
 #endif
 
 			if (catomic_dec(&self->ref) < 1) {
-				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+						self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+						(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 			}
 
 			if (catomic_dec(&self->recvlock) != 0) {
-				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+						self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+						(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 			}
 			return;
 		}
@@ -642,7 +652,9 @@ void socketer_on_recv(struct socketer *self, int len) {
 				socketer_close(self);
 
 				if (catomic_dec(&self->ref) < 1) {
-					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+							self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+							(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 				}
 
 				return;
@@ -653,7 +665,9 @@ void socketer_on_recv(struct socketer *self, int len) {
 				socketer_close(self);
 
 				if (catomic_dec(&self->ref) < 1) {
-					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+							self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+							(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 				}
 
 				debuglog("recv func, socket is error!, so close it!\n");
@@ -681,7 +695,7 @@ void socketer_on_send(struct socketer *self, int len) {
 	struct buf_info readbuf;
 	debuglog("on send\n");
 
-	assert(self->sendlock == 1);
+	assert(catomic_read(&self->sendlock) == 1);
 	assert(len >= 0);
 
 #ifdef WIN32
@@ -705,11 +719,15 @@ void socketer_on_send(struct socketer *self, int len) {
 #endif
 
 			if (catomic_dec(&self->ref) < 1) {
-				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+						self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+						(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 			}
 
 			if (catomic_dec(&self->sendlock) != 0) {
-				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+						self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+						(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 			}
 
 			return;
@@ -725,7 +743,9 @@ void socketer_on_send(struct socketer *self, int len) {
 				socketer_close(self);
 				
 				if (catomic_dec(&self->ref) < 1) {
-					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", self, (int)self->recvlock, (int)self->sendlock, self->sockfd, (int)self->ref, cthread_self_id(), self->connected, self->deleted);
+					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+							self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+							(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 				}
 				debuglog("send func, socket is error!, so close it!\n");
 			} else {
@@ -781,7 +801,9 @@ void socketmgr_run() {
 
 #ifdef WIN32
 		if (catomic_dec(&sock->ref) != 0) {
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", sock, (int)sock->recvlock, (int)sock->sendlock, sock->sockfd, (int)sock->ref, cthread_self_id(), sock->connected, sock->deleted);
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+					sock, (int)catomic_read(&sock->recvlock), (int)catomic_read(&sock->sendlock), sock->sockfd, 
+					(int)catomic_read(&sock->ref), cthread_self_id(), sock->connected, sock->deleted);
 		}
 #endif
 
@@ -791,16 +813,21 @@ void socketmgr_run() {
 			log_error(" if (sock != resock)");
 			if (resock) {
 #ifdef WIN32
-				if (resock->ref != 0)
-					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", resock, (int)resock->recvlock, (int)resock->sendlock, resock->sockfd, (int)resock->ref, cthread_self_id(), resock->connected, resock->deleted);
+				if (catomic_read(&resock->ref) != 0) {
+					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+							resock, (int)catomic_read(&resock->recvlock), (int)catomic_read(&resock->sendlock), resock->sockfd, 
+							(int)catomic_read(&resock->ref), cthread_self_id(), resock->connected, resock->deleted);
+				}
 #endif
 				socketer_real_release(resock);
 			}
 		}
 
 #ifdef WIN32
-		if (sock->ref != 0)
-			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", sock, (int)sock->recvlock, (int)sock->sendlock, sock->sockfd, (int)sock->ref, cthread_self_id(), sock->connected, sock->deleted);
+		if (catomic_read(&sock->ref) != 0)
+			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+					sock, (int)catomic_read(&sock->recvlock), (int)catomic_read(&sock->sendlock), sock->sockfd, 
+					(int)catomic_read(&sock->ref), cthread_self_id(), sock->connected, sock->deleted);
 #endif
 		socketer_real_release(sock);
 	}

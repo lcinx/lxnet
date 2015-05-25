@@ -258,7 +258,7 @@ static inline struct nodepool *poolmgr_create_nodepool(struct poolmgr *self) {
 	mem = malloc(sizeof(struct nodepool) + self->block_size * current_maxnum);
 	if (!mem) {
 		assert(false && "poolmgr_create_nodepool malloc memory failed!");
-		log_error("malloc %lu byte memory error!", sizeof(struct nodepool) + self->block_size * current_maxnum);
+		log_error("malloc "_FORMAT_64U_NUM" byte memory error!", (uint64)(sizeof(struct nodepool) + self->block_size * current_maxnum));
 		return NULL;
 	}
 
@@ -422,9 +422,9 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment, size_t num, size_t
 		assert(false && "poolmgr_create malloc memory failed!");
 
 #ifndef NOTUSE_POOL
-		log_error("malloc %lu byte memory error!", sizeof(struct poolmgr) + sizeof(struct nodepool) + size * num);
+		log_error("malloc "_FORMAT_64U_NUM" byte memory error!", (uint64)(sizeof(struct poolmgr) + sizeof(struct nodepool) + size * num));
 #else
-		log_error("malloc %lu byte memory error!", sizeof(struct poolmgr));
+		log_error("malloc "_FORMAT_64U_NUM" byte memory error!", (uint64)sizeof(struct poolmgr));
 #endif
 
 		return NULL;
@@ -617,13 +617,13 @@ void poolmgr_release(struct poolmgr *self) {
 }
 
 #define _STR_HEAD "\n%s:\n<<<<<<<<<<<<<<<<<< poolmgr info begin <<<<<<<<<<<<<<<<<\n\
-pools have pool num:%lu\n\
-base alignment:%lu\n\
-base object size:%lu\tobject size:%lu\n\
-object total num: [%lu]\tobject current num: [%lu]\n\
-base num:%lu\tcurrent max num:%lu\tnext_multiple:%lu\n\
-memory total: %lu(byte), %lu(kb), %lu(mb)\n\
-shrink arg: free pool num:%lu, free node ratio:%.3f\n\
+pools have pool num:"_FORMAT_64U_NUM"\n\
+base alignment:"_FORMAT_64U_NUM"\n\
+base object size:"_FORMAT_64U_NUM"\tobject size:"_FORMAT_64U_NUM"\n\
+object total num: ["_FORMAT_64U_NUM"]\tobject current num: ["_FORMAT_64U_NUM"]\n\
+base num:"_FORMAT_64U_NUM"\tcurrent max num:"_FORMAT_64U_NUM"\tnext_multiple:"_FORMAT_64U_NUM"\n\
+memory total: "_FORMAT_64U_NUM"(byte), "_FORMAT_64U_NUM"(kb), "_FORMAT_64U_NUM"(mb)\n\
+shrink arg: free pool num:"_FORMAT_64U_NUM", free node ratio:%.3f\n\
 >>>>>>>>>>>>>>>>>> poolmgr info end >>>>>>>>>>>>>>>>>>\n"
 void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize) {
 
@@ -634,13 +634,13 @@ void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize) {
 
 	totalsize = self->block_size * self->node_total;
 	snprintf(buf, bufsize, _STR_HEAD, self->name, \
-	(unsigned long)self->nodepool_num, \
-	(unsigned long)self->alignment, 
-	(unsigned long)self->base_block_size, (unsigned long)self->block_size, \
-	(unsigned long)self->node_total, (unsigned long)self->node_free_total, \
-	(unsigned long)self->base_num, (unsigned long)self->current_maxnum, (unsigned long)self->next_multiple, \
-	(unsigned long)totalsize, (unsigned long)totalsize / 1024, (unsigned long)totalsize / (1024 * 1024), \
-	(unsigned long)self->free_pool_num_for_shrink, self->free_node_ratio_for_shrink);
+	(uint64)self->nodepool_num, \
+	(uint64)self->alignment, 
+	(uint64)self->base_block_size, (uint64)self->block_size, \
+	(uint64)self->node_total, (uint64)self->node_free_total, \
+	(uint64)self->base_num, (uint64)self->current_maxnum, (uint64)self->next_multiple, \
+	(uint64)totalsize, (uint64)totalsize / 1024, (uint64)totalsize / (1024 * 1024), \
+	(uint64)self->free_pool_num_for_shrink, self->free_node_ratio_for_shrink);
 #else
 	snprintf(buf, bufsize, "%s not use pools!\n", self->name);
 #endif

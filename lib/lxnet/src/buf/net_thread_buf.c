@@ -38,14 +38,14 @@ struct threadinfo {
 	struct thread_localuse msgbuf[_MAX_SAFE_THREAD_NUM];		/* for getmsg temp buf */
 	struct thread_localuse compressbuf[_MAX_SAFE_THREAD_NUM];	/* compress/uncompress. */
 	struct thread_localuse quicklzbuf[_MAX_SAFE_THREAD_NUM];	/* for quicklz lib buffer. */
-	volatile long msgbuf_freeindex;
-	volatile long compressbuf_freeindex;
-	volatile long quicklzbuf_freeindex;
+	catomic msgbuf_freeindex;
+	catomic compressbuf_freeindex;
+	catomic quicklzbuf_freeindex;
 };
 
 static struct threadinfo s_threadlock = {false};
 
-static void *threadlocal_getbuf(struct thread_localuse self[_MAX_SAFE_THREAD_NUM], size_t needsize, volatile long *freeindex) {
+static void *threadlocal_getbuf(struct thread_localuse self[_MAX_SAFE_THREAD_NUM], size_t needsize, catomic *freeindex) {
 	unsigned int currentthreadid = cthread_self_id();
 	int index;
 	for (index = 0; index < _MAX_SAFE_THREAD_NUM; ++index) {
@@ -155,9 +155,10 @@ bool threadbuf_init(size_t msgmaxsize, size_t compressmaxsize) {
 	threadlocal_init(s_threadlock.msgbuf);
 	threadlocal_init(s_threadlock.compressbuf);
 	threadlocal_init(s_threadlock.quicklzbuf);
-	s_threadlock.msgbuf_freeindex = 0;
-	s_threadlock.compressbuf_freeindex = 0;
-	s_threadlock.quicklzbuf_freeindex = 0;
+
+	catomic_set(&s_threadlock.msgbuf_freeindex, 0);
+	catomic_set(&s_threadlock.compressbuf_freeindex, 0);
+	catomic_set(&s_threadlock.quicklzbuf_freeindex, 0);
 	s_threadlock.isinit = true;
 	return true;
 }

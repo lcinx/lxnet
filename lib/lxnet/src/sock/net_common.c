@@ -37,12 +37,12 @@ int socket_close(net_socket *sockfd) {
 static bool socket_set_nonblock(net_socket sockfd) {
 #ifdef WIN32
 	{
-		unsigned long nonblocking = 1;
-		ioctlsocket(sockfd, FIONBIO, (unsigned long*) &nonblocking);
+		u_long nonblocking = 1;
+		ioctlsocket(sockfd, FIONBIO, &nonblocking);
 	}
 #else
 	{
-		long flags;
+		int flags;
 		if ((flags = fcntl(sockfd, F_GETFL, NULL)) < 0)
 			return false;
 

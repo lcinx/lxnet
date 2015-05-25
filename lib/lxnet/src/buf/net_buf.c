@@ -46,7 +46,7 @@ struct net_buf {
 	void (*release_logicdata)(void *logicdata);
 	void *do_logicdata;
 
-	long io_limitsize;			/* io handle limit size. */
+	int io_limitsize;			/* io handle limit size. */
 
 	struct blocklist iolist;	/* io block list. */
 
@@ -217,11 +217,11 @@ void buf_set_raw_datasize(struct net_buf *self, size_t size) {
 	self->raw_size_for_compress = size;
 }
 
-long buf_get_data_size(struct net_buf *self) {
+int buf_get_data_size(struct net_buf *self) {
 	if (!self)
 		return 0;
 
-	return self->iolist.datasize + self->logiclist.datasize;
+	return (int)(blocklist_get_datasize(&self->iolist) + blocklist_get_datasize(&self->logiclist));
 }
 
 /* push len, if is more than the limit, return true.*/
@@ -232,8 +232,8 @@ bool buf_add_islimit(struct net_buf *self, size_t len) {
 	if (self->io_limitsize == 0)
 		return false;
 	/* limit compare as io datasize or logic datasize.*/
-	if ((self->io_limitsize <= self->iolist.datasize) || 
-			(self->io_limitsize <= (self->logiclist.datasize + len)))
+	if ((self->io_limitsize <= blocklist_get_datasize(&self->iolist)) || 
+			(self->io_limitsize <= (blocklist_get_datasize(&self->logiclist) + len)))
 		return true;
 	return false;
 }
@@ -245,8 +245,8 @@ static bool buf_islimit(struct net_buf *self) {
 	if (self->io_limitsize == 0)
 		return false;
 	/* limit compare as io datasize or logic datasize.*/
-	if (self->io_limitsize <= self->logiclist.datasize || 
-			self->io_limitsize <= self->iolist.datasize)
+	if (self->io_limitsize <= blocklist_get_datasize(&self->logiclist) || 
+			self->io_limitsize <= blocklist_get_datasize(&self->iolist))
 		return true;
 	return false;
 }
@@ -260,7 +260,8 @@ bool buf_can_not_recv(struct net_buf *self) {
 bool buf_can_not_send(struct net_buf *self) {
 	if (!self)
 		return true;
-	return ((self->iolist.datasize <= 0) && (self->logiclist.datasize <= 0));
+	return ((blocklist_get_datasize(&self->iolist) <= 0) &&
+			(blocklist_get_datasize(&self->logiclist) <= 0));
 }
 
 /*

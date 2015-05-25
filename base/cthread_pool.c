@@ -48,13 +48,13 @@ struct cthread_list {
 struct cthread_pool {
 	struct cthread_list all_list;
 
-	volatile long run;
-	volatile long resume_num;
-	volatile long suspend_num;
-	volatile long activity_num;
-	volatile long need_exit_num;
-	volatile long exit_num;
-	volatile long has_leader;
+	catomic run;
+	catomic resume_num;
+	catomic suspend_num;
+	catomic activity_num;
+	catomic need_exit_num;
+	catomic exit_num;
+	catomic has_leader;
 
 	int thread_num;
 	void *udata;
@@ -197,11 +197,12 @@ static void cthread_pool_do_thread_exit(struct cthread_info *th) {
 
 	threadpool_debuglog("func:[%s] thread id:%d, activity num:%d, exit num:%d, has_leader:%d",
 			__FUNCTION__, cthread_info_get_id(th),
-			(int)th->mgr->activity_num, (int)th->mgr->exit_num, (int)th->mgr->has_leader);
+			(int)catomic_read(&th->mgr->activity_num), (int)catomic_read(&th->mgr->exit_num), (int)catomic_read(&th->mgr->has_leader));
 }
 
 
 static void th_pro_func(cthread *th) {
+	int cinfo_id = 0;
 	struct cthread_info *cinfo = (struct cthread_info *)cthread_get_udata(th);
 	struct cthread_pool *mgr = cinfo->mgr;
 
@@ -209,10 +210,10 @@ static void th_pro_func(cthread *th) {
 	cthread_suspend(cthread_info_get_handle_ptr(cinfo));
 
 	/* check need run. */
-	if (mgr->run == 0)
+	if (catomic_read(&mgr->run) == 0)
 		return;
 
-	int cinfo_id = cthread_info_get_id(cinfo);
+	cinfo_id = (int)cthread_info_get_id(cinfo);
 	(void )cinfo_id;
 
 	cthread_info_state_to_activity(cinfo);
@@ -221,14 +222,14 @@ static void th_pro_func(cthread *th) {
 	catomic_inc(&mgr->need_exit_num);
 
 	/* wait all run to here. */
-	while (mgr->need_exit_num != (long)mgr->thread_num) {
+	while (catomic_read(&mgr->need_exit_num) != (int64)mgr->thread_num) {
 		cthread_self_sleep(0);
 	}
 
 	threadpool_debuglog("func:[%s][start thread] id:%d", 
 			__FUNCTION__, cthread_info_get_id(cinfo));
 
-	while (mgr->run != 0) {
+	while (catomic_read(&mgr->run) != 0) {
 		if (cthread_info_is_header(cinfo)) {
 			/* do leader function, 
 			 * if return value less than 0, then exit. 
@@ -236,12 +237,12 @@ static void th_pro_func(cthread *th) {
 			 */
 			int resume_num = mgr->func_leader(mgr->udata);
 			if (resume_num > 0) {
-				int real_resume_num = min(resume_num, mgr->need_exit_num);
+				int real_resume_num = (int)min(resume_num, catomic_read(&mgr->need_exit_num));
 
 				threadpool_debuglog("func:[%s][leader func return] leader thread id:%d, resume_num:%d, activity num:%d, exit num:%d, has_leader:%d",
 						__FUNCTION__,
 						cthread_info_get_id(cinfo), resume_num, 
-						(int)mgr->activity_num, (int)mgr->exit_num, (int)mgr->has_leader);
+						(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), (int)catomic_read(&mgr->has_leader));
 
 				cthread_info_change_to_henchman(cinfo);
 
@@ -264,8 +265,8 @@ static void th_pro_func(cthread *th) {
 			/* If own is the last activity of the followers, set own to leader. */
 			if (catomic_dec(&mgr->resume_num) == 0) {
 
-				assert(mgr->activity_num >= 1);
-				assert(mgr->has_leader == 0);
+				assert(catomic_read(&mgr->activity_num) >= 1);
+				assert(catomic_read(&mgr->has_leader) == 0);
 
 				/* competition leader. */
 				if (catomic_compare_set(&mgr->has_leader, 0, 1)) {
@@ -276,7 +277,7 @@ static void th_pro_func(cthread *th) {
 					threadpool_debuglog("func:[%s][change to leader] task thread id:%d, activity num:%d, exit num:%d, has_leader:%d",
 							__FUNCTION__,
 							cthread_info_get_id(cinfo),
-							(int)mgr->activity_num, (int)mgr->exit_num, (int)mgr->has_leader);
+							(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), (int)catomic_read(&mgr->has_leader));
 
 					continue;
 				}
@@ -294,7 +295,7 @@ static void th_pro_func(cthread *th) {
 			threadpool_debuglog("func:[%s][suspend thread] thread id:%d, activity num:%d, exit num:%d, has_leader:%d",
 					__FUNCTION__,
 					cthread_info_get_id(cinfo),
-					(int)mgr->activity_num, (int)mgr->exit_num, (int)mgr->has_leader);
+					(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), (int)catomic_read(&mgr->has_leader));
 
 			/* real do suspend. */
 			cthread_suspend(cthread_info_get_handle_ptr(cinfo));
@@ -307,7 +308,7 @@ static void th_pro_func(cthread *th) {
 			threadpool_debuglog("func:[%s][thread for resume] thread id:%d, activity num:%d, exit num:%d, has_leader:%d",
 					__FUNCTION__,
 					cthread_info_get_id(cinfo),
-					(int)mgr->activity_num, (int)mgr->exit_num, (int)mgr->has_leader);
+					(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), (int)catomic_read(&mgr->has_leader));
 		}
 	}
 
@@ -338,13 +339,13 @@ struct cthread_pool *cthread_pool_create(int thread_num, void *udata,
 		return NULL;
 
 	cthread_list_init(&self->all_list);
-	self->run = 0;
-	self->resume_num = 0;
-	self->suspend_num = 0;
-	self->activity_num = 0;
-	self->need_exit_num = 0;
-	self->exit_num = 0;
-	self->has_leader = 0;
+	catomic_set(&self->run, 0);
+	catomic_set(&self->resume_num, 0);
+	catomic_set(&self->suspend_num, 0);
+	catomic_set(&self->activity_num, 0);
+	catomic_set(&self->need_exit_num, 0);
+	catomic_set(&self->exit_num, 0);
+	catomic_set(&self->has_leader, 0);
 
 	self->thread_num = thread_num;
 	self->udata = udata;
@@ -361,7 +362,7 @@ struct cthread_pool *cthread_pool_create(int thread_num, void *udata,
 		thread_num--;
 	}
 
-	self->run = 1;
+	catomic_set(&self->run, 1);
 
 	threadpool_debuglog("func[%s] mgr:%p", __FUNCTION__, self);
 
@@ -369,7 +370,7 @@ struct cthread_pool *cthread_pool_create(int thread_num, void *udata,
 	cthread_pool_resume_some_thread(self, self->thread_num, NULL);
 
 	/* wait thread run. */
-	while (self->need_exit_num != (long)self->thread_num) {
+	while (catomic_read(&self->need_exit_num) != (int64)self->thread_num) {
 		cthread_self_sleep(0);
 	}
 
@@ -392,7 +393,7 @@ void cthread_pool_release(struct cthread_pool *self) {
 
 	catomic_set(&self->run, 0);	
 
-	while (self->exit_num != self->need_exit_num) {
+	while (catomic_read(&self->exit_num) != catomic_read(&self->need_exit_num)) {
 
 		cthread_pool_resume_some_thread(self, self->thread_num, NULL);
 
@@ -400,10 +401,10 @@ void cthread_pool_release(struct cthread_pool *self) {
 		cthread_self_sleep(1);
 	}
 
-	assert(self->suspend_num == 0);
-	assert(self->activity_num == 0);
-	assert(self->need_exit_num == self->exit_num);
-	assert(self->need_exit_num <= self->thread_num);
+	assert(catomic_read(&self->suspend_num) == 0);
+	assert(catomic_read(&self->activity_num) == 0);
+	assert(catomic_read(&self->need_exit_num) == catomic_read(&self->exit_num));
+	assert(catomic_read(&self->need_exit_num) <= self->thread_num);
 
 	cthread_list_destroy(&self->all_list);
 

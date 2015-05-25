@@ -26,7 +26,7 @@ struct socketer {
 	struct overlappedstruct recv_event;
 	struct overlappedstruct send_event;
 #else
-	volatile long events;				/* for epoll event.*/
+	catomic events;						/* for epoll event.*/
 #endif
 
 	net_socket sockfd;					/* socket fd. */
@@ -35,15 +35,15 @@ struct socketer {
 	struct net_buf *recvbuf;
 	struct net_buf *sendbuf;
 
-	volatile long already_event;		/* if 0, then do not join. if 1, is added. */
+	catomic already_event;				/* if 0, then do not join. if 1, is added. */
 
-	volatile long sendlock;				/* if 0, then not set send event. if 1, already set. */
-	volatile long recvlock;				/* if 0, then not set recv event. if 1, already set. */
+	catomic sendlock;					/* if 0, then not set send event. if 1, already set. */
+	catomic recvlock;					/* if 0, then not set recv event. if 1, already set. */
 	volatile bool deleted;				/* delete flag. */
 	volatile bool connected;			/* connect flag. */
 	bool bigbuf;						/* if true, then is bigbuf */
 
-	volatile long ref;					/* the socketer object reference number */
+	catomic ref;						/* the socketer object reference number */
 };
 
 #ifdef __cplusplus

@@ -13,6 +13,7 @@
 
 #ifdef WIN32
 #include <direct.h>
+#include <io.h>
 #define my_mkdir _mkdir
 #else
 #include <sys/stat.h>
@@ -171,7 +172,7 @@ int mymkdir_r(const char *directname) {
 	return 0;
 }
 
-void _log_printf_(unsigned int type, const char *filename, const char *func, long line, const char *fmt, ...) {
+void _log_printf_(unsigned int type, const char *filename, const char *func, int line, const char *fmt, ...) {
 	va_list args;
 	assert(type < enum_debug_max);
 	assert(fmt != NULL);
@@ -185,7 +186,7 @@ void _log_printf_(unsigned int type, const char *filename, const char *func, lon
 		return;
 
 	if (enum_debug_for_assert == type) {
-		printf("file:%s, function:%s, line:%ld ", filename, func, line);
+		printf("file:%s, function:%s, line:%d ", filename, func, line);
 	} else if (enum_debug_for_time_debug == type) {
 		time_t tval;
 		struct tm tm_result;
@@ -235,7 +236,7 @@ static inline void logmgr_init() {
 #include "crosslib.h"
 #endif
 
-void _log_write_(struct filelog *log, unsigned int type, const char *filename, const char *func, long line, const char *fmt, ...) {
+void _log_write_(struct filelog *log, unsigned int type, const char *filename, const char *func, int line, const char *fmt, ...) {
 	const char *directname;
 	struct fileinfo *info;
 	int save_type;
@@ -334,7 +335,7 @@ void _log_write_(struct filelog *log, unsigned int type, const char *filename, c
 				fprintf(info->fp, "[%04d-%02d-%02d %02d:%02d:%02d] ", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday,
 				currTM->tm_hour, currTM->tm_min, currTM->tm_sec);
 		} else {
-			fprintf(info->fp, "[%04d-%02d-%02d %02d:%02d:%02d] [file:%s, function:%s, line:%ld] ", 
+			fprintf(info->fp, "[%04d-%02d-%02d %02d:%02d:%02d] [file:%s, function:%s, line:%d] ", 
 			currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, currTM->tm_hour, currTM->tm_min, currTM->tm_sec, 
 			filename, func,	line);
 		}
@@ -346,10 +347,10 @@ void _log_write_(struct filelog *log, unsigned int type, const char *filename, c
 
 #ifdef _TEST_WRITE_LOG_NEED_TIME
 		end = get_microsecond();
-		fprintf(info->fp, "need: %ld us\n", (long)(end - begin));
+		fprintf(info->fp, "need: %d us\n", (int)(end - begin));
 		fflush(info->fp);
 		begin = get_microsecond();
-		fprintf(info->fp, "fflush need:%ld us\n", (long)(begin - end));
+		fprintf(info->fp, "fflush need:%d us\n", (int)(begin - end));
 #endif
 
 		if (info->everyflush)

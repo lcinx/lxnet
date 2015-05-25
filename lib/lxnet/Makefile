@@ -48,10 +48,10 @@ none:
 	@echo " $(PLATS)"
 
 win32-debug:
-	$(MAKE) all INCS=-I"c:/mingw/include" LIBS=-L"c:/mingw/lib" CFLAGS="-Wall -DWIN32 -DDEBUG -g" CPPFLAGS="-Wall -DWIN32 -DDEBUG -g"
+	$(MAKE) all INCS=-I"c:/mingw/include" LIBS=-L"c:/mingw/lib" CFLAGS="-Wall -march=i686 -DWIN32 -DDEBUG -g" CPPFLAGS="-Wall -DWIN32 -DDEBUG -g"
 
 win32-release:
-	$(MAKE) all INCS=-I"c:/mingw/include" LIBS=-L"c:/mingw/lib" CFLAGS="-Wall -DWIN32 -DNDEBUG -O2" CPPFLAGS="-Wall -DWIN32 -DNDEBUG -O2"
+	$(MAKE) all INCS=-I"c:/mingw/include" LIBS=-L"c:/mingw/lib" CFLAGS="-Wall -march=i686 -DWIN32 -DNDEBUG -O2" CPPFLAGS="-Wall -DWIN32 -DNDEBUG -O2"
 
 linux-debug:
 	$(MAKE) all INCS=-I"/usr/include" LIBS=-L"/usr/lib" CFLAGS="-fPIC -Wall -DDEBUG -g" CPPFLAGS="-fPIC -Wall -DDEBUG -g"

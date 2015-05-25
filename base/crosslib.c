@@ -41,7 +41,7 @@ int64 high_microsecond_() {
 	return (int64)(tmp * 1000000);
 }
 
-void delay_delay(unsigned long millisecond) {
+void delay_delay(unsigned int millisecond) {
 	Sleep(millisecond);
 }
 
@@ -108,7 +108,7 @@ int64 high_microsecond_() {
 	return res;
 }
 
-void delay_delay(unsigned long millisecond) {
+void delay_delay(unsigned int millisecond) {
 	usleep(millisecond * 1000);
 }
 

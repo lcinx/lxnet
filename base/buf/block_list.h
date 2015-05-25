@@ -29,7 +29,7 @@ struct blocklist {
 	get_message_func custom_get_func;		/* custom get message function. */
 
 	int can_write_size;						/* can write size for pusher. */
-	volatile long datasize;					/* this block list data total, pusher add and getter dec. */
+	catomic datasize;						/* this block list data total, pusher add and getter dec. */
 
 	create_block_func create_func;
 	release_block_func release_func;
@@ -59,7 +59,7 @@ static inline void blocklist_init(struct blocklist *self, create_block_func crea
 	self->custom_get_func = NULL;
 
 	self->can_write_size = 0;
-	self->datasize = 0;
+	catomic_set(&self->datasize, 0);
 
 	self->create_func = create_func;
 	self->release_func = release_func;
@@ -103,7 +103,7 @@ static inline void blocklist_release(struct blocklist *self) {
 	self->custom_get_func = NULL;
 
 	self->can_write_size = 0;
-	self->datasize = 0;
+	catomic_set(&self->datasize, 0);
 	
 	self->create_func = NULL;
 	self->release_func = NULL;
@@ -154,8 +154,8 @@ static inline int blocklist_get_message_maxlen(struct blocklist *self) {
 	return self->message_maxlen;
 }
 
-static inline int blocklist_get_datasize(struct blocklist *self) {
-	return self->datasize;
+static inline int64 blocklist_get_datasize(struct blocklist *self) {
+	return catomic_read(&self->datasize);
 }
 
 static inline void blocklist_check_free_block(struct blocklist *self) {
@@ -185,11 +185,11 @@ static bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, 
 	assert(self != NULL);
 	assert(buf != NULL);
 	assert(buf_size > 0);
-	assert(self->datasize > 0);
+	assert(catomic_read(&self->datasize) > 0);
 
 	*read_len = 0;
 	readsize = 0;
-	needread = min(buf_size, self->datasize);
+	needread = (int)min(buf_size, catomic_read(&self->datasize));
 	assert(needread > 0);
 
 	/* first amend datasize. */
@@ -261,7 +261,7 @@ static inline struct buf_info blocklist_get_write_bufinfo(struct blocklist *self
 }
 
 static inline struct buf_info blocklist_get_read_bufinfo(struct blocklist *self) {
-	long datasize = self->datasize;
+	int64 datasize = catomic_read(&self->datasize);
 	struct buf_info readbuf;
 	readbuf.buf = NULL;
 	readbuf.len = 0;
@@ -270,7 +270,7 @@ static inline struct buf_info blocklist_get_read_bufinfo(struct blocklist *self)
 	assert(datasize >= 0);
 	if (datasize > 0) {
 		readbuf.buf = block_getreadbuf(self->head);
-		readbuf.len = min(block_getreadsize(self->head), datasize);
+		readbuf.len = (int)min(block_getreadsize(self->head), datasize);
 	}
 
 	assert(datasize >= readbuf.len);
@@ -294,13 +294,13 @@ static inline void blocklist_add_write(struct blocklist *self, int len) {
 static inline void blocklist_add_read(struct blocklist *self, int len) {
 	assert(self != NULL);
 	assert(len > 0);
-	assert(self->datasize >= len);
+	assert(catomic_read(&self->datasize) >= len);
 
 	/* first change datasize, now do it. */
 	catomic_fetch_add(&self->datasize, (-len));
 
 	while (len > 0) {
-		int tmpsize = min(block_getreadsize(self->head), len);
+		int tmpsize = (int)min(block_getreadsize(self->head), len);
 
 		/* add block read position. */
 		block_addread(self->head, tmpsize);
@@ -339,7 +339,7 @@ static int blocklist_get_message(struct blocklist *self, char *buf, int buf_size
 		const int length_len = 4;
 		int tmp;
 		if (!self->is_new_message) {
-			if (self->datasize < length_len)
+			if (catomic_read(&self->datasize) < length_len)
 				return 0;
 
 			if (!blocklist_get_data(self, (char *)&self->message_len, length_len, &tmp)) {
@@ -358,7 +358,7 @@ static int blocklist_get_message(struct blocklist *self, char *buf, int buf_size
 			return -1;
 		}
 
-		if (self->datasize < (self->message_len - length_len))
+		if (catomic_read(&self->datasize) < (self->message_len - length_len))
 			return 0;
 
 		/* first load message length. */
@@ -376,7 +376,7 @@ static int blocklist_get_message(struct blocklist *self, char *buf, int buf_size
 		return tmp;
 
 	} else {
-		return self->custom_get_func(blocklist_get_data, self, self->datasize,
+		return self->custom_get_func(blocklist_get_data, self, catomic_read(&self->datasize),
 									 &self->is_new_message, &self->message_len,
 									 buf, buf_size);
 	}

@@ -64,7 +64,7 @@ struct filelog;
 
 int mymkdir_r(const char *directname);
 
-void _log_printf_(unsigned int type, const char *filename, const char *func, long line, const char *fmt, ...);
+void _log_printf_(unsigned int type, const char *filename, const char *func, int line, const char *fmt, ...);
 
 /* print debug info and code file line */
 #define debug_log(...) _log_printf_(enum_debug_for_assert, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
@@ -87,7 +87,7 @@ void log_setshow(bool show);
 /* show/hide log_timelog function out*/
 void log_settimelog(bool show);
 
-void _log_write_(struct filelog *log, unsigned int type, const char *filename, const char *func, long line, const char *fmt, ...);
+void _log_write_(struct filelog *log, unsigned int type, const char *filename, const char *func, int line, const char *fmt, ...);
 
 void _log_setdirect_(struct filelog *log, const char *directname);
 const char *_log_getdirect_(struct filelog *log);

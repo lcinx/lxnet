@@ -203,12 +203,12 @@ bool Listener::CanAccept() {
 }
 
 /* 设置接收数据字节的临界值，超过此值，则停止接收，若小于等于0，则视为不限制*/
-void Socketer::SetRecvCritical(long size) {
+void Socketer::SetRecvCritical(int size) {
 	socketer_set_recv_critical(m_self, size);
 }
 
 /* 设置发送数据字节的临界值，若缓冲中数据长度大于此值，则断开此连接，若为0，则视为不限制*/
-void Socketer::SetSendCritical(long size) {
+void Socketer::SetSendCritical(int size) {
 	socketer_set_send_critical(m_self, size);
 }
 
@@ -328,7 +328,7 @@ void Socketer::GetIP(char *ip, size_t len) {
 }
 
 /* 获取发送缓冲待发送字节数(若为0表示不存在待发送数据或数据已写入系统缓冲) */
-long Socketer::GetSendBufferByteSize() {
+int Socketer::GetSendBufferByteSize() {
 	return socketer_get_send_buffer_byte_size(m_self);
 }
 

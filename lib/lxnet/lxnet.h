@@ -65,10 +65,10 @@ private:
 
 public:
 	/* 设置接收数据字节的临界值，超过此值，则停止接收，若小于等于0，则视为不限制*/
-	void SetRecvCritical(long size);
+	void SetRecvCritical(int size);
 
 	/* 设置发送数据字节的临界值，若缓冲中数据长度大于此值，则断开此连接，若为0，则视为不限制*/
-	void SetSendCritical(long size);
+	void SetSendCritical(int size);
 
 	/* （对发送数据起作用）设置启用压缩，若要启用压缩，则此函数在创建socket对象后即刻调用*/
 	void UseCompress();
@@ -109,7 +109,7 @@ public:
 	void GetIP(char *ip, size_t len);
 
 	/* 获取发送缓冲待发送字节数(若为0表示不存在待发送数据或数据已写入系统缓冲) */
-	long GetSendBufferByteSize();
+	int GetSendBufferByteSize();
 
 	/* 发送数据，仅仅是把数据压入包队列中，adddata为附加到pMsg后面的数据，当然会自动修改pMsg的长度，addsize指定adddata的长度*/
 	bool SendMsg(Msg *pMsg, void *adddata = 0, size_t addsize = 0);
