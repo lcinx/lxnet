@@ -4,17 +4,13 @@
  * lcinx@163.com
  */
 
-#ifdef WIN32
-
-#include "catomic.h"
-#include "cthread.h"
-#include "crosslib.h"
 #include <assert.h>
 #include <stdlib.h>
-#include "net_eventmgr.h"
+#include <process.h>
 #include "socket_internal.h"
 #include "_netsocket.h"
-#include <process.h>
+#include "cthread.h"
+#include "crosslib.h"
 #include "log.h"
 
 #ifdef _DEBUG_NETWORK
@@ -277,6 +273,4 @@ void eventmgr_release() {
 	CloseHandle(s_iocp.completeport);
 	WSACleanup();
 }
-
-#endif
 

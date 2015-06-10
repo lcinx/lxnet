@@ -4,11 +4,6 @@
  * lcinx@163.com
  */
 
-#if (!defined(__linux__) && !defined(WIN32))
-#include "catomic.h"
-#include "cthread.h"
-#include "crosslib.h"
-#include "net_eventmgr.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,8 +14,10 @@
 #include <sys/time.h>
 #include "socket_internal.h"
 #include "_netsocket.h"
-#include "log.h"
+#include "cthread.h"
+#include "crosslib.h"
 #include "cthread_pool.h"
+#include "log.h"
 
 #ifdef _DEBUG_NETWORK
 #define debuglog debug_log
@@ -46,22 +43,12 @@ static struct kqueuemgr *s_mgr = NULL;
 void socket_addto_eventmgr(struct socketer *self) {
 	bool res = true;
 	struct kevent ev;
-	EV_SET(&ev, self->sockfd, EVFILT_READ, EV_ADD, 0, 0, self);
+	EV_SET(&ev, self->sockfd, EVFILT_READ, EV_ADD | EV_DISABLE, 0, 0, self);
 	if (kevent(s_mgr->kqueue_fd, &ev, 1, NULL, 0, NULL) == -1) {
 		res = false;
 	}
 
-	EV_SET(&ev, self->sockfd, EVFILT_WRITE, EV_ADD, 0, 0, self);
-	if (kevent(s_mgr->kqueue_fd, &ev, 1, NULL, 0, NULL) == -1) {
-		res = false;
-	}
-
-	EV_SET(&ev, self->sockfd, EVFILT_READ, EV_DISABLE, 0, 0, self);
-	if (kevent(s_mgr->kqueue_fd, &ev, 1, NULL, 0, NULL) == -1) {
-		res = false;
-	}
-
-	EV_SET(&ev, self->sockfd, EVFILT_WRITE, EV_DISABLE, 0, 0, self);
+	EV_SET(&ev, self->sockfd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, self);
 	if (kevent(s_mgr->kqueue_fd, &ev, 1, NULL, 0, NULL) == -1) {
 		res = false;
 	}
@@ -201,16 +188,14 @@ static int task_func(void *argv) {
 			continue;
 		}
 
-		/* can read event. */
 		if (ev->filter == EVFILT_READ) {
+			/* can read event. */
 			if (catomic_compare_set(&sock->recvlock, 0, 1)) {
 				catomic_inc(&sock->ref);
 			}
 			socketer_on_recv(sock, 0);
-		}
-
-		/* can write event. */
-		if (ev->filter == EVFILT_WRITE) {
+		} else 	if (ev->filter == EVFILT_WRITE) {
+			/* can write event. */
 			if (catomic_compare_set(&sock->sendlock, 0, 1)) {
 				catomic_inc(&sock->ref);
 			}
@@ -251,14 +236,22 @@ static int leader_func(void *argv) {
  * threadnum --- thread number, if less than 0, then start by the number of cpu threads 
  * */
 bool eventmgr_init(int socketnum, int threadnum) {
-	if (s_mgr)
+	if (s_mgr || socketnum < 1)
 		return false;
-	if (socketnum < 1)
-		return false;
-	if (threadnum <= 0)
+
+	if (threadnum <= 0) {
 		threadnum = get_cpu_num();
-	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-		return false;
+	}
+
+	{
+		struct sigaction sa;
+		memset(&sa, 0, sizeof(sa));
+		sa.sa_handler = SIG_IGN;
+		sigemptyset(&sa.sa_mask);
+		if (sigaction(SIGPIPE, &sa, NULL) == -1)
+			return false;
+	}
+
 	s_mgr = (struct kqueuemgr *)malloc(sizeof(struct kqueuemgr));
 	if (!s_mgr)
 		return false;
@@ -304,7 +297,4 @@ void eventmgr_release() {
 	free(s_mgr);
 	s_mgr = NULL;
 }
-
-#endif
-
 

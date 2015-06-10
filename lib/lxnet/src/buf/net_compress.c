@@ -4,8 +4,8 @@
  * lcinx@163.com
  */
 
-#include "net_compress.h"
 #include <assert.h>
+#include "net_compress.h"
 #include "quicklz.h"
 #include "log.h"
 

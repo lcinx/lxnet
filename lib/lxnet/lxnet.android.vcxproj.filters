@@ -138,13 +138,7 @@
     <ClCompile Include="src\buf\net_thread_buf.c">
       <Filter>Source Files\src\buf</Filter>
     </ClCompile>
-    <ClCompile Include="src\event\linux_eventmgr.c">
-      <Filter>Source Files\src\event</Filter>
-    </ClCompile>
     <ClCompile Include="src\event\net_module.c">
-      <Filter>Source Files\src\event</Filter>
-    </ClCompile>
-    <ClCompile Include="src\event\win32_eventmgr.c">
       <Filter>Source Files\src\event</Filter>
     </ClCompile>
     <ClCompile Include="src\sock\_netlisten.c">
@@ -167,6 +161,9 @@
     </ClCompile>
     <ClCompile Include="..\..\base\cthread.c">
       <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="src\event\net_eventmgr.c">
+      <Filter>Source Files\src\event</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

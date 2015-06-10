@@ -209,8 +209,8 @@ static bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, 
 
 	assert(readsize == needread);
 
-	blocklist_check_free_block(self);
 	*read_len = readsize;
+	blocklist_check_free_block(self);
 	return true;
 }
 
@@ -315,7 +315,7 @@ static bool blocklist_put_message(struct blocklist *self, const void *data, int 
 	assert(self != NULL);
 	assert(data != NULL);
 	assert(data_len > 0);
-	assert(data_len + 8 < self->message_maxlen && "need put data length greater than message max length, error!");
+	assert(data_len <= self->message_maxlen && "need put data length greater than message max length, error!");
 
 	if (!self->custom_put_func) {
 		return blocklist_put_data(self, data, data_len);
@@ -332,7 +332,7 @@ static bool blocklist_put_message(struct blocklist *self, const void *data, int 
 static int blocklist_get_message(struct blocklist *self, char *buf, int buf_size) {
 	assert(self != NULL);
 	assert(buf != NULL);
-	assert(buf_size >= self->message_maxlen + 8 && "get message need greater than message max length buffer, error!");
+	assert(buf_size >= self->message_maxlen && "get message need greater than message max length buffer, error!");
 
 	if (!self->custom_get_func) {
 		/* check new message. */
@@ -353,7 +353,7 @@ static int blocklist_get_message(struct blocklist *self, char *buf, int buf_size
 		}
 
 		/* check message length. */
-		if (self->message_len < length_len || self->message_len + 8 >= buf_size) {
+		if (self->message_len < length_len || self->message_len > buf_size) {
 			assert(false && "new message length is invalid, error!");
 			return -1;
 		}
@@ -368,7 +368,10 @@ static int blocklist_get_message(struct blocklist *self, char *buf, int buf_size
 			return -1;
 		}
 
-		assert(self->message_len - length_len == tmp);
+		if (self->message_len - length_len != tmp) {
+			assert(false && "why get new message data length is not need read len?");
+			return -1;
+		}
 
 		tmp = self->message_len;
 		self->is_new_message = false;

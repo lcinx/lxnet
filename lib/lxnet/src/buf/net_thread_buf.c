@@ -4,12 +4,11 @@
  * lcinx@163.com
  */
 
-
+#include <assert.h>
+#include <stdlib.h>
 #include "catomic.h"
 #include "cthread.h"
 #include "net_thread_buf.h"
-#include <assert.h>
-#include <stdlib.h>
 #include "quicklz.h"
 #include "log.h"
 

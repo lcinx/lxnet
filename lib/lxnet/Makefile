@@ -18,7 +18,7 @@ SOURCEINC = -I"./../../base/" -I"./../../base/buf/" -I"./src/buf/" -I"./src/even
 #
 #
 #maintest.c tree/rbtree.c  多了子目录，那就直接添加 目录/*.c即可   所有的源文件--  .c文件列表
-CSRCS = $(wildcard  ./*.c ./../../base/crosslib.c ./../../base/log.c ./../../base/pool.c ./../../base/catomic.c ./../../base/cthread.c ./../../base/cthread_pool.c ./src/buf/*.c ./src/event/*.c ./src/sock/*.c ./../../3rd/quicklz/*.c)
+CSRCS = $(wildcard  ./*.c ./../../base/crosslib.c ./../../base/log.c ./../../base/pool.c ./../../base/catomic.c ./../../base/cthread.c ./../../base/cthread_pool.c ./src/buf/*.c ./src/event/net_module.c ./src/event/net_eventmgr.c ./src/sock/*.c ./../../3rd/quicklz/*.c)
 CPPSRCS = $(wildcard ./*.cpp)
 
 #

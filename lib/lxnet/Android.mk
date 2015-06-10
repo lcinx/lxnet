@@ -16,7 +16,7 @@ LOCAL_SRC_FILES := ./../../base/crosslib.c \
 					./src/buf/net_bufpool.c \
 					./src/buf/net_compress.c \
 					./src/buf/net_thread_buf.c \
-					./src/event/linux_eventmgr.c \
+					./src/event/net_eventmgr.c \
 					./src/event/net_module.c \
 					./src/sock/_netlisten.c \
 					./src/sock/_netsocket.c \

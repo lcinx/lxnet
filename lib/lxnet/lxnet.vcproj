@@ -275,7 +275,7 @@
 					Name="event"
 					>
 					<File
-						RelativePath=".\src\event\linux_eventmgr.c"
+						RelativePath=".\src\event\net_eventmgr.c"
 						>
 					</File>
 					<File
@@ -288,10 +288,6 @@
 					</File>
 					<File
 						RelativePath=".\src\event\net_module.h"
-						>
-					</File>
-					<File
-						RelativePath=".\src\event\win32_eventmgr.c"
 						>
 					</File>
 				</Filter>

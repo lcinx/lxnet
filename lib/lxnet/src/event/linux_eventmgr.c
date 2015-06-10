@@ -4,11 +4,6 @@
  * lcinx@163.com
  */
 
-#ifdef __linux__
-#include "catomic.h"
-#include "cthread.h"
-#include "crosslib.h"
-#include "net_eventmgr.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,8 +12,10 @@
 #include <unistd.h>
 #include "socket_internal.h"
 #include "_netsocket.h"
-#include "log.h"
+#include "cthread.h"
+#include "crosslib.h"
 #include "cthread_pool.h"
+#include "log.h"
 
 #ifdef _DEBUG_NETWORK
 #define debuglog debug_log
@@ -241,14 +238,22 @@ static int leader_func(void *argv) {
  * threadnum --- thread number, if less than 0, then start by the number of cpu threads 
  * */
 bool eventmgr_init(int socketnum, int threadnum) {
-	if (s_mgr)
+	if (s_mgr || socketnum < 1)
 		return false;
-	if (socketnum < 1)
-		return false;
-	if (threadnum <= 0)
+
+	if (threadnum <= 0) {
 		threadnum = get_cpu_num();
-	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-		return false;
+	}
+
+	{
+		struct sigaction sa;
+		memset(&sa, 0, sizeof(sa));
+		sa.sa_handler = SIG_IGN;
+		sigemptyset(&sa.sa_mask);
+		if (sigaction(SIGPIPE, &sa, NULL) == -1)
+			return false;
+	}
+
 	s_mgr = (struct epollmgr *)malloc(sizeof(struct epollmgr));
 	if (!s_mgr)
 		return false;
@@ -294,6 +299,4 @@ void eventmgr_release() {
 	free(s_mgr);
 	s_mgr = NULL;
 }
-
-#endif
 

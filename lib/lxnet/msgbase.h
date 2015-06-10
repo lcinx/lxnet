@@ -24,8 +24,8 @@ struct Msg {
 };
 
 struct MessagePack:public Msg {
-	enum  {
-		e_thismessage_max_size = 1024*128	//此消息最大长度
+	enum {
+		e_thismessage_max_size = 1024*128 - sizeof(Msg)	//此消息最大长度
 	};
 
 	char m_buf[e_thismessage_max_size];

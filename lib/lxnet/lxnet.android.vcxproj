@@ -121,9 +121,8 @@
     <ClCompile Include="src\buf\net_bufpool.c" />
     <ClCompile Include="src\buf\net_compress.c" />
     <ClCompile Include="src\buf\net_thread_buf.c" />
-    <ClCompile Include="src\event\linux_eventmgr.c" />
+    <ClCompile Include="src\event\net_eventmgr.c" />
     <ClCompile Include="src\event\net_module.c" />
-    <ClCompile Include="src\event\win32_eventmgr.c" />
     <ClCompile Include="src\sock\_netlisten.c" />
     <ClCompile Include="src\sock\_netsocket.c" />
     <ClCompile Include="src\sock\net_common.c" />

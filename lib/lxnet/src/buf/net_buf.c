@@ -4,15 +4,15 @@
  * lcinx@163.com
  */
 
-#include "net_buf.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include "net_buf.h"
 #include "net_bufpool.h"
 #include "block_list.h"
-#include "log.h"
 #include "net_thread_buf.h"
 #include "net_compress.h"
+#include "log.h"
 
 
 static bool s_enable_errorlog = false;

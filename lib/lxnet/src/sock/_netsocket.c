@@ -7,15 +7,14 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "catomic.h"
 #include "cthread.h"
+#include "crosslib.h"
 #include "_netsocket.h"
 #include "socket_internal.h"
 #include "net_pool.h"
 #include "net_buf.h"
-#include "log.h"
-#include "crosslib.h"
 #include "net_eventmgr.h"
+#include "log.h"
 
 #ifdef _DEBUG_NETWORK
 #define debuglog debug_log
@@ -36,6 +35,7 @@ enum e_control_value {
 struct socketmgr {
 	bool isinit;
 
+	int64 currenttime;
 	int64 lastrun;			/* last run time. */
 
 	struct socketer *head;
@@ -124,6 +124,7 @@ static bool socketer_init(struct socketer *self, bool bigbuf) {
 #endif
 
 	self->sockfd = NET_INVALID_SOCKET;
+	self->try_connect_time = 0;
 	self->closetime = 0;
 	self->next = NULL;
 	self->recvbuf = NULL;
@@ -259,6 +260,8 @@ bool socketer_connect(struct socketer *self, const char *ip, short port) {
 			log_error("socketer connect, but is invalid socket!, error!");
 			return false;
 		}
+
+		self->try_connect_time = s_mgr.currenttime;
 	}
 
 	{
@@ -279,6 +282,10 @@ bool socketer_connect(struct socketer *self, const char *ip, short port) {
 		if (is_connect) {
 			socketer_addto_eventlist(self);
 			return true;
+		}
+
+		if (s_mgr.currenttime - self->try_connect_time > 1000) {
+			socket_close(&self->sockfd);
 		}
 	}
 
@@ -772,6 +779,7 @@ bool socketmgr_init() {
 		return false;
 
 	s_mgr.isinit = true;
+	s_mgr.currenttime = get_millisecond();
 	s_mgr.lastrun = 0;
 	s_mgr.head = NULL;
 	s_mgr.tail = NULL;
@@ -781,22 +789,23 @@ bool socketmgr_init() {
 
 /* run socketer manager. */
 void socketmgr_run() {
-	int64 current;
+	int64 currenttime;
 	if (!s_mgr.head)
 		return;
 
-	current = get_millisecond();
-	if (current - s_mgr.lastrun < enum_list_run_delay)
+	s_mgr.currenttime = get_millisecond();
+	currenttime = s_mgr.currenttime;
+	if (currenttime - s_mgr.lastrun < enum_list_run_delay)
 		return;
 
-	s_mgr.lastrun = current;
+	s_mgr.lastrun = currenttime;
 	for (;;) {
 		struct socketer *sock, *resock;
 		sock = s_mgr.head;
 		if (!sock)
 			return;
 
-		if (current - sock->closetime < enum_list_close_delaytime)
+		if (currenttime - sock->closetime < enum_list_close_delaytime)
 			return;
 
 #ifdef WIN32

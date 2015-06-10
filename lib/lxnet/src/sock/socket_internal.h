@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #include "net_common.h"
+#include "catomic.h"
 
 #ifdef WIN32
 struct overlappedstruct {
@@ -30,6 +31,7 @@ struct socketer {
 #endif
 
 	net_socket sockfd;					/* socket fd. */
+	int64 try_connect_time;				/* the one fd try connect 1000 ms, after close it. */
 	int64 closetime;					/* close time. */
 	struct socketer *next;
 	struct net_buf *recvbuf;
