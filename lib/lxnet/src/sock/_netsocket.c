@@ -790,9 +790,6 @@ bool socketmgr_init() {
 /* run socketer manager. */
 void socketmgr_run() {
 	int64 currenttime;
-	if (!s_mgr.head)
-		return;
-
 	s_mgr.currenttime = get_millisecond();
 	currenttime = s_mgr.currenttime;
 	if (currenttime - s_mgr.lastrun < enum_list_run_delay)

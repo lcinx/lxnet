@@ -165,5 +165,8 @@
     <ClCompile Include="src\event\net_eventmgr.c">
       <Filter>Source Files\src\event</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\base\buf\block_list.c">
+      <Filter>Source Files\base\buf</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

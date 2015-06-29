@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#include "buf_info.h"
+#include "buf/buf_info.h"
 
 /* 
  * uncompress data.

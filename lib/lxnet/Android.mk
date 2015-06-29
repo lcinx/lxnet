@@ -11,6 +11,7 @@ LOCAL_SRC_FILES := ./../../base/crosslib.c \
 					./../../base/catomic.c \
 					./../../base/cthread.c \
 					./../../base/cthread_pool.c \
+					./../../base/buf/block_list.c \
 					./../../3rd/quicklz/quicklz.c \
 					./src/buf/net_buf.c \
 					./src/buf/net_bufpool.c \
@@ -25,7 +26,6 @@ LOCAL_SRC_FILES := ./../../base/crosslib.c \
 					./lxnet.cpp
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../base \
-					$(LOCAL_PATH)/../../base/buf \
 					$(LOCAL_PATH)/../../3rd/quicklz \
                     $(LOCAL_PATH)/src/buf \
 					$(LOCAL_PATH)/src/event \

@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 #include "platform_config.h"
-#include "buf_info.h"
+#include "buf/buf_info.h"
 
 /* get temp packet buf. */
 struct buf_info threadbuf_get_msg_buf();

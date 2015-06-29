@@ -86,6 +86,7 @@ struct MessagePack:public Msg {
 	bool PushBlock(const void *data, size_t size) {
 		if (!data)
 			return false;
+
 		if ((m_index + size) > e_thismessage_max_size) {
 			assert(false && "error!");
 			return false;
@@ -100,6 +101,7 @@ struct MessagePack:public Msg {
 	bool PushLBlock(const void *data, size_t size) {
 		if (!data)
 			return false;
+
 		if ((m_index + size + sizeof(int32)) > e_thismessage_max_size) {
 			assert(false && "error!");
 			return false;
@@ -118,12 +120,20 @@ struct MessagePack:public Msg {
 		int16 size = (int16)strsize;
 		if (size > maxpush)
 			size = maxpush;
+
 		assert(size >= 0);
 		if (size < 0)
 			return false;
+
+		if (!CanPush(sizeof(int16) + (size_t)size)) {
+			assert(false && "error!");
+			return false;
+		}
+
 		PushInt16(size);
 		if (0 == size)
 			return true;
+
 		return PushBlock(str, size);
 	}
 
@@ -133,12 +143,20 @@ struct MessagePack:public Msg {
 		int16 size = (int16)strsize;
 		if (size > maxpush)
 			size = maxpush;
+
 		assert(size >= 0);
 		if (size < 0)
 			return false;
+
+		if (!CanPush(sizeof(int16) + (size_t)size)) {
+			assert(false && "error!");
+			return false;
+		}
+
 		PushInt16(size);
 		if (0 == size)
 			return true;
+
 		return PushBlock(str, size);
 	}
 
@@ -147,14 +165,22 @@ struct MessagePack:public Msg {
 		int32 size = (int32)strsize;
 		if (size > maxpush)
 			size = maxpush;
+
 		assert(size >= 0);
 		if (size < 0)
 			return false;
+		
+		if (!CanPush(sizeof(int32) + (size_t)size)) {
+			assert(false && "error!");
+			return false;
+		}
+
 		PushInt32(size);
 		if (0 == size)
 			return true;
+
 		return PushBlock(str, size);
-	}	
+	}
 
 	bool PushBigString(const char *str, int32 maxpush = INT_MAX - 3) {
 		size_t strsize = strlen(str);
@@ -162,12 +188,20 @@ struct MessagePack:public Msg {
 		int32 size = (int32)strsize;
 		if (size > maxpush)
 			size = maxpush;
+
 		assert(size >= 0);
 		if (size < 0)
 			return false;
+		
+		if (!CanPush(sizeof(int32) + (size_t)size)) {
+			assert(false && "error!");
+			return false;
+		}
+
 		PushInt32(size);
 		if (0 == size)
 			return true;
+
 		return PushBlock(str, size);
 	}
 
@@ -244,7 +278,8 @@ struct MessagePack:public Msg {
 	bool GetBlock(void *data, size_t size) {
 		if (size == 0)
 			return false;
-		if (int(m_index + size) > m_maxindex) {
+
+		if ((int)(m_index + size) > m_maxindex) {
 			assert(false && "error!");
 			return false;
 		}
@@ -264,7 +299,7 @@ struct MessagePack:public Msg {
 		if (0 == size)
 			return "";
 
-		if (int(m_index + size) > m_maxindex) {
+		if ((int)(m_index + size) > m_maxindex) {
 			assert(false && "error!");
 			return NULL;
 		}
@@ -285,7 +320,7 @@ struct MessagePack:public Msg {
 		if (0 == size)
 			return "";
 
-		if (int(m_index + size) > m_maxindex) {
+		if ((int)(m_index + size) > m_maxindex) {
 			assert(false && "error!");
 			return NULL;
 		}
@@ -300,7 +335,8 @@ struct MessagePack:public Msg {
 		assert(buflen >= 1);
 		if (buflen < 1)
 			return false;
-		buf[buflen-1] = '\0';
+
+		buf[buflen - 1] = '\0';
 		int16 size = GetInt16();
 		assert(size >= 0);
 		if (size < 0) {
@@ -313,8 +349,8 @@ struct MessagePack:public Msg {
 			return true;
 		}
 
-		buf[(size_t)(buflen > (size_t)size ? size : (buflen-1))] = '\0';
-		return GetBlock(buf, (size_t)(buflen > (size_t)size ? size : (buflen-1)));
+		buf[(size_t)(buflen > (size_t)size ? size : (buflen - 1))] = '\0';
+		return GetBlock(buf, (size_t)(buflen > (size_t)size ? size : (buflen - 1)));
 	}
 	
 	const char *GetLBigString(size_t *datalen) {
@@ -327,7 +363,7 @@ struct MessagePack:public Msg {
 		if (0 == size)
 			return "";
 
-		if (int(m_index + size) > m_maxindex) {
+		if ((int)(m_index + size) > m_maxindex) {
 			assert(false && "error!");
 			return NULL;
 		}
@@ -342,7 +378,8 @@ struct MessagePack:public Msg {
 		assert(buflen >= 1);
 		if (buflen < 1)
 			return false;
-		buf[buflen-1] = '\0';
+
+		buf[buflen - 1] = '\0';
 		int32 size = GetInt32();
 		assert(size >= 0);
 		if (size < 0) {
@@ -355,27 +392,27 @@ struct MessagePack:public Msg {
 			return true;
 		}
 
-		buf[(size_t)(buflen > (size_t)size ? size : (buflen-1))] = '\0';
-		return GetBlock(buf, (size_t)(buflen > (size_t)size ? size : (buflen-1)));
+		buf[(size_t)(buflen > (size_t)size ? size : (buflen - 1))] = '\0';
+		return GetBlock(buf, (size_t)(buflen > (size_t)size ? size : (buflen - 1)));
 	}
 
 	int64 GetInt64() {
-		if(m_index + sizeof( int64 ) > (size_t)m_maxindex) {
+		int64 temp = 0;
+		if(m_index + sizeof(temp) > (size_t)m_maxindex) {
 			assert(false && "error!");
-			return (int64)0;
+			return temp;
 		}
-
-		int64 temp;
+	
 		memcpy(&temp, &m_buf[m_index], sizeof(temp));
 		m_index += sizeof(temp);
 		return temp;
 	}
 
 	int32 GetInt32() {
-		int32 temp;
+		int32 temp = 0;
 		if (m_index + sizeof(temp) > (size_t)m_maxindex) {
 			assert(false && "error!");
-			return (int32)0;
+			return temp;
 		}
 
 		memcpy(&temp, &m_buf[m_index], sizeof(temp));
@@ -384,10 +421,10 @@ struct MessagePack:public Msg {
 	}
 
 	int16 GetInt16() {
-		int16 temp;
+		int16 temp = 0;
 		if (m_index + sizeof(temp) > (size_t)m_maxindex) {
 			assert(false && "error!");
-			return (int16)0;
+			return temp;
 		}
 
 		memcpy(&temp, &m_buf[m_index], sizeof(temp));
@@ -396,10 +433,10 @@ struct MessagePack:public Msg {
 	}
 
 	int8 GetInt8() {
-		int8 temp;
+		int8 temp = 0;
 		if (m_index + sizeof(temp) > (size_t)m_maxindex) {
 			assert(false && "error!");
-			return (short)0;
+			return temp;
 		}
 
 		temp = *((int8*)&m_buf[m_index]);
@@ -412,24 +449,24 @@ struct MessagePack:public Msg {
 	}
 
 	float GetFloat() {
-		if (m_index + sizeof(float) > (size_t)m_maxindex) {
+		float temp = 0;
+		if (m_index + sizeof(temp) > (size_t)m_maxindex) {
 			assert(false && "error!");
-			return (float)0.0;
+			return temp;
 		}
 
-		float temp;
 		memcpy(&temp, &m_buf[m_index], sizeof(temp));
 		m_index += sizeof(temp);
 		return temp;
 	}
 
 	double GetDouble() {
-		if (m_index + sizeof(double) > (size_t)m_maxindex) {
+		double temp = 0;
+		if (m_index + sizeof(temp) > (size_t)m_maxindex) {
 			assert(false && "error!");
-			return (double)0.0;
+			return temp;
 		}
-
-		double temp;
+	
 		memcpy(&temp, &m_buf[m_index], sizeof(temp));
 		m_index += sizeof(temp);
 		return temp;

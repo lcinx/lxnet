@@ -9,7 +9,7 @@
 #include <string.h>
 #include "net_buf.h"
 #include "net_bufpool.h"
-#include "block_list.h"
+#include "buf/block_list.h"
 #include "net_thread_buf.h"
 #include "net_compress.h"
 #include "log.h"

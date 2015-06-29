@@ -11,6 +11,7 @@
 extern "C" {
 #endif
 
+#include <string.h>
 #include <assert.h>
 #include "platform_config.h"
 #include "buf_info.h"
@@ -39,6 +40,11 @@ static inline void block_init(struct block *self, int size) {
 	self->next = NULL;
 }
 
+
+
+/****************************************************************************
+ * reader interface.
+ ***************************************************************************/
 static inline struct buf_info block_get_do_process(struct block *self) {
 	struct buf_info pinfo;
 	
@@ -95,6 +101,24 @@ static inline void block_addread(struct block *self, int len) {
 	self->read += len;
 }
 
+static inline int block_get(struct block *self, void *data, int len) {
+	int readsize;
+	assert(self != NULL);
+	assert(self->write >= self->read);
+	assert(data != NULL);
+	assert(len != 0);
+	readsize = min(block_getreadsize(self), len);
+	memcpy(data, &self->buf[self->read], readsize);
+	self->read += readsize;
+	assert(self->read <= self->write);
+	return readsize;
+}
+
+
+
+/****************************************************************************
+ * writer interface.
+ ***************************************************************************/
 static inline int block_getwritesize(struct block *self) {
 	assert(self != NULL);
 	assert(self->maxsize >= self->write);
@@ -112,19 +136,6 @@ static inline void block_addwrite(struct block *self, int len) {
 	assert(len >= 0);
 	assert(self->maxsize >= (self->write + len));
 	self->write += len;
-}
-
-static inline int block_get(struct block *self, void *data, int len) {
-	int readsize;
-	assert(self != NULL);
-	assert(self->write >= self->read);
-	assert(data != NULL);
-	assert(len != 0);
-	readsize = min(block_getreadsize(self), len);
-	memcpy(data, &self->buf[self->read], readsize);
-	self->read += readsize;
-	assert(self->read <= self->write);
-	return readsize;
 }
 
 static inline int block_put(struct block *self, void *data, int len) {

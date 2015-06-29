@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 #include "platform_config.h"
-#include "buf_info.h"
+#include "buf/buf_info.h"
 #include "net_crypt.h"
 
 /* max packet size --- 136K. */

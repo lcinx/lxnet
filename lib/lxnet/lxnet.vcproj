@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\base;..\..\base\buf;..\..\3rd\quicklz;.\src\buf;.\src\sock;.\src\event;.\src\threadpool"
+				AdditionalIncludeDirectories="..\..\base;..\..\3rd\quicklz;.\src\buf;.\src\sock;.\src\event;.\src\threadpool"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -200,6 +200,10 @@
 					>
 					<File
 						RelativePath="..\..\base\buf\block.h"
+						>
+					</File>
+					<File
+						RelativePath="..\..\base\buf\block_list.c"
 						>
 					</File>
 					<File
