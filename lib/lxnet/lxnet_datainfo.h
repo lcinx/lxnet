@@ -1,7 +1,8 @@
 #ifndef _H_LXNET_DATAINFO_H_
 #define _H_LXNET_DATAINFO_H_
 #include <time.h>
-#include "platform_config.h"
+#include "catomic.h"
+
 enum {
 	enum_netdata_total = 0,
 	enum_netdata_now,
@@ -10,14 +11,15 @@ enum {
 };
 
 struct datainfo {
-	int64 sendmsgnum;
-	int64 recvmsgnum;
-	int64 sendbytes;
-	int64 recvbytes;
+	catomic sendmsgnum;
+	catomic recvmsgnum;
+	catomic sendbytes;
+	catomic recvbytes;
 	time_t tm_sendmsgnum;
 	time_t tm_recvmsgnum;
 	time_t tm_sendbytes;
 	time_t tm_recvbytes;
 };
+
 #endif
 

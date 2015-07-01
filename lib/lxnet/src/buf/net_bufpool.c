@@ -167,23 +167,21 @@ void bufpool_releasebuf(void *self) {
 void bufpool_meminfo(char *buf, size_t bufsize) {
 	size_t index = 0;
 	cspin_lock(&s_pool.big_lock);
-	poolmgr_getinfo(s_pool.bigblockpool, buf, bufsize-1);
+	poolmgr_getinfo(s_pool.bigblockpool, buf, bufsize - 1);
 	cspin_unlock(&s_pool.big_lock);
 
 	index = strlen(buf);
 
 	cspin_lock(&s_pool.small_lock);
-	poolmgr_getinfo(s_pool.smallblockpool, &buf[index], bufsize-1-index);
+	poolmgr_getinfo(s_pool.smallblockpool, &buf[index], bufsize - 1 - index);
 	cspin_unlock(&s_pool.small_lock);
 
 	index = strlen(buf);
 
 	cspin_lock(&s_pool.buf_lock);
-	poolmgr_getinfo(s_pool.buf_pool, &buf[index], bufsize-1-index);
+	poolmgr_getinfo(s_pool.buf_pool, &buf[index], bufsize - 1 - index);
 	cspin_unlock(&s_pool.buf_lock);
 
 	buf[bufsize-1] = 0;
 }
-
-
 

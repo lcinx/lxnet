@@ -621,4 +621,3 @@ bool buf_get_enable_errorlog() {
 	return s_enable_errorlog;
 }
 
-

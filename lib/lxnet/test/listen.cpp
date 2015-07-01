@@ -23,7 +23,7 @@ int main()
 		return 0;
 	}
 
-	lxnet::Listener *list = lxnet::Listener_create();
+	lxnet::Listener *list = lxnet::Listener::Create();
 	if (!list->Listen(30012, 10))
 	{
 		printf("listen error\n");
@@ -58,8 +58,8 @@ int main()
 			//newclient->UseUncompress();
 			//newclient->UseDecrypt();
 			//newclient->UseEncrypt();
-			newclient->SetSendCritical(-1);
-			//newclient->SetRecvCritical(16*1024);
+			newclient->SetSendLimit(-1);
+			//newclient->SetRecvLimit(16*1024);
 
 			newclient->CheckRecv();
 			while(1)
@@ -88,7 +88,7 @@ int main()
 				if (newclient->IsClose())
 				{
 					system("pause");
-					lxnet::Socketer_release(newclient);
+					lxnet::Socketer::Release(newclient);
 					goto s_exit;
 				}
 			}
@@ -107,7 +107,7 @@ s_exit:
 #else
 	usleep(1000000);
 #endif
-	lxnet::Listener_release(list);
+	lxnet::Listener::Release(list);
 	lxnet::net_release();
 	system("pause");
 	return 0;

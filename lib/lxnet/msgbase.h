@@ -6,6 +6,7 @@
 #include "platform_config.h"
 
 #pragma pack(push,1)
+
 struct MsgHeader {
 	int msglength;
 };
@@ -25,7 +26,8 @@ struct Msg {
 
 struct MessagePack:public Msg {
 	enum {
-		e_thismessage_max_size = 1024*128 - sizeof(Msg)	//此消息最大长度
+		//此消息最大长度
+		e_thismessage_max_size = 1024*128 - sizeof(Msg)
 	};
 
 	char m_buf[e_thismessage_max_size];

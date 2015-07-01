@@ -100,4 +100,3 @@ int socket_can_write(net_socket fd);
 #endif
 #endif
 
-

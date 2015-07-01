@@ -19,7 +19,7 @@ namespace lxnet {
 
 class Socketer;
 
-/* listener¶ÔÏó*/
+/* listenerå¯¹è±¡ */
 class Listener {
 private:
 	Listener(const Listener&);
@@ -32,26 +32,33 @@ private:
 	void operator delete(void *p);
 
 public:
-	/* ¼àÌı*/
+	/* åˆ›å»ºä¸€ä¸ªç”¨äºç›‘å¬çš„å¯¹è±¡ */
+	static Listener *Create();
+
+	/* é‡Šæ”¾ä¸€ä¸ªç”¨äºç›‘å¬çš„å¯¹è±¡ */
+	static void Release(Listener *self);
+
+public:
+	/* ç›‘å¬ */
 	bool Listen(unsigned short port, int backlog);
 
-	/* ¹Ø±ÕÓÃÓÚ¼àÌıµÄÌ×½Ó×Ö£¬Í£Ö¹¼àÌı*/
+	/* å…³é—­ç”¨äºç›‘å¬çš„å¥—æ¥å­—ï¼Œåœæ­¢ç›‘å¬ */
 	void Close();
 
-	/* ²âÊÔÊÇ·ñÒÑ¹Ø±Õ*/
+	/* æµ‹è¯•æ˜¯å¦å·²å…³é—­ */
 	bool IsClose();
 
-	/* ÔÚÖ¸¶¨µÄ¼àÌısocketÉÏ½ÓÊÜÁ¬½Ó*/
+	/* åœ¨æŒ‡å®šçš„ç›‘å¬socketä¸Šæ¥å—è¿æ¥ */
 	Socketer *Accept(bool bigbuf=false);
 
-	/* ¼ì²âÊÇ·ñÓĞĞÂµÄÁ¬½Ó*/
+	/* æ£€æµ‹æ˜¯å¦æœ‰æ–°çš„è¿æ¥ */
 	bool CanAccept();
 
 public:
-	struct listener *m_self;
+	struct listener *_self;
 };
 
-/* socketer¶ÔÏó*/
+/* socketerå¯¹è±¡ */
 class Socketer {
 private:
 	Socketer(const Socketer&);
@@ -64,132 +71,131 @@ private:
 	~Socketer();
 
 public:
-	/* ÉèÖÃ½ÓÊÕÊı¾İ×Ö½ÚµÄÁÙ½çÖµ£¬³¬¹ı´ËÖµ£¬ÔòÍ£Ö¹½ÓÊÕ£¬ÈôĞ¡ÓÚµÈÓÚ0£¬ÔòÊÓÎª²»ÏŞÖÆ*/
-	void SetRecvCritical(int size);
+	/* åˆ›å»ºä¸€ä¸ªSocketerå¯¹è±¡ */
+	static Socketer *Create(bool bigbuf = false);
 
-	/* ÉèÖÃ·¢ËÍÊı¾İ×Ö½ÚµÄÁÙ½çÖµ£¬Èô»º³åÖĞÊı¾İ³¤¶È´óÓÚ´ËÖµ£¬Ôò¶Ï¿ª´ËÁ¬½Ó£¬ÈôÎª0£¬ÔòÊÓÎª²»ÏŞÖÆ*/
-	void SetSendCritical(int size);
+	/* é‡Šæ”¾Socketerå¯¹è±¡ï¼Œä¼šè‡ªåŠ¨è°ƒç”¨å…³é—­ç­‰å–„åæ“ä½œ */
+	static void Release(Socketer *self);
 
-	/* £¨¶Ô·¢ËÍÊı¾İÆğ×÷ÓÃ£©ÉèÖÃÆôÓÃÑ¹Ëõ£¬ÈôÒªÆôÓÃÑ¹Ëõ£¬Ôò´Ëº¯ÊıÔÚ´´½¨socket¶ÔÏóºó¼´¿Ìµ÷ÓÃ*/
+public:
+	/* è®¾ç½®æ¥æ”¶æ•°æ®å­—èŠ‚çš„ä¸´ç•Œå€¼ï¼Œè¶…è¿‡æ­¤å€¼ï¼Œåˆ™åœæ­¢æ¥æ”¶ï¼Œè‹¥å°äºç­‰äº0ï¼Œåˆ™è§†ä¸ºä¸é™åˆ¶ */
+	void SetRecvLimit(int size);
+
+	/* è®¾ç½®å‘é€æ•°æ®å­—èŠ‚çš„ä¸´ç•Œå€¼ï¼Œè‹¥ç¼“å†²ä¸­æ•°æ®é•¿åº¦å¤§äºæ­¤å€¼ï¼Œåˆ™æ–­å¼€æ­¤è¿æ¥ï¼Œè‹¥ä¸º0ï¼Œåˆ™è§†ä¸ºä¸é™åˆ¶ */
+	void SetSendLimit(int size);
+
+	/* (å¯¹å‘é€æ•°æ®èµ·ä½œç”¨)è®¾ç½®å¯ç”¨å‹ç¼©ï¼Œè‹¥è¦å¯ç”¨å‹ç¼©ï¼Œåˆ™æ­¤å‡½æ•°åœ¨åˆ›å»ºsocketå¯¹è±¡åå³åˆ»è°ƒç”¨ */
 	void UseCompress();
 
-	/* £¨É÷ÓÃ£©£¨¶Ô½ÓÊÕµÄÊı¾İÆğ×÷ÓÃ£©ÆôÓÃ½âÑ¹Ëõ£¬ÍøÂç¿â»á¸ºÔğ½âÑ¹Ëõ²Ù×÷£¬½ö¹©¿Í»§¶ËÊ¹ÓÃ*/
+	/* (æ…ç”¨)(å¯¹æ¥æ”¶çš„æ•°æ®èµ·ä½œç”¨)å¯ç”¨è§£å‹ç¼©ï¼Œç½‘ç»œåº“ä¼šè´Ÿè´£è§£å‹ç¼©æ“ä½œï¼Œä»…ä¾›å®¢æˆ·ç«¯ä½¿ç”¨ */
 	void UseUncompress();
 
-	/* ÉèÖÃ¼ÓÃÜ/½âÃÜº¯Êı£¬ ÒÔ¼°ÌØÊâÓÃÍ¾µÄ²ÎÓë¼ÓÃÜ/½âÃÜÂß¼­µÄÊı¾İ¡£
-	 * Èô¼ÓÃÜ/½âÃÜº¯ÊıÎªNULL£¬Ôò±£³ÖÄ¬ÈÏ¡£
+	/* è®¾ç½®åŠ å¯†/è§£å¯†å‡½æ•°ï¼Œ ä»¥åŠç‰¹æ®Šç”¨é€”çš„å‚ä¸åŠ å¯†/è§£å¯†é€»è¾‘çš„æ•°æ®ã€‚
+	 * è‹¥åŠ å¯†/è§£å¯†å‡½æ•°ä¸ºNULLï¼Œåˆ™ä¿æŒé»˜è®¤ã€‚
 	 * */
 	void SetEncryptDecryptFunction(void (*encryptfunc)(void *logicdata, char *buf, int len), void (*release_encrypt_logicdata)(void *), void *encrypt_logicdata, void (*decryptfunc)(void *logicdata, char *buf, int len), void (*release_decrypt_logicdata)(void *), void *decrypt_logicdata);
 
-	/* ÉèÖÃ¼ÓÃÜkey */
+	/* è®¾ç½®åŠ å¯†key */
 	void SetEncryptKey(const char *key, int key_len);
 
-	/* ÉèÖÃ½âÃÜkey */
-	void setDecryptKey(const char *key, int key_len);
+	/* è®¾ç½®è§£å¯†key */
+	void SetDecryptKey(const char *key, int key_len);
 
-	/* £¨ÆôÓÃ¼ÓÃÜ£©*/
+	/* (å¯ç”¨åŠ å¯†) */
 	void UseEncrypt();
 
-	/* £¨ÆôÓÃ½âÃÜ£©*/
+	/* (å¯ç”¨è§£å¯†) */
 	void UseDecrypt();
 
-	/* ÆôÓÃTGW½ÓÈë */
+	/* å¯ç”¨TGWæ¥å…¥ */
 	void UseTGW();
 
-	/* ¹Ø±ÕÓÃÓÚÁ¬½ÓµÄsocket¶ÔÏó*/
+	/* å…³é—­ç”¨äºè¿æ¥çš„socketå¯¹è±¡ */
 	void Close();
 
-	/* Á¬½ÓÖ¸¶¨µÄ·şÎñÆ÷*/
+	/* è¿æ¥æŒ‡å®šçš„æœåŠ¡å™¨ */
 	bool Connect(const char *ip, short port);
 
-	/* ²âÊÔsocketÌ×½Ó×ÖÊÇ·ñÒÑ¹Ø±Õ*/
+	/* æµ‹è¯•socketå¥—æ¥å­—æ˜¯å¦å·²å…³é—­ */
 	bool IsClose();
 
-	/* »ñÈ¡´Ë¿Í»§¶ËipµØÖ·*/
+	/* è·å–æ­¤å®¢æˆ·ç«¯ipåœ°å€ */
 	void GetIP(char *ip, size_t len);
 
-	/* »ñÈ¡·¢ËÍ»º³å´ı·¢ËÍ×Ö½ÚÊı(ÈôÎª0±íÊ¾²»´æÔÚ´ı·¢ËÍÊı¾İ»òÊı¾İÒÑĞ´ÈëÏµÍ³»º³å) */
+	/* è·å–å‘é€ç¼“å†²å¾…å‘é€å­—èŠ‚æ•°(è‹¥ä¸º0è¡¨ç¤ºä¸å­˜åœ¨å¾…å‘é€æ•°æ®æˆ–æ•°æ®å·²å†™å…¥ç³»ç»Ÿç¼“å†²) */
 	int GetSendBufferByteSize();
 
-	/* ·¢ËÍÊı¾İ£¬½ö½öÊÇ°ÑÊı¾İÑ¹Èë°ü¶ÓÁĞÖĞ£¬adddataÎª¸½¼Óµ½pMsgºóÃæµÄÊı¾İ£¬µ±È»»á×Ô¶¯ĞŞ¸ÄpMsgµÄ³¤¶È£¬addsizeÖ¸¶¨adddataµÄ³¤¶È*/
+	/* å‘é€æ•°æ®ï¼Œä»…ä»…æ˜¯æŠŠæ•°æ®å‹å…¥åŒ…é˜Ÿåˆ—ä¸­ï¼Œadddataä¸ºé™„åŠ åˆ°pMsgåé¢çš„æ•°æ®ï¼Œå½“ç„¶ä¼šè‡ªåŠ¨ä¿®æ”¹pMsgçš„é•¿åº¦ï¼ŒaddsizeæŒ‡å®šadddataçš„é•¿åº¦ */
 	bool SendMsg(Msg *pMsg, void *adddata = 0, size_t addsize = 0);
 
-	/* ¶Ôas3·¢ËÍ²ßÂÔÎÄ¼ş */
+	/* å¯¹as3å‘é€ç­–ç•¥æ–‡ä»¶ */
 	bool SendPolicyData();
 
-	/* ·¢ËÍTGWĞÅÏ¢Í· */
+	/* å‘é€TGWä¿¡æ¯å¤´ */
 	bool SendTGWInfo(const char *domain, int port);
 
-	/* ´¥·¢ÕæÕıµÄ·¢ËÍÊı¾İ*/
+	/* è§¦å‘çœŸæ­£çš„å‘é€æ•°æ® */
 	void CheckSend();
 
-	/* ³¢ÊÔÍ¶µİ½ÓÊÕ²Ù×÷*/
+	/* å°è¯•æŠ•é€’æ¥æ”¶æ“ä½œ */
 	void CheckRecv();
 
-	/* ½ÓÊÕÊı¾İ*/
+	/* æ¥æ”¶æ•°æ® */
 	Msg *GetMsg(char *buf = 0, size_t bufsize = 0);
 
-	/* ·¢ËÍÊı¾İ */
+	/* å‘é€æ•°æ® */
 	bool SendData(const char *data, size_t datasize);
 
-	/* ½ÓÊÕÊı¾İ */
+	/* æ¥æ”¶æ•°æ® */
 	char *GetData(char *buf, size_t bufsize, int *datalen);
 
 public:
-	struct encryptinfo *m_encrypt;
-	struct encryptinfo *m_decrypt;
-	struct socketer *m_self;
+	struct encryptinfo *_encrypt;
+	struct encryptinfo *_decrypt;
+	struct socketer *_self;
 };
 
-/* ³õÊ¼»¯ÍøÂç£¬
- * bigbufsizeÖ¸¶¨´ó¿éµÄ´óĞ¡£¬bigbufnumÖ¸¶¨´ó¿éµÄÊıÄ¿£¬
- * smallbufsizeÖ¸¶¨Ğ¡¿éµÄ´óĞ¡£¬smallbufnumÖ¸¶¨Ğ¡¿éµÄÊıÄ¿
- * listen numÖ¸¶¨ÓÃÓÚ¼àÌıµÄÌ×½Ó×ÖµÄÊıÄ¿£¬socket numÓÃÓÚÁ¬½ÓµÄ×ÜÊıÄ¿
- * threadnumÖ¸¶¨ÍøÂçÏß³ÌÊıÄ¿£¬ÈôÉèÖÃÎªĞ¡ÓÚµÈÓÚ0£¬Ôò»á¿ªÆôcpu¸öÊıµÄÏß³ÌÊıÄ¿
- */
+
+
+/* åˆå§‹åŒ–ç½‘ç»œï¼Œ
+ * bigbufsizeæŒ‡å®šå¤§å—çš„å¤§å°ï¼ŒbigbufnumæŒ‡å®šå¤§å—çš„æ•°ç›®ï¼Œ
+ * smallbufsizeæŒ‡å®šå°å—çš„å¤§å°ï¼ŒsmallbufnumæŒ‡å®šå°å—çš„æ•°ç›®
+ * listen numæŒ‡å®šç”¨äºç›‘å¬çš„å¥—æ¥å­—çš„æ•°ç›®ï¼Œsocket numç”¨äºè¿æ¥çš„æ€»æ•°ç›®
+ * threadnumæŒ‡å®šç½‘ç»œçº¿ç¨‹æ•°ç›®ï¼Œè‹¥è®¾ç½®ä¸ºå°äºç­‰äº0ï¼Œåˆ™ä¼šå¼€å¯cpuä¸ªæ•°çš„çº¿ç¨‹æ•°ç›®
+ * */
 bool net_init(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t smallbufnum, size_t listenernum, size_t socketnum, int threadnum);
 
-/* »ñÈ¡´Ë½ø³ÌËùÔÚµÄ»úÆ÷Ãû*/
-const char *GetHostName();
-
-/* ¸ù¾İÓòÃû»ñÈ¡ipµØÖ· */
-bool GetHostIPByName(const char *hostname, char *buf, size_t buflen, bool ipv6 = false);
-
-/* ÆôÓÃ/½ûÓÃ½ÓÊÜµÄÁ¬½Óµ¼ÖÂµÄ´íÎóÈÕÖ¾£¬²¢·µ»ØÖ®Ç°µÄÖµ */
-bool SetEnableErrorLog(bool flag);
-
-/* »ñÈ¡µ±Ç°ÆôÓÃ»ò½ûÓÃ½ÓÊÜµÄÁ¬½Óµ¼ÖÂµÄ´íÎóÈÕÖ¾ */
-bool GetEnableErrorLog();
-
-/* ´´½¨Ò»¸öÓÃÓÚ¼àÌıµÄ¶ÔÏó*/
-Listener *Listener_create();
-
-/* ÊÍ·ÅÒ»¸öÓÃÓÚ¼àÌıµÄ¶ÔÏó*/
-void Listener_release(Listener *self);
-
-/* ´´½¨Ò»¸öSocketer¶ÔÏó*/
-Socketer *Socketer_create(bool bigbuf = false);
-
-/* ÊÍ·ÅSocketer¶ÔÏó£¬»á×Ô¶¯µ÷ÓÃ¹Ø±ÕµÈÉÆºó²Ù×÷*/
-void Socketer_release(Socketer *self);
-
-/* ÊÍ·ÅÍøÂçÏà¹Ø*/
+/* é‡Šæ”¾ç½‘ç»œç›¸å…³ */
 void net_release();
 
-/* Ö´ĞĞÏà¹Ø²Ù×÷£¬ĞèÒªÔÚÖ÷Âß¼­ÖĞµ÷ÓÃ´Ëº¯Êı*/
+/* æ‰§è¡Œç›¸å…³æ“ä½œï¼Œéœ€è¦åœ¨ä¸»é€»è¾‘ä¸­è°ƒç”¨æ­¤å‡½æ•° */
 void net_run();
+
+
+/* è·å–æ­¤è¿›ç¨‹æ‰€åœ¨çš„æœºå™¨å */
+bool GetHostName(char *buf, size_t buflen);
+
+/* æ ¹æ®åŸŸåè·å–ipåœ°å€ */
+bool GetHostIPByName(const char *hostname, char *buf, size_t buflen, bool ipv6 = false);
+
+
+/* å¯ç”¨/ç¦ç”¨æ¥å—çš„è¿æ¥å¯¼è‡´çš„é”™è¯¯æ—¥å¿—ï¼Œå¹¶è¿”å›ä¹‹å‰çš„å€¼ */
+bool SetEnableErrorLog(bool flag);
+
+/* è·å–å½“å‰å¯ç”¨æˆ–ç¦ç”¨æ¥å—çš„è¿æ¥å¯¼è‡´çš„é”™è¯¯æ—¥å¿— */
+bool GetEnableErrorLog();
+
 	
-/* »ñÈ¡socket¶ÔÏó³Ø£¬listen¶ÔÏó³Ø£¬´ó¿é³Ø£¬Ğ¡¿é³ØµÄÊ¹ÓÃÇé¿ö*/
-const char *net_memory_info();
+/* è·å–socketå¯¹è±¡æ± ï¼Œlistenå¯¹è±¡æ± ï¼Œå¤§å—æ± ï¼Œå°å—æ± çš„ä½¿ç”¨æƒ…å†µ */
+const char *GetNetMemoryInfo();
 
-/* »ñÈ¡ÍøÂç¿âÍ¨Ñ¶ÏêÇé*/
-const char *net_datainfo();
+/* è·å–ç½‘ç»œåº“é€šè®¯è¯¦æƒ… */
+const char *GetNetDataAllInfo();
 
-/* »ñÈ¡ÍøÂç¿âµÄÖ¸¶¨ÀàĞÍµÄÏêÇé*/
-struct datainfo *net_datainfo_bytype(int type);
+/* è·å–ç½‘ç»œåº“çš„æŒ‡å®šç±»å‹çš„è¯¦æƒ… */
+struct datainfo *GetNetDataInfoByType(int type);
 
 }
 
-#endif /*_H_NET_SOCKET_H_*/
-
+#endif
 

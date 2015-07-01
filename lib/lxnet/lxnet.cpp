@@ -35,6 +35,7 @@ struct infomgr {
 	struct poolmgr *listen_pool;
 	cspin listen_lock;
 };
+
 static struct infomgr s_infomgr = {false};
 
 struct encryptinfo {
@@ -49,21 +50,21 @@ struct encryptinfo {
 
 static inline void on_sendmsg(size_t len) {
 	assert(s_datamgr.isinit);
-	s_datamgr.datatable[enum_netdata_total].sendmsgnum += 1;
-	s_datamgr.datatable[enum_netdata_total].sendbytes += len;
+	catomic_inc(&s_datamgr.datatable[enum_netdata_total].sendmsgnum);
+	catomic_fetch_add(&s_datamgr.datatable[enum_netdata_total].sendbytes, (int64)len);
 
-	s_datamgr.datatable[enum_netdata_now].sendmsgnum += 1;
-	s_datamgr.datatable[enum_netdata_now].sendbytes += len;
+	catomic_inc(&s_datamgr.datatable[enum_netdata_now].sendmsgnum);
+	catomic_fetch_add(&s_datamgr.datatable[enum_netdata_now].sendbytes, (int64)len);
 }
 
 static inline void on_recvmsg(size_t len) {
 	assert(s_datamgr.isinit);
 
-	s_datamgr.datatable[enum_netdata_total].recvmsgnum += 1;
-	s_datamgr.datatable[enum_netdata_total].recvbytes += len;
+	catomic_inc(&s_datamgr.datatable[enum_netdata_total].recvmsgnum);
+	catomic_fetch_add(&s_datamgr.datatable[enum_netdata_total].recvbytes, (int64)len);
 
-	s_datamgr.datatable[enum_netdata_now].recvmsgnum += 1;
-	s_datamgr.datatable[enum_netdata_now].recvbytes += len;
+	catomic_inc(&s_datamgr.datatable[enum_netdata_now].recvmsgnum);
+	catomic_fetch_add(&s_datamgr.datatable[enum_netdata_now].recvbytes, (int64)len);
 }
 
 static void datarun() {
@@ -75,30 +76,33 @@ static void datarun() {
 	s_datamgr.lasttime = currenttime;
 
 	time_t curtm = time(NULL);
-	if (s_datamgr.datatable[enum_netdata_max].sendmsgnum <= s_datamgr.datatable[enum_netdata_now].sendmsgnum) {
-		s_datamgr.datatable[enum_netdata_max].sendmsgnum = s_datamgr.datatable[enum_netdata_now].sendmsgnum;
-		s_datamgr.datatable[enum_netdata_max].tm_sendmsgnum = curtm;
+	struct datainfo *maxinfo = &s_datamgr.datatable[enum_netdata_max];
+	struct datainfo *nowinfo = &s_datamgr.datatable[enum_netdata_now];
+
+	if (catomic_read(&maxinfo->sendmsgnum) < catomic_read(&nowinfo->sendmsgnum)) {
+		catomic_set(&maxinfo->sendmsgnum, catomic_read(&nowinfo->sendmsgnum));
+		maxinfo->tm_sendmsgnum = curtm;
 	}
 
-	if (s_datamgr.datatable[enum_netdata_max].recvmsgnum <= s_datamgr.datatable[enum_netdata_now].recvmsgnum) {
-		s_datamgr.datatable[enum_netdata_max].recvmsgnum = s_datamgr.datatable[enum_netdata_now].recvmsgnum;
-		s_datamgr.datatable[enum_netdata_max].tm_recvmsgnum = curtm;
+	if (catomic_read(&maxinfo->recvmsgnum) < catomic_read(&nowinfo->recvmsgnum)) {
+		catomic_set(&maxinfo->recvmsgnum, catomic_read(&nowinfo->recvmsgnum));
+		maxinfo->tm_recvmsgnum = curtm;
 	}
 
-	if (s_datamgr.datatable[enum_netdata_max].sendbytes <= s_datamgr.datatable[enum_netdata_now].sendbytes) {
-		s_datamgr.datatable[enum_netdata_max].sendbytes = s_datamgr.datatable[enum_netdata_now].sendbytes;
-		s_datamgr.datatable[enum_netdata_max].tm_sendbytes = curtm;
+	if (catomic_read(&maxinfo->sendbytes) <= catomic_read(&nowinfo->sendbytes)) {
+		catomic_set(&maxinfo->sendbytes, catomic_read(&nowinfo->sendbytes));
+		maxinfo->tm_sendbytes = curtm;
 	}
 
-	if (s_datamgr.datatable[enum_netdata_max].recvbytes <= s_datamgr.datatable[enum_netdata_now].recvbytes) {
-		s_datamgr.datatable[enum_netdata_max].recvbytes = s_datamgr.datatable[enum_netdata_now].recvbytes;
-		s_datamgr.datatable[enum_netdata_max].tm_recvbytes = curtm;
+	if (catomic_read(&maxinfo->recvbytes) <= catomic_read(&nowinfo->recvbytes)) {
+		catomic_set(&maxinfo->recvbytes, catomic_read(&nowinfo->recvbytes));
+		maxinfo->tm_recvbytes = curtm;
 	}
 
-	s_datamgr.datatable[enum_netdata_now].sendmsgnum = 0;
-	s_datamgr.datatable[enum_netdata_now].recvmsgnum = 0;
-	s_datamgr.datatable[enum_netdata_now].sendbytes = 0;
-	s_datamgr.datatable[enum_netdata_now].recvbytes = 0;
+	catomic_set(&nowinfo->sendmsgnum, 0);
+	catomic_set(&nowinfo->recvmsgnum, 0);
+	catomic_set(&nowinfo->sendbytes, 0);
+	catomic_set(&nowinfo->recvbytes, 0);
 }
 
 static bool infomgr_init(size_t socketnum, size_t listennum) {
@@ -123,10 +127,10 @@ static bool infomgr_init(size_t socketnum, size_t listennum) {
 	s_datamgr.isinit = true;
 	s_datamgr.lasttime = 0;
 	for (int i = 0; i < enum_netdata_end; ++i) {
-		s_datamgr.datatable[i].sendmsgnum = 0;
-		s_datamgr.datatable[i].recvmsgnum = 0;
-		s_datamgr.datatable[i].sendbytes = 0;
-		s_datamgr.datatable[i].recvbytes = 0;
+		catomic_set(&s_datamgr.datatable[i].sendmsgnum, 0);
+		catomic_set(&s_datamgr.datatable[i].recvmsgnum, 0);
+		catomic_set(&s_datamgr.datatable[i].sendbytes, 0);
+		catomic_set(&s_datamgr.datatable[i].recvbytes, 0);
 		s_datamgr.datatable[i].tm_sendmsgnum = 0;
 		s_datamgr.datatable[i].tm_recvmsgnum = 0;
 		s_datamgr.datatable[i].tm_sendbytes = 0;
@@ -162,24 +166,63 @@ static void encrypt_info_release(void *info) {
 namespace lxnet {
 
 
-/* ¼àÌı*/
+
+/* åˆ›å»ºä¸€ä¸ªç”¨äºç›‘å¬çš„å¯¹è±¡ */
+Listener *Listener::Create() {
+	if (!s_infomgr.isinit) {
+		assert(false && "Listener Create not init!");
+		return NULL;
+	}
+
+	struct listener *ls = listener_create();
+	if (!ls)
+		return NULL;
+
+	cspin_lock(&s_infomgr.listen_lock);
+	Listener *self = (Listener *)poolmgr_getobject(s_infomgr.listen_pool);
+	cspin_unlock(&s_infomgr.listen_lock);
+	if (!self) {
+		listener_release(ls);
+		return NULL;
+	}
+
+	self->_self = ls;
+	return self;
+}
+
+/* é‡Šæ”¾ä¸€ä¸ªç”¨äºç›‘å¬çš„å¯¹è±¡ */
+void Listener::Release(Listener *self) {
+	if (!self)
+		return;
+
+	if (self->_self) {
+		listener_release(self->_self);
+		self->_self = NULL;
+	}
+
+	cspin_lock(&s_infomgr.listen_lock);
+	poolmgr_freeobject(s_infomgr.listen_pool, self);
+	cspin_unlock(&s_infomgr.listen_lock);
+}
+
+/* ç›‘å¬ */
 bool Listener::Listen(unsigned short port, int backlog) {
-	return listener_listen(m_self, port, backlog);
+	return listener_listen(_self, port, backlog);
 }
 
-/* ¹Ø±ÕÓÃÓÚ¼àÌıµÄÌ×½Ó×Ö£¬Í£Ö¹¼àÌı*/
+/* å…³é—­ç”¨äºç›‘å¬çš„å¥—æ¥å­—ï¼Œåœæ­¢ç›‘å¬ */
 void Listener::Close() {
-	listener_close(m_self);
+	listener_close(_self);
 }
 
-/* ²âÊÔÊÇ·ñÒÑ¹Ø±Õ*/
+/* æµ‹è¯•æ˜¯å¦å·²å…³é—­ */
 bool Listener::IsClose() {
-	return listener_isclose(m_self);
+	return listener_isclose(_self);
 }
 
-/* ÔÚÖ¸¶¨µÄ¼àÌısocketÉÏ½ÓÊÜÁ¬½Ó*/
+/* åœ¨æŒ‡å®šçš„ç›‘å¬socketä¸Šæ¥å—è¿æ¥ */
 Socketer *Listener::Accept(bool bigbuf) {
-	struct socketer *sock = listener_accept(m_self, bigbuf);
+	struct socketer *sock = listener_accept(_self, bigbuf);
 	if (!sock)
 		return NULL;
 
@@ -191,43 +234,88 @@ Socketer *Listener::Accept(bool bigbuf) {
 		return NULL;
 	}
 
-	self->m_encrypt = NULL;
-	self->m_decrypt = NULL;
-	self->m_self = sock;
+	self->_encrypt = NULL;
+	self->_decrypt = NULL;
+	self->_self = sock;
 	return self;
 }
 
-/* ¼ì²âÊÇ·ñÓĞĞÂµÄÁ¬½Ó*/
+/* æ£€æµ‹æ˜¯å¦æœ‰æ–°çš„è¿æ¥ */
 bool Listener::CanAccept() {
-	return listener_can_accept(m_self);
+	return listener_can_accept(_self);
 }
 
-/* ÉèÖÃ½ÓÊÕÊı¾İ×Ö½ÚµÄÁÙ½çÖµ£¬³¬¹ı´ËÖµ£¬ÔòÍ£Ö¹½ÓÊÕ£¬ÈôĞ¡ÓÚµÈÓÚ0£¬ÔòÊÓÎª²»ÏŞÖÆ*/
-void Socketer::SetRecvCritical(int size) {
-	socketer_set_recv_critical(m_self, size);
+
+
+/* åˆ›å»ºä¸€ä¸ªSocketerå¯¹è±¡ */
+Socketer *Socketer::Create(bool bigbuf) {
+	if (!s_infomgr.isinit) {
+		assert(false && "Socketer Create not init!");
+		return NULL;
+	}
+
+	struct socketer *so = socketer_create(bigbuf);
+	if (!so)
+		return NULL;
+
+	cspin_lock(&s_infomgr.socket_lock);
+	Socketer *self = (Socketer *)poolmgr_getobject(s_infomgr.socket_pool);
+	cspin_unlock(&s_infomgr.socket_lock);
+	if (!self) {
+		socketer_release(so);
+		return NULL;
+	}
+
+	self->_encrypt = NULL;
+	self->_decrypt = NULL;
+	self->_self = so;
+	return self;
 }
 
-/* ÉèÖÃ·¢ËÍÊı¾İ×Ö½ÚµÄÁÙ½çÖµ£¬Èô»º³åÖĞÊı¾İ³¤¶È´óÓÚ´ËÖµ£¬Ôò¶Ï¿ª´ËÁ¬½Ó£¬ÈôÎª0£¬ÔòÊÓÎª²»ÏŞÖÆ*/
-void Socketer::SetSendCritical(int size) {
-	socketer_set_send_critical(m_self, size);
+/* é‡Šæ”¾Socketerå¯¹è±¡ï¼Œä¼šè‡ªåŠ¨è°ƒç”¨å…³é—­ç­‰å–„åæ“ä½œ */
+void Socketer::Release(Socketer *self) {
+	if (!self)
+		return;
+	
+	if (self->_self) {
+		socketer_release(self->_self);
+		self->_self = NULL;
+	}
+
+	self->_encrypt = NULL;
+	self->_decrypt = NULL;
+
+	cspin_lock(&s_infomgr.socket_lock);
+	poolmgr_freeobject(s_infomgr.socket_pool, self);
+	cspin_unlock(&s_infomgr.socket_lock);
 }
 
-/* £¨¶Ô·¢ËÍÊı¾İÆğ×÷ÓÃ£©ÉèÖÃÆôÓÃÑ¹Ëõ£¬ÈôÒªÆôÓÃÑ¹Ëõ£¬Ôò´Ëº¯ÊıÔÚ´´½¨socket¶ÔÏóºó¼´¿Ìµ÷ÓÃ*/
+/* è®¾ç½®æ¥æ”¶æ•°æ®å­—èŠ‚çš„ä¸´ç•Œå€¼ï¼Œè¶…è¿‡æ­¤å€¼ï¼Œåˆ™åœæ­¢æ¥æ”¶ï¼Œè‹¥å°äºç­‰äº0ï¼Œåˆ™è§†ä¸ºä¸é™åˆ¶ */
+void Socketer::SetRecvLimit(int size) {
+	socketer_set_recv_limit(_self, size);
+}
+
+/* è®¾ç½®å‘é€æ•°æ®å­—èŠ‚çš„ä¸´ç•Œå€¼ï¼Œè‹¥ç¼“å†²ä¸­æ•°æ®é•¿åº¦å¤§äºæ­¤å€¼ï¼Œåˆ™æ–­å¼€æ­¤è¿æ¥ï¼Œè‹¥ä¸º0ï¼Œåˆ™è§†ä¸ºä¸é™åˆ¶ */
+void Socketer::SetSendLimit(int size) {
+	socketer_set_send_limit(_self, size);
+}
+
+/* (å¯¹å‘é€æ•°æ®èµ·ä½œç”¨)è®¾ç½®å¯ç”¨å‹ç¼©ï¼Œè‹¥è¦å¯ç”¨å‹ç¼©ï¼Œåˆ™æ­¤å‡½æ•°åœ¨åˆ›å»ºsocketå¯¹è±¡åå³åˆ»è°ƒç”¨ */
 void Socketer::UseCompress() {
-	socketer_use_compress(m_self);
+	socketer_use_compress(_self);
 }
 
-/* £¨É÷ÓÃ£©£¨¶Ô½ÓÊÕµÄÊı¾İÆğ×÷ÓÃ£©ÆôÓÃ½âÑ¹Ëõ£¬ÍøÂç¿â»á¸ºÔğ½âÑ¹Ëõ²Ù×÷£¬½ö¹©¿Í»§¶ËÊ¹ÓÃ*/
+/* (æ…ç”¨)(å¯¹æ¥æ”¶çš„æ•°æ®èµ·ä½œç”¨)å¯ç”¨è§£å‹ç¼©ï¼Œç½‘ç»œåº“ä¼šè´Ÿè´£è§£å‹ç¼©æ“ä½œï¼Œä»…ä¾›å®¢æˆ·ç«¯ä½¿ç”¨ */
 void Socketer::UseUncompress() {
-	socketer_use_uncompress(m_self);
+	socketer_use_uncompress(_self);
 }
 
-/* ÉèÖÃ¼ÓÃÜ/½âÃÜº¯Êı£¬ ÒÔ¼°ÌØÊâÓÃÍ¾µÄ²ÎÓë¼ÓÃÜ/½âÃÜÂß¼­µÄÊı¾İ¡£
- * Èô¼ÓÃÜ/½âÃÜº¯ÊıÎªNULL£¬Ôò±£³ÖÄ¬ÈÏ¡£
+/* è®¾ç½®åŠ å¯†/è§£å¯†å‡½æ•°ï¼Œ ä»¥åŠç‰¹æ®Šç”¨é€”çš„å‚ä¸åŠ å¯†/è§£å¯†é€»è¾‘çš„æ•°æ®ã€‚
+ * è‹¥åŠ å¯†/è§£å¯†å‡½æ•°ä¸ºNULLï¼Œåˆ™ä¿æŒé»˜è®¤ã€‚
  * */
 void Socketer::SetEncryptDecryptFunction(void (*encryptfunc)(void *logicdata, char *buf, int len), void (*release_encrypt_logicdata)(void *), void *encrypt_logicdata, void (*decryptfunc)(void *logicdata, char *buf, int len), void (*release_decrypt_logicdata)(void *), void *decrypt_logicdata) {
-	socketer_set_encrypt_function(m_self, encryptfunc, release_encrypt_logicdata, encrypt_logicdata);
-	socketer_set_decrypt_function(m_self, decryptfunc, release_decrypt_logicdata, decrypt_logicdata);
+	socketer_set_encrypt_function(_self, encryptfunc, release_encrypt_logicdata, encrypt_logicdata);
+	socketer_set_decrypt_function(_self, decryptfunc, release_decrypt_logicdata, decrypt_logicdata);
 }
 
 static void encrypt_decrypt_as_key_do_func(void *logicdata, char *buf, int len) {
@@ -243,96 +331,96 @@ static void encrypt_decrypt_as_key_do_func(void *logicdata, char *buf, int len) 
 	}
 }
 
-/* ÉèÖÃ¼ÓÃÜkey */
+/* è®¾ç½®åŠ å¯†key */
 void Socketer::SetEncryptKey(const char *key, int key_len) {
 	if (!key || key_len < 0)
 		return;
 
-	if (!m_encrypt) {
+	if (!_encrypt) {
 		cspin_lock(&s_infomgr.encrypt_lock);
-		m_encrypt = (struct encryptinfo *)poolmgr_getobject(s_infomgr.encrypt_pool);
+		_encrypt = (struct encryptinfo *)poolmgr_getobject(s_infomgr.encrypt_pool);
 		cspin_unlock(&s_infomgr.encrypt_lock);
 
-		if (m_encrypt) {
-			m_encrypt->maxidx = 0;
-			m_encrypt->nowidx = 0;
-			memset(m_encrypt->buf, 0, sizeof(m_encrypt->buf));
-			socketer_set_encrypt_function(m_self, encrypt_decrypt_as_key_do_func, encrypt_info_release, m_encrypt);
+		if (_encrypt) {
+			_encrypt->maxidx = 0;
+			_encrypt->nowidx = 0;
+			memset(_encrypt->buf, 0, sizeof(_encrypt->buf));
+			socketer_set_encrypt_function(_self, encrypt_decrypt_as_key_do_func, encrypt_info_release, _encrypt);
 		}
 	}
 
-	if (m_encrypt) {
-		m_encrypt->maxidx = key_len > encryptinfo::enum_encrypt_len ? encryptinfo::enum_encrypt_len : key_len;
-		memcpy(&m_encrypt->buf, key, m_encrypt->maxidx);
+	if (_encrypt) {
+		_encrypt->maxidx = key_len > encryptinfo::enum_encrypt_len ? encryptinfo::enum_encrypt_len : key_len;
+		memcpy(&_encrypt->buf, key, _encrypt->maxidx);
 	}
 }
 
-/* ÉèÖÃ½âÃÜkey */
-void Socketer::setDecryptKey(const char *key, int key_len) {
+/* è®¾ç½®è§£å¯†key */
+void Socketer::SetDecryptKey(const char *key, int key_len) {
 	if (!key || key_len < 0)
 		return;
 
-	if (!m_decrypt) {
+	if (!_decrypt) {
 		cspin_lock(&s_infomgr.encrypt_lock);
-		m_decrypt = (struct encryptinfo *)poolmgr_getobject(s_infomgr.encrypt_pool);
+		_decrypt = (struct encryptinfo *)poolmgr_getobject(s_infomgr.encrypt_pool);
 		cspin_unlock(&s_infomgr.encrypt_lock);
 
-		if (m_decrypt) {
-			m_decrypt->maxidx = 0;
-			m_decrypt->nowidx = 0;
-			memset(m_decrypt->buf, 0, sizeof(m_decrypt->buf));
-			socketer_set_decrypt_function(m_self, encrypt_decrypt_as_key_do_func, encrypt_info_release, m_decrypt);
+		if (_decrypt) {
+			_decrypt->maxidx = 0;
+			_decrypt->nowidx = 0;
+			memset(_decrypt->buf, 0, sizeof(_decrypt->buf));
+			socketer_set_decrypt_function(_self, encrypt_decrypt_as_key_do_func, encrypt_info_release, _decrypt);
 		}
 	}
 
-	if (m_decrypt) {
-		m_decrypt->maxidx = key_len > encryptinfo::enum_encrypt_len ? encryptinfo::enum_encrypt_len : key_len;
-		memcpy(&m_decrypt->buf, key, m_decrypt->maxidx);
+	if (_decrypt) {
+		_decrypt->maxidx = key_len > encryptinfo::enum_encrypt_len ? encryptinfo::enum_encrypt_len : key_len;
+		memcpy(&_decrypt->buf, key, _decrypt->maxidx);
 	}
 	
 }
 
-/* £¨ÆôÓÃ¼ÓÃÜ£©*/
+/* (å¯ç”¨åŠ å¯†) */
 void Socketer::UseEncrypt() {
-	socketer_use_encrypt(m_self);
+	socketer_use_encrypt(_self);
 }
 
-/* £¨ÆôÓÃ½âÃÜ£©*/
+/* (å¯ç”¨è§£å¯†) */
 void Socketer::UseDecrypt() {
-	socketer_use_decrypt(m_self);
+	socketer_use_decrypt(_self);
 }
 
-/* ÆôÓÃTGW½ÓÈë */
+/* å¯ç”¨TGWæ¥å…¥ */
 void Socketer::UseTGW() {
-	socketer_use_tgw(m_self);
+	socketer_use_tgw(_self);
 }
 
-/* ¹Ø±ÕÓÃÓÚÁ¬½ÓµÄsocket¶ÔÏó*/
+/* å…³é—­ç”¨äºè¿æ¥çš„socketå¯¹è±¡ */
 void Socketer::Close() {
-	socketer_close(m_self);
+	socketer_close(_self);
 }
 
-/* Á¬½ÓÖ¸¶¨µÄ·şÎñÆ÷*/
+/* è¿æ¥æŒ‡å®šçš„æœåŠ¡å™¨ */
 bool Socketer::Connect(const char *ip, short port) {
-	return socketer_connect(m_self, ip, port);
+	return socketer_connect(_self, ip, port);
 }
 
-/* ²âÊÔsocketÌ×½Ó×ÖÊÇ·ñÒÑ¹Ø±Õ*/
+/* æµ‹è¯•socketå¥—æ¥å­—æ˜¯å¦å·²å…³é—­ */
 bool Socketer::IsClose() {
-	return socketer_isclose(m_self);
+	return socketer_isclose(_self);
 }
 
-/* »ñÈ¡´Ë¿Í»§¶ËipµØÖ·*/
+/* è·å–æ­¤å®¢æˆ·ç«¯ipåœ°å€ */
 void Socketer::GetIP(char *ip, size_t len) {
-	socketer_getip(m_self, ip, len);
+	socketer_getip(_self, ip, len);
 }
 
-/* »ñÈ¡·¢ËÍ»º³å´ı·¢ËÍ×Ö½ÚÊı(ÈôÎª0±íÊ¾²»´æÔÚ´ı·¢ËÍÊı¾İ»òÊı¾İÒÑĞ´ÈëÏµÍ³»º³å) */
+/* è·å–å‘é€ç¼“å†²å¾…å‘é€å­—èŠ‚æ•°(è‹¥ä¸º0è¡¨ç¤ºä¸å­˜åœ¨å¾…å‘é€æ•°æ®æˆ–æ•°æ®å·²å†™å…¥ç³»ç»Ÿç¼“å†²) */
 int Socketer::GetSendBufferByteSize() {
-	return socketer_get_send_buffer_byte_size(m_self);
+	return socketer_get_send_buffer_byte_size(_self);
 }
 
-/* ·¢ËÍÊı¾İ£¬½ö½öÊÇ°ÑÊı¾İÑ¹Èë°ü¶ÓÁĞÖĞ£¬adddataÎª¸½¼Óµ½pMsgºóÃæµÄÊı¾İ£¬µ±È»»á×Ô¶¯ĞŞ¸ÄpMsgµÄ³¤¶È£¬addsizeÖ¸¶¨adddataµÄ³¤¶È*/
+/* å‘é€æ•°æ®ï¼Œä»…ä»…æ˜¯æŠŠæ•°æ®å‹å…¥åŒ…é˜Ÿåˆ—ä¸­ï¼Œadddataä¸ºé™„åŠ åˆ°pMsgåé¢çš„æ•°æ®ï¼Œå½“ç„¶ä¼šè‡ªåŠ¨ä¿®æ”¹pMsgçš„é•¿åº¦ï¼ŒaddsizeæŒ‡å®šadddataçš„é•¿åº¦ */
 bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 	if (!pMsg)
 		return false;
@@ -356,7 +444,7 @@ bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 		return false;
 	}
 
-	if (socketer_send_islimit(m_self, pMsg->GetLength()+addsize)) {
+	if (socketer_send_islimit(_self, pMsg->GetLength() + addsize)) {
 		Close();
 		return false;
 	}
@@ -367,89 +455,90 @@ bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 		bool res1, res2;
 		int onesend = pMsg->GetLength();
 		pMsg->SetLength(onesend + addsize);
-		res1 = socketer_sendmsg(m_self, pMsg, onesend);
+		res1 = socketer_sendmsg(_self, pMsg, onesend);
 		
-		//ÕâÀïÇĞ¼ÇÒªĞŞ¸Ä»ØÈ¥¡£ Àı£º¶ÔÓÚÍ¬Ò»¸ö°ü±éÀú·¢ËÍ¸øÒ»¸öÁĞ±í£¬È»ºóÃ¿´Î¶¼¸½´ø²»Í¬Î²°Í¡£¡£¡£ÕâÖÖÇé¾°£¬ÄÇÃ´±ØĞëÈç´Ë»Ö¸´¡£
+		//è¿™é‡Œåˆ‡è®°è¦ä¿®æ”¹å›å»ã€‚ ä¾‹ï¼šå¯¹äºåŒä¸€ä¸ªåŒ…éå†å‘é€ç»™ä¸€ä¸ªåˆ—è¡¨ï¼Œç„¶åæ¯æ¬¡éƒ½é™„å¸¦ä¸åŒå°¾å·´ã€‚ã€‚ã€‚è¿™ç§æƒ…æ™¯ï¼Œé‚£ä¹ˆå¿…é¡»å¦‚æ­¤æ¢å¤ã€‚
 		pMsg->SetLength(onesend);
-		res2 = socketer_sendmsg(m_self, adddata, addsize);
+		res2 = socketer_sendmsg(_self, adddata, addsize);
 		return (res1 && res2);
 	} else {
-		return socketer_sendmsg(m_self, pMsg, pMsg->GetLength());
+		return socketer_sendmsg(_self, pMsg, pMsg->GetLength());
 	}
 }
 
-/* ¶Ôas3·¢ËÍ²ßÂÔÎÄ¼ş */
+/* å¯¹as3å‘é€ç­–ç•¥æ–‡ä»¶ */
 bool Socketer::SendPolicyData() {
-	//as3Ì×½Ó×Ö²ßÂÔÎÄ¼ş
+	//as3å¥—æ¥å­—ç­–ç•¥æ–‡ä»¶
 	char buf[512] = "<cross-domain-policy> <allow-access-from domain=\"*\" secure=\"false\" to-ports=\"*\"/> </cross-domain-policy> ";
 	size_t datasize = strlen(buf);
-	if (socketer_send_islimit(m_self, datasize)) {
+	if (socketer_send_islimit(_self, datasize)) {
 		Close();
 		return false;
 	}
 
 	on_sendmsg(datasize + 1);
-	return socketer_sendmsg(m_self, buf, datasize + 1);
+	return socketer_sendmsg(_self, buf, datasize + 1);
 }
 
-/* ·¢ËÍTGWĞÅÏ¢Í· */
+/* å‘é€TGWä¿¡æ¯å¤´ */
 bool Socketer::SendTGWInfo(const char *domain, int port) {
 	char buf[1024] = {};
 	size_t datasize;
 	snprintf(buf, sizeof(buf) - 1, "tgw_l7_forward\r\nHost: %s:%d\r\n\r\n", domain, port);
 	buf[sizeof(buf) - 1] = '\0';
 	datasize = strlen(buf);
-	if (socketer_send_islimit(m_self, datasize)) {
+	if (socketer_send_islimit(_self, datasize)) {
 		Close();
 		return false;
 	}
 
-	socketer_set_raw_datasize(m_self, datasize);
+	socketer_set_raw_datasize(_self, datasize);
 	on_sendmsg(datasize);
-	return socketer_sendmsg(m_self, buf, datasize);
+	return socketer_sendmsg(_self, buf, datasize);
 }
 
-/* ´¥·¢ÕæÕıµÄ·¢ËÍÊı¾İ*/
+/* è§¦å‘çœŸæ­£çš„å‘é€æ•°æ® */
 void Socketer::CheckSend() {
-	socketer_checksend(m_self);
+	socketer_checksend(_self);
 }
 
-/* ³¢ÊÔÍ¶µİ½ÓÊÕ²Ù×÷*/
+/* å°è¯•æŠ•é€’æ¥æ”¶æ“ä½œ */
 void Socketer::CheckRecv() {
-	socketer_checkrecv(m_self);
+	socketer_checkrecv(_self);
 }
 
-/* ½ÓÊÕÊı¾İ*/
+/* æ¥æ”¶æ•°æ® */
 Msg *Socketer::GetMsg(char *buf, size_t bufsize) {
-	Msg *obj = (Msg *)socketer_getmsg(m_self, buf, bufsize);
+	Msg *obj = (Msg *)socketer_getmsg(_self, buf, bufsize);
 	if (obj) {
 		if (obj->GetLength() < (int)sizeof(Msg)) {
 			Close();
 			return NULL;
 		}
+
 		on_recvmsg(obj->GetLength());
 	}
 	return obj;
 }
 
-/* ·¢ËÍÊı¾İ */
+/* å‘é€æ•°æ® */
 bool Socketer::SendData(const char *data, size_t datasize) {
 	if (!data)
 		return false;
 
-	if (socketer_send_islimit(m_self, datasize)) {
+	if (socketer_send_islimit(_self, datasize)) {
 		Close();
 		return false;
 	}
 
 	on_sendmsg(datasize);
 
-	return socketer_sendmsg(m_self, (void *)data, datasize);
+	return socketer_sendmsg(_self, (void *)data, datasize);
 }
 
-/* ½ÓÊÕÊı¾İ */
+/* æ¥æ”¶æ•°æ® */
 char *Socketer::GetData(char *buf, size_t bufsize, int *datalen) {
-	char *data = (char *)socketer_getdata(m_self, buf, bufsize, datalen);
+	char *data = (char *)socketer_getdata(_self, buf, bufsize, datalen);
 	if (data) {
 		on_recvmsg(*datalen);
 	}
@@ -458,12 +547,13 @@ char *Socketer::GetData(char *buf, size_t bufsize, int *datalen) {
 }
 
 
-/* ³õÊ¼»¯ÍøÂç£¬
- * bigbufsizeÖ¸¶¨´ó¿éµÄ´óĞ¡£¬bigbufnumÖ¸¶¨´ó¿éµÄÊıÄ¿£¬
- * smallbufsizeÖ¸¶¨Ğ¡¿éµÄ´óĞ¡£¬smallbufnumÖ¸¶¨Ğ¡¿éµÄÊıÄ¿
- * listen numÖ¸¶¨ÓÃÓÚ¼àÌıµÄÌ×½Ó×ÖµÄÊıÄ¿£¬socket numÓÃÓÚÁ¬½ÓµÄ×ÜÊıÄ¿
- * threadnumÖ¸¶¨ÍøÂçÏß³ÌÊıÄ¿£¬ÈôÉèÖÃÎªĞ¡ÓÚµÈÓÚ0£¬Ôò»á¿ªÆôcpu¸öÊıµÄÏß³ÌÊıÄ¿
- */
+
+/* åˆå§‹åŒ–ç½‘ç»œï¼Œ
+ * bigbufsizeæŒ‡å®šå¤§å—çš„å¤§å°ï¼ŒbigbufnumæŒ‡å®šå¤§å—çš„æ•°ç›®ï¼Œ
+ * smallbufsizeæŒ‡å®šå°å—çš„å¤§å°ï¼ŒsmallbufnumæŒ‡å®šå°å—çš„æ•°ç›®
+ * listen numæŒ‡å®šç”¨äºç›‘å¬çš„å¥—æ¥å­—çš„æ•°ç›®ï¼Œsocket numç”¨äºè¿æ¥çš„æ€»æ•°ç›®
+ * threadnumæŒ‡å®šç½‘ç»œçº¿ç¨‹æ•°ç›®ï¼Œè‹¥è®¾ç½®ä¸ºå°äºç­‰äº0ï¼Œåˆ™ä¼šå¼€å¯cpuä¸ªæ•°çš„çº¿ç¨‹æ•°ç›®
+ * */
 bool net_init(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t smallbufnum,
 		size_t listenernum, size_t socketnum, int threadnum) {
 	
@@ -479,205 +569,131 @@ bool net_init(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t s
 	return true;
 }
 
-/* »ñÈ¡´Ë½ø³ÌËùÔÚµÄ»úÆ÷Ãû*/
-const char *GetHostName() {
-	static char buf[1024*16];
-	buf[0] = '\0';
-	socketer_gethostname(buf, sizeof(buf) - 1);
-	return buf;
-}
-
-/* ¸ù¾İÓòÃû»ñÈ¡ipµØÖ· */
-bool GetHostIPByName(const char *hostname, char *buf, size_t buflen, bool ipv6) {
-	return socketer_gethostbyname(hostname, buf, buflen, ipv6);
-}
-
-/* ÆôÓÃ/½ûÓÃ½ÓÊÜµÄÁ¬½Óµ¼ÖÂµÄ´íÎóÈÕÖ¾£¬²¢·µ»ØÖ®Ç°µÄÖµ */
-bool SetEnableErrorLog(bool flag) {
-	return buf_set_enable_errorlog(flag);
-}
-
-/* »ñÈ¡µ±Ç°ÆôÓÃ»ò½ûÓÃ½ÓÊÜµÄÁ¬½Óµ¼ÖÂµÄ´íÎóÈÕÖ¾ */
-bool GetEnableErrorLog() {
-	return buf_get_enable_errorlog();
-}
-
-/* ´´½¨Ò»¸öÓÃÓÚ¼àÌıµÄ¶ÔÏó*/
-Listener *Listener_create() {
-	if (!s_infomgr.isinit) {
-		assert(false && "Listener_create not init!");
-		return NULL;
-	}
-	struct listener *ls = listener_create();
-	if (!ls)
-		return NULL;
-
-	cspin_lock(&s_infomgr.listen_lock);
-	Listener *self = (Listener *)poolmgr_getobject(s_infomgr.listen_pool);
-	cspin_unlock(&s_infomgr.listen_lock);
-	if (!self) {
-		listener_release(ls);
-		return NULL;
-	}
-
-	self->m_self = ls;
-	return self;
-}
-
-/* ÊÍ·ÅÒ»¸öÓÃÓÚ¼àÌıµÄ¶ÔÏó*/
-void Listener_release(Listener *self) {
-	if (!self)
-		return;
-
-	if (self->m_self) {
-		listener_release(self->m_self);
-		self->m_self = NULL;
-	}
-
-	cspin_lock(&s_infomgr.listen_lock);
-	poolmgr_freeobject(s_infomgr.listen_pool, self);
-	cspin_unlock(&s_infomgr.listen_lock);
-}
-
-/* ´´½¨Ò»¸öSocketer¶ÔÏó*/
-Socketer *Socketer_create(bool bigbuf) {
-	if (!s_infomgr.isinit) {
-		assert(false && "Csocket_create not init!");
-		return NULL;
-	}
-
-	struct socketer *so = socketer_create(bigbuf);
-	if (!so)
-		return NULL;
-
-	cspin_lock(&s_infomgr.socket_lock);
-	Socketer *self = (Socketer *)poolmgr_getobject(s_infomgr.socket_pool);
-	cspin_unlock(&s_infomgr.socket_lock);
-	if (!self) {
-		socketer_release(so);
-		return NULL;
-	}
-
-	self->m_encrypt = NULL;
-	self->m_decrypt = NULL;
-	self->m_self = so;
-	return self;
-}
-
-/* ÊÍ·ÅSocketer¶ÔÏó£¬»á×Ô¶¯µ÷ÓÃ¹Ø±ÕµÈÉÆºó²Ù×÷*/
-void Socketer_release(Socketer *self) {
-	if (!self)
-		return;
-	
-	if (self->m_self) {
-		socketer_release(self->m_self);
-		self->m_self = NULL;
-	}
-
-	self->m_encrypt = NULL;
-	self->m_decrypt = NULL;
-
-	cspin_lock(&s_infomgr.socket_lock);
-	poolmgr_freeobject(s_infomgr.socket_pool, self);
-	cspin_unlock(&s_infomgr.socket_lock);
-}
-
-/* ÊÍ·ÅÍøÂçÏà¹Ø*/
+/* é‡Šæ”¾ç½‘ç»œç›¸å…³ */
 void net_release() {
 	infomgr_release();
 	netrelease();
 }
 
-/* Ö´ĞĞÏà¹Ø²Ù×÷£¬ĞèÒªÔÚÖ÷Âß¼­ÖĞµ÷ÓÃ´Ëº¯Êı*/
+/* æ‰§è¡Œç›¸å…³æ“ä½œï¼Œéœ€è¦åœ¨ä¸»é€»è¾‘ä¸­è°ƒç”¨æ­¤å‡½æ•° */
 void net_run() {
 	datarun();
 	netrun();
 }
 
+
+/* è·å–æ­¤è¿›ç¨‹æ‰€åœ¨çš„æœºå™¨å */
+bool GetHostName(char *buf, size_t buflen) {
+	return socketer_gethostname(buf, buflen);
+}
+
+/* æ ¹æ®åŸŸåè·å–ipåœ°å€ */
+bool GetHostIPByName(const char *hostname, char *buf, size_t buflen, bool ipv6) {
+	return socketer_gethostbyname(hostname, buf, buflen, ipv6);
+}
+
+
+/* å¯ç”¨/ç¦ç”¨æ¥å—çš„è¿æ¥å¯¼è‡´çš„é”™è¯¯æ—¥å¿—ï¼Œå¹¶è¿”å›ä¹‹å‰çš„å€¼ */
+bool SetEnableErrorLog(bool flag) {
+	return buf_set_enable_errorlog(flag);
+}
+
+/* è·å–å½“å‰å¯ç”¨æˆ–ç¦ç”¨æ¥å—çš„è¿æ¥å¯¼è‡´çš„é”™è¯¯æ—¥å¿— */
+bool GetEnableErrorLog() {
+	return buf_get_enable_errorlog();
+}
+
+
+
 static char s_memory_info[1024*64];
 
-/* »ñÈ¡socket¶ÔÏó³Ø£¬listen¶ÔÏó³Ø£¬´ó¿é³Ø£¬Ğ¡¿é³ØµÄÊ¹ÓÃÇé¿ö*/
-const char *net_memory_info() {
+/* è·å–socketå¯¹è±¡æ± ï¼Œlistenå¯¹è±¡æ± ï¼Œå¤§å—æ± ï¼Œå°å—æ± çš„ä½¿ç”¨æƒ…å†µ */
+const char *GetNetMemoryInfo() {
 	size_t index = 0;
 
-	snprintf(&s_memory_info[index], sizeof(s_memory_info)-1-index, "%s", "lxnet lib memory pool info:\n<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
+	snprintf(&s_memory_info[index], sizeof(s_memory_info) - 1 - index, "%s", "lxnet lib memory pool info:\n<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
 	index = strlen(s_memory_info);
 
 	cspin_lock(&s_infomgr.encrypt_lock);
-	poolmgr_getinfo(s_infomgr.encrypt_pool, &s_memory_info[index], sizeof(s_memory_info)-1-index);
+	poolmgr_getinfo(s_infomgr.encrypt_pool, &s_memory_info[index], sizeof(s_memory_info) - 1 - index);
 	cspin_unlock(&s_infomgr.encrypt_lock);
 
 	index = strlen(s_memory_info);
 
 	cspin_lock(&s_infomgr.socket_lock);
-	poolmgr_getinfo(s_infomgr.socket_pool, &s_memory_info[index], sizeof(s_memory_info)-1-index);
+	poolmgr_getinfo(s_infomgr.socket_pool, &s_memory_info[index], sizeof(s_memory_info) - 1 - index);
 	cspin_unlock(&s_infomgr.socket_lock);
 	
 	index = strlen(s_memory_info);
 
 	cspin_lock(&s_infomgr.listen_lock);
-	poolmgr_getinfo(s_infomgr.listen_pool, &s_memory_info[index], sizeof(s_memory_info)-1-index);
+	poolmgr_getinfo(s_infomgr.listen_pool, &s_memory_info[index], sizeof(s_memory_info) - 1 - index);
 	cspin_unlock(&s_infomgr.listen_lock);
 
 	index = strlen(s_memory_info);
-	netmemory_info(&s_memory_info[index], sizeof(s_memory_info)-1-index);
+	netmemory_info(&s_memory_info[index], sizeof(s_memory_info) - 1 - index);
 
 	index = strlen(s_memory_info);
-	snprintf(&s_memory_info[index], sizeof(s_memory_info)-1-index, "%s", "<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
+	snprintf(&s_memory_info[index], sizeof(s_memory_info) - 1 - index, "%s", "<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
 	return s_memory_info;
 }
 
-//»ñÈ¡µ±Ç°Ê±¼ä¡£¸ñÊ½Îª"2010-09-16 23:20:20"
-static const char *CurrentTimeStr(time_t tval, char *buf, size_t buflen) {
+//è·å–å½“å‰æ—¶é—´ã€‚æ ¼å¼ä¸º"2010-09-16 23:20:20"
+static const char *get_current_time_str(time_t tval, char *buf, size_t buflen) {
 	if (buflen < 64)
 		return "null";
 
 	struct tm tm_result;
 	struct tm *currTM = safe_localtime(&tval, &tm_result);
-	snprintf(buf, buflen-1, "%d-%02d-%02d %02d:%02d:%02d", currTM->tm_year+1900, currTM->tm_mon+1, currTM->tm_mday, currTM->tm_hour, currTM->tm_min, currTM->tm_sec);
-	buf[buflen-1] = '\0';
+	snprintf(buf, buflen - 1, "%d-%02d-%02d %02d:%02d:%02d", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, currTM->tm_hour, currTM->tm_min, currTM->tm_sec);
+	buf[buflen - 1] = '\0';
 	return buf;
 }
 
-/* »ñÈ¡ÍøÂç¿âÍ¨Ñ¶ÏêÇé*/
-const char *net_datainfo() {
+/* è·å–ç½‘ç»œåº“é€šè®¯è¯¦æƒ… */
+const char *GetNetDataAllInfo() {
 	static char infostr[1024*8];
 	if (!s_datamgr.isinit)
 		return "not init!";
 
+	struct datainfo *totalinfo = &s_datamgr.datatable[enum_netdata_total];
+	struct datainfo *maxinfo = &s_datamgr.datatable[enum_netdata_max];
+	struct datainfo *nowinfo = &s_datamgr.datatable[enum_netdata_now];
+	
+
 	double numunit = 1000*1000;
 	double bytesunit = 1024*1024;
-	double totalsendmsgnum = (double)(s_datamgr.datatable[enum_netdata_total].sendmsgnum / numunit);
-	double totalsendbytes = double(s_datamgr.datatable[enum_netdata_total].sendbytes / bytesunit);
-	double totalrecvmsgnum = (double)(s_datamgr.datatable[enum_netdata_total].recvmsgnum / numunit);
-	double totalrecvbytes = double(s_datamgr.datatable[enum_netdata_total].recvbytes / bytesunit);
+	double totalsendmsgnum = (double)(catomic_read(&totalinfo->sendmsgnum) / numunit);
+	double totalsendbytes = (double)(catomic_read(&totalinfo->sendbytes) / bytesunit);
+	double totalrecvmsgnum = (double)(catomic_read(&totalinfo->recvmsgnum) / numunit);
+	double totalrecvbytes = (double)(catomic_read(&totalinfo->recvbytes) / bytesunit);
 
-	double maxsendmsgnum = (double)(s_datamgr.datatable[enum_netdata_max].sendmsgnum);
-	double maxsendbytes = double(s_datamgr.datatable[enum_netdata_max].sendbytes / bytesunit);
-	double maxrecvmsgnum = (double)(s_datamgr.datatable[enum_netdata_max].recvmsgnum);
-	double maxrecvbytes = double(s_datamgr.datatable[enum_netdata_max].recvbytes / bytesunit);
+	double maxsendmsgnum = (double)catomic_read(&maxinfo->sendmsgnum);
+	double maxsendbytes = (double)(catomic_read(&maxinfo->sendbytes) / bytesunit);
+	double maxrecvmsgnum = (double)catomic_read(&maxinfo->recvmsgnum);
+	double maxrecvbytes = (double)(catomic_read(&maxinfo->recvbytes) / bytesunit);
 
-	double nowsendmsgnum = (double)(s_datamgr.datatable[enum_netdata_now].sendmsgnum);
-	double nowsendbytes = double(s_datamgr.datatable[enum_netdata_now].sendbytes / bytesunit);
-	double nowrecvmsgnum = (double)(s_datamgr.datatable[enum_netdata_now].recvmsgnum);
-	double nowrecvbytes = double(s_datamgr.datatable[enum_netdata_now].recvbytes / bytesunit);
+	double nowsendmsgnum = (double)catomic_read(&nowinfo->sendmsgnum);
+	double nowsendbytes = (double)(catomic_read(&nowinfo->sendbytes) / bytesunit);
+	double nowrecvmsgnum = (double)catomic_read(&nowinfo->recvmsgnum);
+	double nowrecvbytes = (double)(catomic_read(&nowinfo->recvbytes) / bytesunit);
 
 	char buf_sendmsgnum[128] = {};
 	char buf_sendbytes[128] = {};
 	char buf_recvmsgnum[128] = {};
 	char buf_recvbytes[128] = {};
-	CurrentTimeStr(s_datamgr.datatable[enum_netdata_max].tm_sendmsgnum, buf_sendmsgnum, sizeof(buf_sendmsgnum));
-	CurrentTimeStr(s_datamgr.datatable[enum_netdata_max].tm_sendbytes, buf_sendbytes, sizeof(buf_sendbytes));
-	CurrentTimeStr(s_datamgr.datatable[enum_netdata_max].tm_recvmsgnum, buf_recvmsgnum, sizeof(buf_recvmsgnum));
-	CurrentTimeStr(s_datamgr.datatable[enum_netdata_max].tm_recvbytes, buf_recvbytes, sizeof(buf_recvbytes));
+	get_current_time_str(maxinfo->tm_sendmsgnum, buf_sendmsgnum, sizeof(buf_sendmsgnum));
+	get_current_time_str(maxinfo->tm_sendbytes, buf_sendbytes, sizeof(buf_sendbytes));
+	get_current_time_str(maxinfo->tm_recvmsgnum, buf_recvmsgnum, sizeof(buf_recvmsgnum));
+	get_current_time_str(maxinfo->tm_recvbytes, buf_recvbytes, sizeof(buf_recvbytes));
 
 	snprintf(infostr, sizeof(infostr) - 1, "total: send msg num:%lfM, send bytes:%lfMB, recv msg num:%lfM, recv bytes:%lfMB\nmax:\nsend msg num:%lf, time:%s\nsend bytes:%lfMB, time:%s\nrecv msg num:%lf, time:%s\nrecv bytes:%lfMB, time:%s\nnow: send msg num:%lf, send bytes:%lfMB, recv msg num:%lf, recv bytes:%lfMB\n", totalsendmsgnum, totalsendbytes, totalrecvmsgnum, totalrecvbytes, maxsendmsgnum, buf_sendmsgnum, maxsendbytes, buf_sendbytes, maxrecvmsgnum, buf_recvmsgnum, maxrecvbytes, buf_recvbytes, nowsendmsgnum, nowsendbytes, nowrecvmsgnum, nowrecvbytes);
 
 	return infostr;
 }
 
-/* »ñÈ¡ÍøÂç¿âµÄÖ¸¶¨ÀàĞÍµÄÏêÇé*/
-struct datainfo *net_datainfo_bytype(int type) {
+/* è·å–ç½‘ç»œåº“çš„æŒ‡å®šç±»å‹çš„è¯¦æƒ… */
+struct datainfo *GetNetDataInfoByType(int type) {
 	if (type < 0 || type >= (int)enum_netdata_end)
 		return NULL;
 
@@ -685,5 +701,4 @@ struct datainfo *net_datainfo_bytype(int type) {
 }
 
 }
-
 

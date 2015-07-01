@@ -54,4 +54,3 @@ void netmemory_info(char *buf, size_t bufsize) {
 	buf[bufsize-1] = 0;
 }
 
-

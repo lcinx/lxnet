@@ -23,7 +23,7 @@ int main()
 		return 0;
 	}
 
-	lxnet::Socketer *newclient = lxnet::Socketer_create();
+	lxnet::Socketer *newclient = lxnet::Socketer::Create();
 	//newclient->UseUncompress();
 	//newclient->UseCompress();
 	
@@ -70,7 +70,7 @@ int main()
 			if (sendnum == 10000)
 			{
 				end = get_millisecond();
-				printf("end - begin:%lld\n", end-begin);
+				printf("end - begin:%d\n", (int)(end - begin));
 				system("pause");
 			}
 		}
@@ -95,7 +95,7 @@ s_exit:
 #else
 	usleep(1000000);
 #endif
-	lxnet::Socketer_release(newclient);
+	lxnet::Socketer::Release(newclient);
 	lxnet::net_release();
 	system("pause");
 	return 0;

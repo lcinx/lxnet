@@ -40,7 +40,7 @@ void socketer_getip(struct socketer *self, char *ip, size_t len);
 
 int socketer_get_send_buffer_byte_size(struct socketer *self);
 
-bool socketer_gethostname(char *name, size_t len);
+bool socketer_gethostname(char *buf, size_t len);
 
 bool socketer_gethostbyname(const char *name, char *buf, size_t len, bool ipv6);
 
@@ -65,10 +65,10 @@ void socketer_checkrecv(struct socketer *self);
 
 
 /* set recv data limit. */
-void socketer_set_recv_critical(struct socketer *self, int size);
+void socketer_set_recv_limit(struct socketer *self, int size);
 
 /* set send data limit.*/
-void socketer_set_send_critical(struct socketer *self, int size);
+void socketer_set_send_limit(struct socketer *self, int size);
 
 void socketer_use_compress(struct socketer *self);
 

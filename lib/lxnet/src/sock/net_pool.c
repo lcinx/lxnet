@@ -129,13 +129,13 @@ void netpool_releaselisten(void *self) {
 void netpool_meminfo(char *buf, size_t bufsize) {
 	size_t index = 0;
 	cspin_lock(&s_netpool.socket_lock);
-	poolmgr_getinfo(s_netpool.socket_pool, buf, bufsize-1);
+	poolmgr_getinfo(s_netpool.socket_pool, buf, bufsize - 1);
 	cspin_unlock(&s_netpool.socket_lock);
 
 	index = strlen(buf);
 
 	cspin_lock(&s_netpool.listen_lock);
-	poolmgr_getinfo(s_netpool.listen_pool, &buf[index], bufsize-1-index);
+	poolmgr_getinfo(s_netpool.listen_pool, &buf[index], bufsize - 1 - index);
 	cspin_unlock(&s_netpool.listen_lock);
 
 	buf[bufsize - 1] = 0;

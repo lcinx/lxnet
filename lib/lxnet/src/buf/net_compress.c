@@ -73,6 +73,3 @@ struct buf_info compressmgr_do_compressdata(char *compressbuf, char *quicklzbuf,
 	return resbuf;
 }
 
-
-
-

@@ -284,7 +284,7 @@ bool socketer_connect(struct socketer *self, const char *ip, short port) {
 			return true;
 		}
 
-		if (s_mgr.currenttime - self->try_connect_time > 1000) {
+		if (s_mgr.currenttime - self->try_connect_time > 3000) {
 			socket_close(&self->sockfd);
 		}
 	}
@@ -331,6 +331,7 @@ void socketer_getip(struct socketer *self, char *ip, size_t len) {
 			return;
 		}
 	}
+
 	ip[len - 1] = '\0';
 }
 
@@ -344,13 +345,16 @@ int socketer_get_send_buffer_byte_size(struct socketer *self) {
 	return buf_get_data_size(self->sendbuf);
 }
 
-bool socketer_gethostname(char *name, size_t len) {
-	if (gethostname(name, len) == 0) {
-		name[len - 1] = '\0';
+bool socketer_gethostname(char *buf, size_t len) {
+	if (!buf || len < 1)
+		return false;
+
+	if (gethostname(buf, len) == 0) {
+		buf[len - 1] = '\0';
 		return true;
 	}
 
-	name[0] = '\0';
+	buf[0] = '\0';
 	return false;
 }
 
@@ -367,23 +371,29 @@ bool socketer_gethostbyname(const char *name, char *buf, size_t len, bool ipv6) 
 	hints.ai_protocol = IPPROTO_TCP;
 
 	status = getaddrinfo(name, NULL, &hints, &ai_list);
-	if (status != 0)
-		return false;
+	if (status != 0) {
+		goto failed_do;
+	}
 	
 	cur = ai_list;
 	do {
 		if (getnameinfo(cur->ai_addr, cur->ai_addrlen, buf, len, 0, 0, NI_NUMERICHOST) == 0)
 			break;
 
-		buf[0] = '\0';
 	} while ((cur = cur->ai_next) != NULL);
 
 	freeaddrinfo(ai_list);
 
-	if (cur == NULL)
-		return false;
+	if (cur == NULL) {
+		goto failed_do;
+	}
 
+	buf[len - 1] = '\0';
 	return true;
+
+failed_do:
+	buf[0] = '\0';
+	return false;
 }
 
 bool socketer_sendmsg(struct socketer *self, void *data, int len) {
@@ -496,7 +506,7 @@ void socketer_checkrecv(struct socketer *self) {
 }
 
 /* set recv data limit. */
-void socketer_set_recv_critical(struct socketer *self, int size) {
+void socketer_set_recv_limit(struct socketer *self, int size) {
 	assert(self != NULL);
 	if (!self)
 		return;
@@ -508,7 +518,7 @@ void socketer_set_recv_critical(struct socketer *self, int size) {
 }
 
 /* set send data limit.*/
-void socketer_set_send_critical(struct socketer *self, int size) {
+void socketer_set_send_limit(struct socketer *self, int size) {
 	assert(self != NULL);
 	if (!self)
 		return;
@@ -857,5 +867,4 @@ void socketmgr_release() {
 	s_mgr.head = NULL;
 	s_mgr.tail = NULL;
 }
-
 
