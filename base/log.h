@@ -78,13 +78,13 @@ void _log_printf_(unsigned int type, const char *filename, const char *func, int
 /* print log info to console and time */
 #define log_timelog(...) _log_printf_(enum_debug_for_time_debug, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
 
-/* show/hide log_debug function out*/
+/* show/hide log_debug function out */
 void log_setdebug(bool show);
 
-/* show/hide log_showlog function out*/
+/* show/hide log_showlog function out */
 void log_setshow(bool show);
 
-/* show/hide log_timelog function out*/
+/* show/hide log_timelog function out */
 void log_settimelog(bool show);
 
 void _log_write_(struct filelog *log, unsigned int type, const char *filename, const char *func, int line, const char *fmt, ...);

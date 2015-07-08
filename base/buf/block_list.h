@@ -58,9 +58,11 @@ static inline int64 blocklist_get_datasize(struct blocklist *self) {
 
 
 
-/****************************************************************************
+/*
+ * ================================================================================
  * writer interface.
- ***************************************************************************/
+ * ================================================================================
+ */
 struct buf_info blocklist_get_write_bufinfo(struct blocklist *self);
 
 void blocklist_add_write(struct blocklist *self, int len);
@@ -74,20 +76,22 @@ bool blocklist_put_message(struct blocklist *self, const void *data, int data_le
 
 
 
-/****************************************************************************
+/*
+ * ================================================================================
  * reader interface.
- ***************************************************************************/
+ * ================================================================================
+ */
 struct buf_info blocklist_get_read_bufinfo(struct blocklist *self);
 
 void blocklist_add_read(struct blocklist *self, int len);
 
 bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, int *read_len);
 
-/**
+/*
  * if get new message succeed, return message length.
  * if do not gather together enough for a message, return 0.
  * if error, return less than 0.
- * */
+ */
 int blocklist_get_message(struct blocklist *self, char *buf, int buf_size);
 
 

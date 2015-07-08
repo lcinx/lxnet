@@ -10,7 +10,7 @@
 #include "net_eventmgr.h"
 #include "net_pool.h"
 
-/* 
+/*
  * initialize network. 
  * bigbufsize --- big block size. 
  * bigbufnum --- big block num.

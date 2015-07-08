@@ -23,7 +23,7 @@ struct buf_info threadbuf_get_compress_buf();
 /* get quicklz compress lib buf. */
 void *threadbuf_get_quicklz_buf();
 
-/* 
+/*
  * Initialize thread private buffer set, for getmsg and compress, uncompress etc temp buf.
  *
  * msgmaxsize --- max packet size.

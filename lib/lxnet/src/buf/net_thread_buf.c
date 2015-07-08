@@ -20,7 +20,7 @@
 #define max(a, b) (((a) > (b))? (a) : (b))
 #endif
 
-/* max thread num. _MAX_SAFE_THREAD_NUM*/
+/* max thread num. */
 #define _MAX_SAFE_THREAD_NUM 64
 
 struct thread_localuse {
@@ -135,7 +135,7 @@ static void threadlocal_release(struct thread_localuse self[_MAX_SAFE_THREAD_NUM
 	}
 }
 
-/* 
+/*
  * Initialize thread private buffer set, for getmsg and compress, uncompress etc temp buf.
  *
  * msgmaxsize --- max packet size.

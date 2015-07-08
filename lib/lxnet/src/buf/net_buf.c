@@ -134,10 +134,10 @@ static void buf_init(struct net_buf *self, bool isbigbuf) {
 	}
 }
 
-/* 
+/*
  * create buf.
  * bigbuf --- big or small buf, if is true, then is big buf, or else is small buf.
- * */
+ */
 struct net_buf *buf_create(bool bigbuf) {
 	struct net_buf *self = (struct net_buf *)bufpool_createbuf();
 	if (!self) {
@@ -150,7 +150,7 @@ struct net_buf *buf_create(bool bigbuf) {
 
 /*
  * set buf encrypt function or decrypt function, and some logic data.
- * */
+ */
 void buf_setdofunc(struct net_buf *self, dofunc_f func, void (*release_logicdata)(void *logicdata), void *logicdata) {
 	assert(func != NULL);
 	if (!self || !func)
@@ -224,14 +224,14 @@ int buf_get_data_size(struct net_buf *self) {
 	return (int)(blocklist_get_datasize(&self->iolist) + blocklist_get_datasize(&self->logiclist));
 }
 
-/* push len, if is more than the limit, return true.*/
+/* push len, if is more than the limit, return true. */
 bool buf_add_islimit(struct net_buf *self, size_t len) {
 	assert(len < _MAX_MSG_LEN);
 	if (!self)
 		return true;
 	if (self->io_limitsize == 0)
 		return false;
-	/* limit compare as io datasize or logic datasize.*/
+	/* limit compare as io datasize or logic datasize. */
 	if ((self->io_limitsize <= blocklist_get_datasize(&self->iolist)) || 
 			(self->io_limitsize <= (blocklist_get_datasize(&self->logiclist) + len)))
 		return true;
@@ -244,7 +244,7 @@ static bool buf_islimit(struct net_buf *self) {
 		return true;
 	if (self->io_limitsize == 0)
 		return false;
-	/* limit compare as io datasize or logic datasize.*/
+	/* limit compare as io datasize or logic datasize. */
 	if (self->io_limitsize <= blocklist_get_datasize(&self->logiclist) || 
 			self->io_limitsize <= blocklist_get_datasize(&self->iolist))
 		return true;
@@ -265,9 +265,10 @@ bool buf_can_not_send(struct net_buf *self) {
 }
 
 /*
+ * ================================================================================
  * some recv interface.
- *
- * */
+ * ================================================================================
+ */
 
 /* get write buffer info. */
 struct buf_info buf_getwritebufinfo(struct net_buf *self) {
@@ -351,9 +352,9 @@ void buf_addwrite(struct net_buf *self, char *buf, int len) {
 	blocklist_add_write(lst, len);
 }
 
-/* 
+/*
  * recv end, do something, if return flase, then close connect.
- * */
+ */
 bool buf_recv_end_do(struct net_buf *self) {
 	if (!self)
 		return false;
@@ -385,8 +386,10 @@ bool buf_recv_end_do(struct net_buf *self) {
 			/* uncompress function will be responsible for header length of removed. */
 			resbuf = compressmgr_uncompressdata(compressbuf.buf, compressbuf.len, quicklzbuf, srcbuf.buf, srcbuf.len);
 			
-			/* if return null, then uncompress error,
-			 * uncompress error, probably because the uncompress buffer is less than uncompress data length. */
+			/*
+			 * if return null, then uncompress error,
+			 * uncompress error, probably because the uncompress buffer is less than uncompress data length.
+			 */
 			if (!resbuf.buf) {
 				log_error("uncompress buf is too small!");
 				return false;
@@ -404,9 +407,10 @@ bool buf_recv_end_do(struct net_buf *self) {
 }
 
 /*
+ * ================================================================================
  * some send interface.
- *
- * */
+ * ================================================================================
+ */
 
 /* get read buffer info. */
 struct buf_info buf_getreadbufinfo(struct net_buf *self) {
@@ -459,7 +463,7 @@ void buf_send_before_do(struct net_buf *self) {
 	if (!self)
 		return;
 	if (buf_is_use_compress(self)) {
-		/* get all can read data, compress it. (compress data header is compress function do.)*/
+		/* get all can read data, compress it. (compress data header is compress function do.) */
 		bool pushresult = false;
 		struct buf_info resbuf;
 		struct buf_info srcbuf;
@@ -565,7 +569,7 @@ char *buf_getdata(struct net_buf *self, bool *needclose, char *buf, int bufsize,
 	return buf;
 }
 
-/* 
+/*
  * create and init buf pool.
  * bigbufnum --- is bigbuf num.
  * bigbufsize --- is bigbuf size.
@@ -576,7 +580,7 @@ char *buf_getdata(struct net_buf *self, bool *needclose, char *buf, int bufsize,
  * because a socket need 2 buf, so bufnum is *2, in init function.
  *
  * this function be able to call private thread buffer etc.
- * */
+ */
 bool bufmgr_init(size_t bigbufnum, size_t bigbufsize, size_t smallbufnum, size_t smallbufsize, size_t bufnum) {
 	if ((bigbufnum == 0) || (bigbufsize == 0) || (smallbufnum == 0) || (smallbufsize == 0))
 		return false;

@@ -31,7 +31,7 @@ struct fileinfo {
 
 struct filelog {
 	int save_type;
-	char directname[512];		/*log file root directory*/
+	char directname[512];		/* log file root directory */
 	struct fileinfo loggroup[enum_log_type_max];
 };
 
@@ -45,7 +45,7 @@ static struct logmgr s_log = {.isinit = false};
 static struct logmgr s_log = {false};
 #endif
 
-/* default root directory and default file name*/
+/* default root directory and default file name */
 static const char *s_default_filename[enum_log_type_max] = {"_assert_assert.txt", "_error_log_.txt", ""};
 static const char *s_default_direct_name = "log_log";
 
@@ -206,17 +206,17 @@ void _log_printf_(unsigned int type, const char *filename, const char *func, int
 	fflush(stdout);
 }
 
-/* sshow/hide log_debug function out*/
+/* show/hide log_debug function out */
 void log_setdebug(bool show) {
 	s_show[enum_debug_for_debug] = show;
 }
 
-/* sshow/hide log_showlog function out*/
+/* show/hide log_showlog function out */
 void log_setshow(bool show) {
 	s_show[enum_debug_for_log] = show;
 }
 
-/* show/hide log_timelog function out*/
+/* show/hide log_timelog function out */
 void log_settimelog(bool show) {
 	s_show[enum_debug_for_time_debug] = show;
 }
@@ -283,11 +283,11 @@ void _log_write_(struct filelog *log, unsigned int type, const char *filename, c
 
 			switch(save_type) {
 			case st_every_day_split_dir_and_every_hour_split_file:
-				snprintf(subdir, sizeof(subdir) - 1, "/%04d-%02d-%02d", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday);
+				snprintf(subdir, sizeof(subdir) - 1, "%04d-%02d-%02d", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday);
 				snprintf(save_name, sizeof(save_name) - 1, "%02d", currTM->tm_hour);
 				break;
 			case st_every_month_split_dir_and_every_day_split_file:
-				snprintf(subdir, sizeof(subdir) - 1, "/%04d-%02d", currTM->tm_year + 1900, currTM->tm_mon + 1);
+				snprintf(subdir, sizeof(subdir) - 1, "%04d-%02d", currTM->tm_year + 1900, currTM->tm_mon + 1);
 				snprintf(save_name, sizeof(save_name) - 1, "%04d-%02d-%02d", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday);
 				break;
 			case st_no_split_dir_and_every_day_split_file:
@@ -302,7 +302,7 @@ void _log_write_(struct filelog *log, unsigned int type, const char *filename, c
 				return;
 			}
 
-			snprintf(path_dir, sizeof(path_dir) - 1, "%s%s", directname, subdir);
+			snprintf(path_dir, sizeof(path_dir) - 1, "%s/%s", directname, subdir);
 			mymkdir_r(path_dir);
 			snprintf(szFile, sizeof(szFile) - 1, "%s/%s.log", path_dir, save_name);
 		}
@@ -388,6 +388,14 @@ static void _setloginfo_(struct filelog *log, const char *directname) {
 
 	strncpy(log->directname, directname, sizeof(log->directname) - 1);
 	log->directname[sizeof(log->directname) - 1] = '\0';
+	
+	{
+		/* set last char to '\0'. */
+		int end_idx = (int)strlen(log->directname) - 1;
+		if (log->directname[end_idx] == '/' || log->directname[end_idx] == '\\')
+			log->directname[end_idx] = '\0';
+	}
+	
 	for (i = 0; i < enum_log_type_max; ++i) {
 		if (log->loggroup[i].fp) {
 			fclose(log->loggroup[i].fp);

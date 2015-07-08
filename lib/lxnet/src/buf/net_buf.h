@@ -18,15 +18,16 @@ extern "C" {
 /* max packet size --- 136K. */
 #define _MAX_MSG_LEN (1024 * 136)
 struct net_buf;
-/* 
+
+/*
  * create buf.
  * bigbuf --- big or small buf, if is true, then is big buf, or else is small buf.
- * */
+ */
 struct net_buf *buf_create(bool bigbuf);
 
 /*
  * set buf encrypt function or decrypt function, and some logic data.
- * */
+ */
 void buf_setdofunc(struct net_buf *self, dofunc_f func, void (*release_logicdata)(void *logicdata), void *logicdata);
 
 /* release buf. */
@@ -59,9 +60,10 @@ bool buf_can_not_recv(struct net_buf *self);
 bool buf_can_not_send(struct net_buf *self);
 
 /*
+ * ================================================================================
  * some recv interface.
- *
- * */
+ * ================================================================================
+ */
 
 /* get write buffer info. */
 struct buf_info buf_getwritebufinfo(struct net_buf *self);
@@ -69,15 +71,16 @@ struct buf_info buf_getwritebufinfo(struct net_buf *self);
 /* add write position. */
 void buf_addwrite(struct net_buf *self, char *buf, int len);
 
-/* 
+/*
  * recv end, do something, if return flase, then close connect.
- * */
+ */
 bool buf_recv_end_do(struct net_buf *self);
 
 /*
+ * ================================================================================
  * some send interface.
- *
- * */
+ * ================================================================================
+ */
 
 /* get read buffer info. */
 struct buf_info buf_getreadbufinfo(struct net_buf *self);
@@ -99,7 +102,7 @@ char *buf_getmessage(struct net_buf *self, bool *needclose, char *buf, size_t bu
 char *buf_getdata(struct net_buf *self, bool *needclose, char *buf, int bufsize, int *datalen);
 
 
-/* 
+/*
  * create and init buf pool.
  * bigbufnum --- is bigbuf num.
  * bigbufsize --- is bigbuf size.
@@ -110,7 +113,7 @@ char *buf_getdata(struct net_buf *self, bool *needclose, char *buf, int bufsize,
  * because a socket need 2 buf, so bufnum is *2, in init function.
  *
  * this function be able to call private thread buffer etc.
- * */
+ */
 bool bufmgr_init(size_t bigbufnum, size_t bigbufsize, size_t smallbufnum, size_t smallbufsize, size_t bufnum);
 
 /* release some buf. */

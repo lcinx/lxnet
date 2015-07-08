@@ -20,7 +20,7 @@ extern "C" {
 #define min(a, b)	(((a) < (b)) ? (a) : (b))
 #endif
 
-/* block buffer. */
+/* block buffer */
 struct block {
 	int read;
 	volatile int write;
@@ -42,9 +42,11 @@ static inline void block_init(struct block *self, int size) {
 
 
 
-/****************************************************************************
+/*
+ * ================================================================================
  * reader interface.
- ***************************************************************************/
+ * ================================================================================
+ */
 static inline struct buf_info block_get_do_process(struct block *self) {
 	struct buf_info pinfo;
 	
@@ -116,9 +118,11 @@ static inline int block_get(struct block *self, void *data, int len) {
 
 
 
-/****************************************************************************
+/*
+ * ================================================================================
  * writer interface.
- ***************************************************************************/
+ * ================================================================================
+ */
 static inline int block_getwritesize(struct block *self) {
 	assert(self != NULL);
 	assert(self->maxsize >= self->write);

@@ -55,7 +55,7 @@ public:
 	bool CanAccept();
 
 public:
-	struct listener *_self;
+	struct listener *m_self;
 };
 
 /* socketer对象 */
@@ -90,9 +90,10 @@ public:
 	/* (慎用)(对接收的数据起作用)启用解压缩，网络库会负责解压缩操作，仅供客户端使用 */
 	void UseUncompress();
 
-	/* 设置加密/解密函数， 以及特殊用途的参与加密/解密逻辑的数据。
+	/*
+	 * 设置加密/解密函数， 以及特殊用途的参与加密/解密逻辑的数据。
 	 * 若加密/解密函数为NULL，则保持默认。
-	 * */
+	 */
 	void SetEncryptDecryptFunction(void (*encryptfunc)(void *logicdata, char *buf, int len), void (*release_encrypt_logicdata)(void *), void *encrypt_logicdata, void (*decryptfunc)(void *logicdata, char *buf, int len), void (*release_decrypt_logicdata)(void *), void *decrypt_logicdata);
 
 	/* 设置加密key */
@@ -125,7 +126,10 @@ public:
 	/* 获取发送缓冲待发送字节数(若为0表示不存在待发送数据或数据已写入系统缓冲) */
 	int GetSendBufferByteSize();
 
-	/* 发送数据，仅仅是把数据压入包队列中，adddata为附加到pMsg后面的数据，当然会自动修改pMsg的长度，addsize指定adddata的长度 */
+	/*
+	 * 发送数据，仅仅是把数据压入包队列中，
+	 * adddata为附加到pMsg后面的数据，当然会自动修改pMsg的长度，addsize指定adddata的长度
+	 */
 	bool SendMsg(Msg *pMsg, void *adddata = 0, size_t addsize = 0);
 
 	/* 对as3发送策略文件 */
@@ -150,19 +154,20 @@ public:
 	char *GetData(char *buf, size_t bufsize, int *datalen);
 
 public:
-	struct encryptinfo *_encrypt;
-	struct encryptinfo *_decrypt;
-	struct socketer *_self;
+	struct encryptinfo *m_encrypt;
+	struct encryptinfo *m_decrypt;
+	struct socketer *m_self;
 };
 
 
 
-/* 初始化网络，
+/*
+ * 初始化网络，
  * bigbufsize指定大块的大小，bigbufnum指定大块的数目，
  * smallbufsize指定小块的大小，smallbufnum指定小块的数目
  * listen num指定用于监听的套接字的数目，socket num用于连接的总数目
  * threadnum指定网络线程数目，若设置为小于等于0，则会开启cpu个数的线程数目
- * */
+ */
 bool net_init(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t smallbufnum, size_t listenernum, size_t socketnum, int threadnum);
 
 /* 释放网络相关 */

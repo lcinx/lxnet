@@ -13,7 +13,7 @@ extern "C" {
 
 #include "buf/buf_info.h"
 
-/* 
+/*
  * uncompress data.
  * uncompressbuf --- is uncompress buffer.
  * uncompresslen --- is uncompress buffer len.
@@ -24,10 +24,11 @@ extern "C" {
  * return uncompress result data info.
  *
  * Attention: Will remove the original header length, and then uncompress, because the header length is the compressed added.
- * */
+ */
 struct buf_info compressmgr_uncompressdata(char *uncompressbuf, int uncompresslen, char *quicklzbuf, char *data, int len);
 
-/* compress data.
+/*
+ * compress data.
  * compressbuf --- is compress buffer.
  * quicklzbuf --- is quicklz lib need buffer.
  * data --- is source data.
@@ -36,7 +37,7 @@ struct buf_info compressmgr_uncompressdata(char *uncompressbuf, int uncompressle
  * return compress result data info.
  * 
  * Attention: Will form a compressed data packet, plus the header length.
- * */
+ */
 struct buf_info compressmgr_do_compressdata(char *compressbuf, char *quicklzbuf, char *data, int len);
 
 #ifdef __cplusplus

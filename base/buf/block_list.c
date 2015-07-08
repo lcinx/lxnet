@@ -139,9 +139,11 @@ static inline bool blocklist_check_alloc_block(struct blocklist *self) {
 
 
 
-/****************************************************************************
+/*
+ * ================================================================================
  * writer interface.
- ***************************************************************************/
+ * ================================================================================
+ */
 struct buf_info blocklist_get_write_bufinfo(struct blocklist *self) {
 	struct buf_info writebuf;
 	writebuf.buf = NULL;
@@ -163,8 +165,10 @@ void blocklist_add_write(struct blocklist *self, int len) {
 
 	self->can_write_size -= len;
 
-	/* add block write position first,
-	 * then add datasize !.*/
+	/*
+	 * add block write position first,
+	 * then add datasize!
+	 */
 	block_addwrite(self->tail, len);
 
 	catomic_fetch_add(&self->datasize, len);
@@ -224,9 +228,11 @@ bool blocklist_put_message(struct blocklist *self, const void *data, int data_le
 
 
 
-/****************************************************************************
+/*
+ * ================================================================================
  * reader interface.
- ***************************************************************************/
+ * ================================================================================
+ */
 struct buf_info blocklist_get_read_bufinfo(struct blocklist *self) {
 	struct buf_info readbuf;
 	readbuf.buf = NULL;
@@ -305,11 +311,11 @@ bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, int *re
 	return false;
 }
 
-/**
+/*
  * if get new message succeed, return message length.
  * if do not gather together enough for a message, return 0.
  * if error, return less than 0.
- * */
+ */
 int blocklist_get_message(struct blocklist *self, char *buf, int buf_size) {
 	assert(self != NULL);
 	assert(buf != NULL);

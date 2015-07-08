@@ -55,10 +55,10 @@ void listener_release(struct listener *self) {
 	netpool_releaselisten(self);
 }
 
-/* 
+/*
  * port --- listen port.
  * backlog --- listen queue, max wait connect. 
- * */
+ */
 bool listener_listen(struct listener *self, unsigned short port, int backlog) {
 	struct addrinfo hints;
 	struct addrinfo *ai_list, *cur;
@@ -152,10 +152,10 @@ bool listener_can_accept(struct listener *self) {
 	return false;
 }
 
-/* 
+/*
  * accept new connect.
  * bigbuf --- accept after, create bigbuf or smallbuf. 
- * */
+ */
 struct socketer *listener_accept(struct listener *self, bool bigbuf) {
 	int e;
 	assert(self != NULL);

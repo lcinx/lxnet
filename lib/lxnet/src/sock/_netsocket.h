@@ -19,7 +19,7 @@ struct socketer;
 /* get socket object size. */
 size_t socketer_getsize();
 
-/* 
+/*
  * create socketer. 
  * bigbuf --- if is true, then is bigbuf; or else is smallbuf.
  */
@@ -46,7 +46,7 @@ bool socketer_gethostbyname(const char *name, char *buf, size_t len, bool ipv6);
 
 bool socketer_sendmsg(struct socketer *self, void *data, int len);
 
-/* 
+/*
  * when sending data. test send limit as len.
  * if return true, close this connect.
  */
@@ -67,7 +67,7 @@ void socketer_checkrecv(struct socketer *self);
 /* set recv data limit. */
 void socketer_set_recv_limit(struct socketer *self, int size);
 
-/* set send data limit.*/
+/* set send data limit. */
 void socketer_set_send_limit(struct socketer *self, int size);
 
 void socketer_use_compress(struct socketer *self);
@@ -88,7 +88,11 @@ void socketer_use_tgw(struct socketer *self);
 
 void socketer_set_raw_datasize(struct socketer *self, size_t size);
 
-/* interface for event mgr. */
+/*
+ * ================================================================================
+ * interface for event mgr.
+ * ================================================================================
+ */
 
 void socketer_on_recv(struct socketer *self, int len);
 

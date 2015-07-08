@@ -13,14 +13,14 @@ extern "C" {
 
 #include "platform_config.h"
 
-/* 
+/*
  * create and init net some pool.
  * socketnum --- socket object num.
  * socketsize --- socket object size.
  *
  * listennum --- listen object num.
  * listensize --- listen object size.
- * */
+ */
 bool netpool_init(size_t socketnum, size_t socketsize, size_t listennum, size_t listensize);
 
 /* release net some pool. */

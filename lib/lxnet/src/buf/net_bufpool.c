@@ -30,7 +30,7 @@ struct bufpool {
 };
 static struct bufpool s_pool = {false};
 
-/* 
+/*
  * create and init buf pool.
  * bigblocknum --- is big block num.
  * bigblocksize --- is big block size.
@@ -40,7 +40,7 @@ static struct bufpool s_pool = {false};
  * 
  * bufnum --- is buf num.
  * bufsize --- is buf size.
- * */
+ */
 bool bufpool_init(size_t bigblocknum, size_t bigblocksize, size_t smallblocknum, size_t smallblocksize, size_t bufnum, size_t bufsize) {
 	if (s_pool.isinit)
 		return false;

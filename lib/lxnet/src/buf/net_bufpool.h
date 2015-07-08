@@ -13,7 +13,7 @@ extern "C" {
 
 #include "platform_config.h"
 
-/* 
+/*
  * create and init buf pool.
  * bigblocknum --- is big block num.
  * bigblocksize --- is big block size.
@@ -23,7 +23,7 @@ extern "C" {
  * 
  * bufnum --- is buf num.
  * bufsize --- is buf size.
- * */
+ */
 bool bufpool_init(size_t bigblocknum, size_t bigblocksize, size_t smallblocknum, size_t smallblocksize, size_t bufnum, size_t bufsize);
 
 /* release buf pool. */

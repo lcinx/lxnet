@@ -232,11 +232,11 @@ static int leader_func(void *argv) {
 }
 
 
-/* 
+/*
  * initialize event manager. 
  * socketnum --- socket total number. must greater than 1.
  * threadnum --- thread number, if less than 0, then start by the number of cpu threads 
- * */
+ */
 bool eventmgr_init(int socketnum, int threadnum) {
 	if (s_mgr || socketnum < 1)
 		return false;
@@ -270,7 +270,7 @@ bool eventmgr_init(int socketnum, int threadnum) {
 	s_mgr->threadnum = threadnum;
 	s_mgr->need_exit = false;
 
-	/*  first building epoll module, and then create thread pool. */
+	/* first building epoll module, and then create thread pool. */
 	s_mgr->threadpool = cthread_pool_create(threadnum, s_mgr, leader_func, task_func);
 	if (!s_mgr->threadpool) {
 		close(s_mgr->epoll_fd);
@@ -281,9 +281,9 @@ bool eventmgr_init(int socketnum, int threadnum) {
 	return true;
 }
 
-/* 
+/*
  * release event manager.
- * */
+ */
 void eventmgr_release() {
 	if (!s_mgr)
 		return;

@@ -15,7 +15,7 @@ extern "C" {
 #include "_netsocket.h"
 
 
-/* 
+/*
  * initialize network. 
  * bigbufsize --- big block size. 
  * bigbufnum --- big block num.

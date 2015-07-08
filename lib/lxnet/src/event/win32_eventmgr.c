@@ -58,10 +58,6 @@ void socket_setup_recvevent(struct socketer *self) {
 					(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 		}
 	}
-	
-	/*
-	socket_recvdata(self, NULL, 0);
-	*/
 }
 
 /* set recv data. */
@@ -110,10 +106,6 @@ void socket_setup_sendevent(struct socketer *self) {
 					(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
 		}
 	}
-
-	/*
-	socket_senddata(self, NULL, 0);
-	*/
 }
 
 /* set send data. */
@@ -163,18 +155,19 @@ static void _iocp_thread_run(void *data) {
 	/*
 	 * 10000 --- wait time. ms.
 	 * INFINITE --- wait forever. 
-	 * */
+	 */
 	while (mgr->isrun) {
 		ol_ptr = NULL;
 		s = 0;
 		ov = NULL;
 		len = 0;
-		res = GetQueuedCompletionStatus(cp, &len, &s, &ol_ptr, INFINITE/*10000*/);
+		res = GetQueuedCompletionStatus(cp, &len, &s, &ol_ptr, INFINITE /* 10000 */);
 		debuglog("res:%d, ol_ptr:%x, s:%x\n", res, ol_ptr, s);
 		if ((ol_ptr) && (s)) {
 			struct socketer *sser = (struct socketer *)s;
 			ov = CONTAINING_RECORD(ol_ptr, struct overlappedstruct, m_overlap);
 			switch (ov->m_event) {
+
 			/* recv. */
 			case e_socket_io_event_read_complete: {
 					if (catomic_read(&sser->recvlock) != 1) {
@@ -216,11 +209,11 @@ static void _iocp_thread_run(void *data) {
 	}
 }
 
-/* 
+/*
  * initialize event manager. 
  * socketnum --- socket total number. must greater than 1.
  * threadnum --- thread number, if less than 0, then start by the number of cpu threads 
- * */
+ */
 bool eventmgr_init(int socketnum, int threadnum) {
 	if (s_iocp.isinit)
 		return false;
@@ -239,8 +232,9 @@ bool eventmgr_init(int socketnum, int threadnum) {
 	s_iocp.isrun = true;
 
 	/* create iocp work thread. */
-	for (; threadnum > 0; --threadnum)
+	for (; threadnum > 0; --threadnum) {
 		_beginthread(_iocp_thread_run, 0, &s_iocp);
+	}
 
 	/* initialize windows socket dll*/
 	{
@@ -250,9 +244,9 @@ bool eventmgr_init(int socketnum, int threadnum) {
 	return true;
 }
 
-/* 
+/*
  * release event manager.
- * */
+ */
 void eventmgr_release() {
 	int i;
 	if (!s_iocp.isinit)

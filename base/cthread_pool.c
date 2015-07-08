@@ -63,9 +63,11 @@ struct cthread_pool {
 };
 
 
-/*************************************************************
+/*
+ * ================================================================================
  * cthread_info method. 
- * */
+ * ================================================================================
+ */
 static struct cthread_info *cthread_info_create(struct cthread_pool *mgr, void (*func)(cthread *)) {
 	struct cthread_info *self = (struct cthread_info *)malloc(sizeof(struct cthread_info));
 	if (!self)
@@ -138,9 +140,11 @@ static bool cthread_info_state_is_exit(struct cthread_info *self) {
 }
 
 
-/*************************************************************
+/*
+ * ================================================================================
  * cthread_list method.
- * */
+ * ================================================================================
+ */
 static void cthread_list_init(struct cthread_list *self) {
 	self->head = NULL;
 }
@@ -162,9 +166,11 @@ static void cthread_list_destroy(struct cthread_list *self) {
 }
 
 
-/*************************************************************
+/*
+ * ================================================================================
  * cthread_pool method.
- * */
+ * ================================================================================
+ */
 static void cthread_pool_resume_some_thread(struct cthread_pool *self, int num, struct cthread_info *skip) {
 	struct cthread_info *node;
 	for (node = self->all_list.head; node; node = node->next) {
@@ -230,8 +236,9 @@ static void th_pro_func(cthread *th) {
 			__FUNCTION__, cthread_info_get_id(cinfo));
 
 	while (catomic_read(&mgr->run) != 0) {
-		if (cthread_info_is_header(cinfo)) {
-			/* do leader function, 
+		if (cthread_info_is_header(cinfo)) {	
+			/*
+			 * do leader function, 
 			 * if return value less than 0, then exit. 
 			 * if return value greater than 0, then is need resume thread num.
 			 */
@@ -256,7 +263,8 @@ static void th_pro_func(cthread *th) {
 
 		} else {
 
-			/* do task function,
+			/*
+			 * do task function,
 			 * the return value is not equal to 0, then exit.
 			 */
 			if (mgr->func_task(mgr->udata) != 0)
@@ -317,7 +325,7 @@ static void th_pro_func(cthread *th) {
 
 
 
-/**
+/*
  * create a thread pool, that has thread_num threads.
  * @param {int} thread_num			thread num.
  * @param {void *} udata			user data pointer.
@@ -325,7 +333,7 @@ static void th_pro_func(cthread *th) {
  *										return need to resume threads num, if less than 0, then exit.
  * @param {function} func_task		task function, need the one param.
  *										return 0 then not task to do. or else is to exit.
- * */
+ */
 struct cthread_pool *cthread_pool_create(int thread_num, void *udata, 
 		int (*func_leader)(void *), int (*func_task)(void *)) {
 

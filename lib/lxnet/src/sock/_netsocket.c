@@ -148,7 +148,7 @@ static void socketer_addto_eventlist(struct socketer *self) {
 	}
 }
 
-/* 
+/*
  * create socketer. 
  * bigbuf --- if is true, then is bigbuf; or else is smallbuf.
  */
@@ -298,7 +298,7 @@ void socketer_close(struct socketer *self) {
 		return;
 
 	if (self->sockfd != NET_INVALID_SOCKET) {
-		/*if 1, then set 0, and remove from event manager. */
+		/* if 1, then set 0, and remove from event manager. */
 		if (catomic_compare_set(&self->already_event, 1, 0)) {
 			socket_removefrom_eventmgr(self);
 		}
@@ -410,7 +410,7 @@ bool socketer_sendmsg(struct socketer *self, void *data, int len) {
 	return buf_pushmessage(self->sendbuf, (char *)data, len);
 }
 
-/* 
+/*
  * when sending data. test send limit as len.
  * if return true, close this connect.
  */
@@ -493,7 +493,7 @@ void socketer_checkrecv(struct socketer *self) {
 	if (buf_can_not_recv(self->recvbuf))
 		return;
 
-	/* if 0, then set 1, and set recvevent.*/
+	/* if 0, then set 1, and set recvevent. */
 	if (catomic_compare_set(&self->recvlock, 0, 1)) {
 		if (catomic_inc(&self->ref) <= 1) {
 			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
@@ -517,7 +517,7 @@ void socketer_set_recv_limit(struct socketer *self, int size) {
 	}
 }
 
-/* set send data limit.*/
+/* set send data limit. */
 void socketer_set_send_limit(struct socketer *self, int size) {
 	assert(self != NULL);
 	if (!self)
@@ -603,7 +603,11 @@ void socketer_set_raw_datasize(struct socketer *self, size_t size) {
 	buf_set_raw_datasize(self->sendbuf, size);
 }
 
-/* interface for event mgr. */
+/*
+ * ================================================================================
+ * interface for event mgr.
+ * ================================================================================
+ */
 
 void socketer_on_recv(struct socketer *self, int len) {
 	int res;

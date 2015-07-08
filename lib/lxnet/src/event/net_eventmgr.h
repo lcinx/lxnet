@@ -39,16 +39,16 @@ void socket_remove_sendevent(struct socketer *self);
 /* set send data. */
 void socket_senddata(struct socketer *self, char *data, int len);
 
-/* 
+/*
  * initialize event manager. 
  * socketnum --- socket total number. must greater than 1.
  * threadnum --- thread number, if less than 0, then start by the number of cpu threads 
- * */
+ */
 bool eventmgr_init(int socketnum, int threadnum);
 
-/* 
+/*
  * release event manager.
- * */
+ */
 void eventmgr_release();
 
 #ifdef __cplusplus
