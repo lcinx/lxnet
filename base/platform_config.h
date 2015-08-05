@@ -4,8 +4,8 @@
  * lcinx@163.com
  */
 
-#ifndef _H_T_PLATFORM_CONFIG_T_H_
-#define _H_T_PLATFORM_CONFIG_T_H_
+#ifndef _H_CROSS_PLATFORM_CONFIG_H_
+#define _H_CROSS_PLATFORM_CONFIG_H_
 
 #ifdef _MSC_VER
 typedef signed __int64 int64;
@@ -61,12 +61,12 @@ typedef uint8_t uint8;
 	#define _FORMAT_64U_NUM "%I64u"
 	#define _FORMAT_64X_NUM "%I64x"
 
-	
+
 #else
 	#if defined(__APPLE__)
 		#define _FORMAT_64D_NUM "%lld"
 		#define _FORMAT_64U_NUM "%llu"
-		#define _FORMAT_64X_NUM "%llx"		
+		#define _FORMAT_64X_NUM "%llx"
 	#elif defined(__LP64__) || defined(__x86_64__)
 		#define _FORMAT_64D_NUM "%ld"
 		#define _FORMAT_64U_NUM "%lu"

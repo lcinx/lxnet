@@ -4,8 +4,8 @@
  * lcinx@163.com
  */
 
-#ifndef _H__NETSOCKET_H_
-#define _H__NETSOCKET_H_
+#ifndef _H_NET_SOCKET_H_
+#define _H_NET_SOCKET_H_
 
 #ifdef __cplusplus
 extern "C" {

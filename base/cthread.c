@@ -99,7 +99,7 @@ int cthread_create(cthread *tid, void *udata, void (*thread_func)(cthread *)) {
 	self->handle = (HANDLE)_beginthreadex(NULL, 0, thread_run_func, (void *)self, 0, NULL);
 #else
 	self->signal_flag = 0;
-	
+
 	if (pthread_cond_init(&self->cond, NULL) != 0)
 		goto err_do;
 
@@ -254,7 +254,7 @@ int cmutex_init(cmutex *mutex) {
 	cmutex self;
 	if (mutex == NULL)
 		return -2;
-	
+
 	self = (cmutex)malloc(sizeof(*self));
 	if (!self)
 		return -1;
@@ -332,16 +332,25 @@ void cmutex_destroy(cmutex *mutex) {
 	*mutex = NULL;
 }
 
+
+
+#ifdef _MSC_VER
+#define _long_value_test_and_set(v, value)	InterlockedExchange(v, value)
+#define _long_value_release(v)				InterlockedExchange(v, 0)
+#define _long_value_inc(v)					InterlockedIncrement(v)
+#define _long_value_dec(v)					InterlockedDecrement(v)
+#else
+#define _long_value_test_and_set(v, value)	__sync_lock_test_and_set(v, value)
+#define _long_value_release(v)				__sync_lock_release(v)
+#define _long_value_inc(v)					__sync_add_and_fetch(v, 1)
+#define _long_value_dec(v)					__sync_add_and_fetch(v, -1)
+#endif
+
 int cspin_init(cspin *lock) {
 	if (!lock)
 		return -2;
 
-#ifdef WIN32
-	InterlockedExchange(&lock->lock, 0);
-#else
-	__sync_lock_test_and_set(&lock->lock, 0);
-#endif
-
+	*((volatile long *)&lock->lock) = 0;
 	return 0;
 }
 
@@ -349,35 +358,22 @@ void cspin_lock(cspin *lock) {
 	if (!lock)
 		return;
 
-#ifdef WIN32
-	while (InterlockedExchange(&lock->lock, 1) == 1) {}
-#else
-	while (__sync_lock_test_and_set(&lock->lock, 1) == 1) {}
-#endif
+	while (_long_value_test_and_set(&lock->lock, 1) == 1) {}
 }
 
 void cspin_unlock(cspin *lock) {
 	if (!lock)
 		return;
 
-#ifdef WIN32
-	InterlockedExchange(&lock->lock, 0);
-#else
-	__sync_lock_release(&lock->lock);
-#endif
+	_long_value_release(&lock->lock);
 }
 
 int cspin_trylock(cspin *lock) {
 	if (!lock)
 		return -2;
 
-#ifdef WIN32
-	if (InterlockedExchange(&lock->lock, 1) != 0)
+	if (_long_value_test_and_set(&lock->lock, 1) != 0)
 		return -1;
-#else
-	if (__sync_lock_test_and_set(&lock->lock, 1) != 0)
-		return -1;
-#endif
 
 	return 0;
 }
@@ -386,10 +382,92 @@ void cspin_destroy(cspin *lock) {
 	if (!lock)
 		return;
 
-#ifdef WIN32
-	InterlockedExchange(&lock->lock, 0);
-#else
-	__sync_lock_test_and_set(&lock->lock, 0);
-#endif
+	*((volatile long *)&lock->lock) = 0;
+}
+
+int crwspin_init(crwspin *lock) {
+	if (!lock)
+		return -2;
+
+	*((volatile long *)&lock->read) = 0;
+	*((volatile long *)&lock->write) = 0;
+	return 0;
+}
+
+void crwspin_read_lock(crwspin *lock) {
+	if (!lock)
+		return;
+
+	for (;;) {
+		while (*((volatile long *)&lock->write)) {}
+
+		_long_value_inc(&lock->read);
+		if (*((volatile long *)&lock->write)) {
+			_long_value_dec(&lock->read);
+		} else {
+			break;
+		}
+	}
+}
+
+void crwspin_read_unlock(crwspin *lock) {
+	if (!lock)
+		return;
+
+	_long_value_dec(&lock->read);
+}
+
+void crwspin_write_lock(crwspin *lock) {
+	if (!lock)
+		return;
+
+	while (_long_value_test_and_set(&lock->write, 1)) {}
+	while (*((volatile long *)&lock->read) != 0) {}
+}
+
+void crwspin_write_unlock(crwspin *lock) {
+	if (!lock)
+		return;
+
+	_long_value_release(&lock->write);
+}
+
+int crwspin_try_read_lock(crwspin *lock) {
+	if (!lock)
+		return -2;
+
+	if (*((volatile long *)&lock->write))
+		return -1;
+
+	_long_value_inc(&lock->read);
+	if (*((volatile long *)&lock->write)) {
+		_long_value_dec(&lock->read);
+		return -1;
+	}
+
+	return 0;
+}
+
+int crwspin_try_write_lock(crwspin *lock) {
+	if (!lock)
+		return -2;
+
+	if (_long_value_test_and_set(&lock->write, 1))
+		return -1;
+
+	if (*((volatile long *)&lock->read) != 0) {
+		_long_value_release(&lock->write);
+		return -1;
+	}
+
+	return 0;
+}
+
+void crwspin_destroy(crwspin *lock) {
+	if (!lock)
+		return;
+
+	*((volatile long *)&lock->read) = 0;
+	*((volatile long *)&lock->write) = 0;
 }
 

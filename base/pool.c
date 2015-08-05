@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 #include "pool.h"
 #include "log.h"
 #include "platform_config.h"
@@ -48,7 +49,7 @@ struct nodepool {
 	size_t block_size;
 	size_t nodenum;
 	size_t freenum;
-	
+
 	char *current_pos;
 	char *end;
 
@@ -77,6 +78,8 @@ struct poolmgr {
 
 	/* node pool info. */
 	size_t nodepool_num;
+	size_t max_nodepool_num;
+	time_t max_nodepool_time;
 
 	/* all node info. */
 	size_t node_total;
@@ -179,12 +182,16 @@ static inline void nodepool_push_node(struct poolmgr *mgr, struct nodepool *self
 	self->freenum++;
 }
 
-static inline struct nodepool *nodepool_create(void *mem, size_t mem_size, size_t block_size, size_t nodenum) {
+static inline struct nodepool *nodepool_create(void *mem, size_t mem_size, 
+		size_t block_size, size_t nodenum) {
+
 	struct nodepool *self;
 	assert(mem != NULL);
 	assert(block_size > 0);
 	assert(nodenum > 0);
-	assert(mem_size == (F_THIS_POOL_ALIGNMENT_SIZE + F_THIS_POOL_ALIGNMENT(sizeof(struct nodepool)) + block_size * nodenum));
+	assert(mem_size == (F_THIS_POOL_ALIGNMENT_SIZE + 
+						F_THIS_POOL_ALIGNMENT(sizeof(struct nodepool)) + 
+						block_size * nodenum));
 
 	self = (struct nodepool *)F_THIS_POOL_ALIGNMENT((uintptr_t)mem);
 
@@ -202,7 +209,8 @@ static inline struct nodepool *nodepool_create(void *mem, size_t mem_size, size_
 	self->need_free = true;
 
 	assert(self->end <= (char *)mem + mem_size);
-	assert(self->current_pos <= self->end && "nodepool_create need check next_multiple, or check block_size * nodenum is overflow");
+	assert(self->current_pos <= self->end && 
+			"nodepool_create need check next_multiple, or check block_size * nodenum is overflow");
 	return self;
 }
 
@@ -211,7 +219,9 @@ static inline void nodepool_release(struct nodepool *self) {
 		free(self->raw);
 }
 
-static inline void poolmgr_push_to_list(struct poolmgr *mgr, struct listobj *lt, struct nodepool *self) {
+static inline void poolmgr_push_to_list(struct poolmgr *mgr, 
+		struct listobj *lt, struct nodepool *self) {
+
 	assert(self->type == enum_unknow);
 
 	self->next = lt->head;
@@ -229,9 +239,16 @@ static inline void poolmgr_push_to_list(struct poolmgr *mgr, struct listobj *lt,
 	mgr->nodepool_num++;
 	mgr->node_total += self->nodenum;
 	mgr->node_free_total += self->freenum;
+
+	if (mgr->nodepool_num > mgr->max_nodepool_num) {
+		mgr->max_nodepool_num = mgr->nodepool_num;
+		mgr->max_nodepool_time = time(NULL);
+	}
 }
 
-static inline void poolmgr_remove_from_list(struct poolmgr *mgr, struct listobj *lt, struct nodepool *self) {
+static inline void poolmgr_remove_from_list(struct poolmgr *mgr, 
+		struct listobj *lt, struct nodepool *self) {
+
 	assert(self->type == lt->type);
 
 	self->type = enum_unknow;
@@ -275,9 +292,14 @@ static inline struct nodepool *poolmgr_create_nodepool(struct poolmgr *self) {
 		return NULL;
 
 	current_maxnum = self->current_maxnum * self->next_multiple;
-	
-	assert(((self->block_size * current_maxnum) / self->block_size) == current_maxnum && "poolmgr_create_nodepool exist overflow!");
-	total_mem_size = F_THIS_POOL_ALIGNMENT_SIZE + F_THIS_POOL_ALIGNMENT(sizeof(struct nodepool)) + self->block_size * current_maxnum;
+
+	assert(((self->block_size * current_maxnum) / self->block_size) == current_maxnum && 
+			"poolmgr_create_nodepool exist overflow!");
+
+	total_mem_size = F_THIS_POOL_ALIGNMENT_SIZE + 
+					 F_THIS_POOL_ALIGNMENT(sizeof(struct nodepool)) + 
+					 self->block_size * current_maxnum;
+
 	mem = malloc(total_mem_size);
 	if (!mem) {
 		assert(false && "poolmgr_create_nodepool malloc memory failed!");
@@ -304,15 +326,17 @@ static inline struct nodepool *poolmgr_get_nodepool_for_alloc_node(struct poolmg
 
 static inline bool poolmgr_check_release_nodepool(struct poolmgr *self, struct nodepool *np) {
 	if (np->need_free) {
-		if (self->nodepool_num > 1 && 
-			(self->free_list.num > self->free_pool_num_for_shrink ||
-			 ((double)self->node_free_total / (double)self->node_total) > self->free_node_ratio_for_shrink)) {
-			if (self->first == np) {
-				self->first = NULL;
-			}
+		if (self->nodepool_num > 1) {
+			double now_free_ratio = (double)self->node_free_total / (double)self->node_total;
+			if (self->free_list.num > self->free_pool_num_for_shrink ||
+				now_free_ratio > self->free_node_ratio_for_shrink) {
 
-			nodepool_release(np);
-			return true;
+				if (self->first == np)
+					self->first = NULL;
+
+				nodepool_release(np);
+				return true;
+			}
 		}
 	}
 
@@ -371,7 +395,7 @@ static inline struct node *poolmgr_nodepool_alloc_node(struct poolmgr *self) {
 			return nd;
 		}
 	}
-	
+
 	np = poolmgr_get_nodepool_for_alloc_node(self);
 
 	self->first = np;
@@ -396,7 +420,9 @@ static inline struct node *poolmgr_nodepool_alloc_node(struct poolmgr *self) {
  * next_multiple is next num, the next num is num * next_multiple, if next_multiple is zero, then only has one sub pool. 
  * name is poolmgr name.
  */
-struct poolmgr *poolmgr_create(size_t size, size_t alignment, size_t num, size_t next_multiple, const char *name) {
+struct poolmgr *poolmgr_create(size_t size, size_t alignment, 
+		size_t num, size_t next_multiple, const char *name) {
+
 	size_t oldsize;
 	char *mem;
 	struct poolmgr *self;
@@ -424,7 +450,8 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment, size_t num, size_t
 #ifndef NOTUSE_POOL
 	/* for memory address alignment. (in risc cpu memory address must alignment.) */
 	poolmgr_mem_size = F_THIS_POOL_ALIGNMENT_SIZE + F_THIS_POOL_ALIGNMENT(sizeof(struct poolmgr));
-	nodepool_mem_size = F_THIS_POOL_ALIGNMENT_SIZE + F_THIS_POOL_ALIGNMENT(sizeof(struct nodepool)) + size * num;
+	nodepool_mem_size = F_THIS_POOL_ALIGNMENT_SIZE + 
+						F_THIS_POOL_ALIGNMENT(sizeof(struct nodepool)) + size * num;
 	total_mem_size = poolmgr_mem_size + nodepool_mem_size;
 	mem = (char *)malloc(total_mem_size);
 #else
@@ -460,6 +487,8 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment, size_t num, size_t
 	self->next_multiple = next_multiple;
 
 	self->nodepool_num = 0;
+	self->max_nodepool_num = 0;
+	self->max_nodepool_time = 0;
 
 	self->node_total = 0;
 	self->node_free_total = 0;
@@ -519,7 +548,9 @@ void *poolmgr_getobject(struct poolmgr *self) {
 
 #ifndef NOTUSE_POOL
 #ifndef NDEBUG
-static inline bool nodepool_check_in(struct poolmgr *mgr, struct listobj *lt, struct nodepool *self) {
+static inline bool nodepool_check_in(struct poolmgr *mgr, 
+		struct listobj *lt, struct nodepool *self) {
+
 	struct nodepool *np, *next;
 	for (np = lt->head; np; np = next) {
 		next = np->next;
@@ -565,7 +596,9 @@ static bool nodepool_is_not_alloc(struct nodepool *np, char *begin_bk) {
 		return false;
 }
 
-static bool poolmgr_check_is_using(struct poolmgr *mgr, struct nodepool *np, char *begin_bk, struct node *nd) {
+static bool poolmgr_check_is_using(struct poolmgr *mgr, 
+		struct nodepool *np, char *begin_bk, struct node *nd) {
+
 	if (nodepool_isin(mgr, np, begin_bk)) {
 		if (nodepool_isbad_point(np, begin_bk)) {
 			assert(false && "poolmgr_freeobject block is in pool, but is bad pointer!");
@@ -622,11 +655,11 @@ void poolmgr_release(struct poolmgr *self) {
 		return;
 
 #ifndef NOTUSE_POOL
-	
+
 	poolmgr_release_nodepool_fromlist(self, &self->full_use_list);
 	poolmgr_release_nodepool_fromlist(self, &self->portion_use_list);
 	poolmgr_release_nodepool_fromlist(self, &self->free_list);
-	
+
 	/* check memory leak. */
 	assert(self->node_total == self->node_free_total && "poolmgr_release has memory not free!");
 
@@ -637,6 +670,7 @@ void poolmgr_release(struct poolmgr *self) {
 
 #define _STR_HEAD "\n%s:\n<<<<<<<<<<<<<<<<<< poolmgr info begin <<<<<<<<<<<<<<<<<\n\
 pools have pool num:"_FORMAT_64U_NUM"\n\
+pools max pool num:"_FORMAT_64U_NUM"\ttime:%s\n\
 base alignment:"_FORMAT_64U_NUM"\n\
 base object size:"_FORMAT_64U_NUM"\tobject size:"_FORMAT_64U_NUM"\n\
 object total num: ["_FORMAT_64U_NUM"]\tobject current num: ["_FORMAT_64U_NUM"]\n\
@@ -648,12 +682,21 @@ void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize) {
 
 #ifndef NOTUSE_POOL
 	size_t totalsize;
+	char time_buf[64] = {0};
+	struct tm tm_result;
+	struct tm *currTM;
 	if (!self || !buf || bufsize == 0)
 		return;
 
+	currTM = safe_localtime(&self->max_nodepool_time, &tm_result);
+	snprintf(time_buf, sizeof(time_buf) - 1, "%d-%02d-%02d %02d:%02d:%02d", 
+			currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, 
+			currTM->tm_hour, currTM->tm_min, currTM->tm_sec);
+	time_buf[sizeof(time_buf) - 1] = '\0';
+
 	totalsize = self->block_size * self->node_total;
 	snprintf(buf, bufsize, _STR_HEAD, self->name, \
-	(uint64)self->nodepool_num, \
+	(uint64)self->nodepool_num, (uint64)self->max_nodepool_num, time_buf, \
 	(uint64)self->alignment, 
 	(uint64)self->base_block_size, (uint64)self->block_size, \
 	(uint64)self->node_total, (uint64)self->node_free_total, \

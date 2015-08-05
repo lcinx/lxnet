@@ -18,7 +18,7 @@
 #include "log.h"
 
 #ifdef _DEBUG_NETWORK
-#define debuglog debug_log
+#define debuglog debug_print_call
 #else
 #define debuglog(...) ((void) 0)
 #endif

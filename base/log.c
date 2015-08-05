@@ -4,11 +4,12 @@
  * lcinx@163.com
  */
 
-#include <time.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <stdarg.h>
+#include <assert.h>
 #include "log.h"
 
 #ifdef WIN32
@@ -22,76 +23,48 @@
 #define my_mkdir(a) mkdir((a), 0755)
 #endif
 
-struct fileinfo {
+
+struct logobj {
 	FILE *fp;
-	bool logtime;
+	int save_type;
+	bool append_time;
 	bool everyflush;
+	char directory[512];
+	char single_filename[64];
 	char last_filename[1024];
 };
 
 struct filelog {
-	int save_type;
-	char directname[512];		/* log file root directory */
-	struct fileinfo loggroup[enum_log_type_max];
-};
-
-struct logmgr {
 	bool isinit;
-	struct filelog logobj;
+	struct logobj loggroup[enum_log_type_max];
 };
-#ifdef __GNUC__
-static struct logmgr s_log = {.isinit = false};
-#elif defined(_MSC_VER)
-static struct logmgr s_log = {false};
-#endif
 
-/* default root directory and default file name */
-static const char *s_default_filename[enum_log_type_max] = {"_assert_assert.txt", "_error_log_.txt", ""};
-static const char *s_default_direct_name = "log_log";
+static struct filelog g_logobj = {false};
+struct filelog *g_filelog_obj_ = &g_logobj;
 
-static bool s_show[enum_debug_max] = {true, false, false, false};
+static bool s_debug_print_show[enum_debug_max] = {true, true, true};
 
-static void filelog_init(struct filelog *self) {
-	int i;
-	self->save_type = st_every_day_split_dir_and_every_hour_split_file;
-	strncpy(self->directname, s_default_direct_name, sizeof(self->directname) - 1);
-	self->directname[sizeof(self->directname) - 1] = '\0';
-	for (i = 0; i < enum_log_type_max; ++i) {
-		self->loggroup[i].fp = NULL;
-		self->loggroup[i].logtime = true;
-		self->loggroup[i].everyflush = true;
-		memset(self->loggroup[i].last_filename, 0, sizeof(self->loggroup[i].last_filename));
+
+
+static inline void logobj_set_single_filename(struct logobj *self, const char *single_filename) {
+	strncpy(self->single_filename, single_filename, sizeof(self->single_filename) - 1);
+	self->single_filename[sizeof(self->single_filename) - 1] = '\0';
+}
+
+static inline void logobj_close(struct logobj *self) {
+	if (self->fp) {
+		fclose(self->fp);
+		self->fp = NULL;
 	}
 }
 
-struct filelog *filelog_create() {
-	struct filelog *self = (struct filelog *)malloc(sizeof(struct filelog));
-	if (!self)
-		return NULL;
-
-	filelog_init(self);
-	return self;
-}
-
-void filelog_release(struct filelog *self) {
-	int i;
-	if (!self)
-		return;
-
-	for (i = 0; i < enum_log_type_max; ++i) {
-		if (self->loggroup[i].fp) {
-			fclose(self->loggroup[i].fp);
-			self->loggroup[i].fp = NULL;
-		}
+static inline void logobj_flush(struct logobj *self) {
+	if (self->fp) {
+		fflush(self->fp);
 	}
-
-	free(self);
 }
 
-bool filelog_set_save_mode(struct filelog *self, int save_type) {
-	if (!self)
-		return false;
-
+static bool logobj_set_save_type(struct logobj *self, int save_type) {
 	if (!(
 		save_type == st_every_day_split_dir_and_every_hour_split_file ||
 		save_type == st_every_month_split_dir_and_every_day_split_file ||
@@ -103,37 +76,66 @@ bool filelog_set_save_mode(struct filelog *self, int save_type) {
 	return true;
 }
 
-bool filelog_logtime(struct filelog *self, bool flag) {
-	bool prev;
-	if (!self)
-		return true;
-
-	prev = self->loggroup[enum_log_type_log].logtime;
-	self->loggroup[enum_log_type_log].logtime = flag;
-	return prev;
+static inline bool logobj_append_time(struct logobj *self, bool flag) {
+	bool old = self->append_time;
+	self->append_time = flag;
+	return old;
 }
 
-void filelog_everyflush(struct filelog *self, bool flag) {
-	if (!self)
+static inline bool logobj_everyflush(struct logobj *self, bool flag) {
+	bool old = self->everyflush;
+	self->everyflush = flag;
+	return old;
+}
+
+static void logobj_set_directory(struct logobj *self, const char *directory) {
+	if (!directory)
 		return;
 
-	self->loggroup[enum_log_type_log].everyflush = flag;
-}
-
-void filelog_flush(struct filelog *self) {
-	FILE *fp;
-	if (!self)
+	if (strcmp(directory, "") == 0 || strcmp(directory, self->directory) == 0)
 		return;
 
-	fp = self->loggroup[enum_log_type_log].fp;
-	if (fp)
-		fflush(fp);
+	strncpy(self->directory, directory, sizeof(self->directory) - 1);
+	self->directory[sizeof(self->directory) - 1] = '\0';
+
+	{
+		/* set last char to '\0'. */
+		int end_idx = (int)strlen(self->directory) - 1;
+		if (self->directory[end_idx] == '/' || self->directory[end_idx] == '\\')
+			self->directory[end_idx] = '\0';
+	}
+
+	if (self->fp) {
+		fclose(self->fp);
+		self->fp = NULL;
+	}
+
+	memset(self->last_filename, 0, sizeof(self->last_filename));
 }
 
-int mymkdir_r(const char *directname) {
+static inline const char *logobj_get_directory(struct logobj *self) {
+	return self->directory;
+}
+
+static void logobj_init(struct logobj *self) {
+	const char *default_directory_name = "log_log";
+	const char *default_single_filename = "log";
+	self->fp = NULL;
+	self->save_type = st_every_day_split_dir_and_every_hour_split_file;
+	self->append_time = true;
+	self->everyflush = true;
+
+	logobj_set_directory(self, default_directory_name);
+	logobj_set_single_filename(self, default_single_filename);
+	memset(self->last_filename, 0, sizeof(self->last_filename));
+}
+
+
+
+int mymkdir_r(const char *directory) {
 	int i, len;
-	char tmp[1024*8] = {0};
-	if (!strncpy(tmp, directname, sizeof(tmp) - 1))
+	char tmp[1024 * 8] = {0};
+	if (!strncpy(tmp, directory, sizeof(tmp) - 1))
 		return -1;
 
 	tmp[sizeof(tmp) - 1] = '\0';
@@ -172,28 +174,28 @@ int mymkdir_r(const char *directname) {
 	return 0;
 }
 
-void _log_printf_(unsigned int type, const char *filename, const char *func, int line, const char *fmt, ...) {
+
+void _log_printf_(int type, const char *filename, const char *func, 
+		int line, const char *fmt, ...) {
+
 	va_list args;
+	assert(type >= enum_debug_print);
 	assert(type < enum_debug_max);
 	assert(fmt != NULL);
-	if (type >= enum_debug_max)
+
+	if (!s_debug_print_show[type] || !fmt)
 		return;
 
-	if (!s_show[type])
-		return;
-
-	if (!fmt)
-		return;
-
-	if (enum_debug_for_assert == type) {
+	if (enum_debug_print_call == type) {
 		printf("file:%s, function:%s, line:%d ", filename, func, line);
-	} else if (enum_debug_for_time_debug == type) {
+	} else if (enum_debug_print_time == type) {
 		time_t tval;
 		struct tm tm_result;
 		struct tm *currTM;
 		time(&tval);
 		currTM = safe_localtime(&tval, &tm_result);
-		printf("[%04d-%02d-%02d %02d:%02d:%02d]:", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, 
+		printf("[%04d-%02d-%02d %02d:%02d:%02d] ", 
+				currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, 
 				currTM->tm_hour, currTM->tm_min, currTM->tm_sec);
 	} else {
 
@@ -206,28 +208,37 @@ void _log_printf_(unsigned int type, const char *filename, const char *func, int
 	fflush(stdout);
 }
 
-/* show/hide log_debug function out */
-void log_setdebug(bool show) {
-	s_show[enum_debug_for_debug] = show;
-}
-
-/* show/hide log_showlog function out */
-void log_setshow(bool show) {
-	s_show[enum_debug_for_log] = show;
-}
-
-/* show/hide log_timelog function out */
-void log_settimelog(bool show) {
-	s_show[enum_debug_for_time_debug] = show;
-}
-
-static inline void logmgr_init() {
-	if (s_log.isinit)
+void _log_printf_set_show(int type, bool flag) {
+	assert(type >= enum_debug_print && type < enum_debug_max);
+	if (type < enum_debug_print || type >= enum_debug_max)
 		return;
 
-	s_log.isinit = true;
-	filelog_init(&s_log.logobj);
+	s_debug_print_show[type] = flag;
 }
+
+
+static void filelog_init(struct filelog *self) {
+	int i;
+	for (i = 0; i < enum_log_type_max; ++i) {
+		logobj_init(&self->loggroup[i]);
+	}
+
+	logobj_set_save_type(&self->loggroup[enum_log_type_error], st_no_split_dir_and_not_split_file);
+	logobj_set_single_filename(&self->loggroup[enum_log_type_error], "_error_log_");
+	self->isinit = true;
+}
+
+#define LOG_CHECK_TYPE(type)											\
+	assert(type == enum_log_type_log || type == enum_log_type_error)
+
+#define FILELOG_CHECK_INIT(obj)											\
+	do {																\
+		if (!obj->isinit) {												\
+			if (obj == g_filelog_obj_) {								\
+				filelog_init(obj);										\
+			}															\
+		}																\
+	} while (0)
 
 /* log write file spend time */
 /*#define _TEST_WRITE_LOG_NEED_TIME*/
@@ -236,10 +247,11 @@ static inline void logmgr_init() {
 #include "crosslib.h"
 #endif
 
-void _log_write_(struct filelog *log, unsigned int type, const char *filename, const char *func, int line, const char *fmt, ...) {
-	const char *directname;
-	struct fileinfo *info;
-	int save_type;
+void _filelog_write_(struct filelog *self, int type, const char *filename, 
+		const char *func, int line, const char *fmt, ...) {
+
+	const char *directory;
+	struct logobj *info;
 	time_t tval;
 	struct tm tm_result;
 	struct tm *currTM;
@@ -249,67 +261,54 @@ void _log_write_(struct filelog *log, unsigned int type, const char *filename, c
 	int64 begin, end;
 #endif
 
-	if (!log) {
-		if (!s_log.isinit)
-			logmgr_init();
-
-		info = &s_log.logobj.loggroup[type];
-		directname = s_log.logobj.directname;
-		save_type = s_log.logobj.save_type;
-	} else {
-		info = &log->loggroup[type];
-		directname = log->directname;
-		save_type = log->save_type;
-	}
-
-	if (!fmt)
+	LOG_CHECK_TYPE(type);
+	if (!self || !fmt)
 		return;
+
+	FILELOG_CHECK_INIT(self);
+	info = &self->loggroup[type];
+	directory = info->directory;
+
 
 	time(&tval);
 	currTM = safe_localtime(&tval, &tm_result);
-	switch (type) {
-	case enum_log_type_assert:
-		mymkdir_r(directname);
-		snprintf(szFile, sizeof(szFile) - 1, "%s/%s", directname, s_default_filename[type]);
-		break;
-	case enum_log_type_error:
-		mymkdir_r(directname);
-		snprintf(szFile, sizeof(szFile) - 1, "%s/%s", directname, s_default_filename[type]);
-		break;
-	case enum_log_type_log: {
-			char path_dir[512] = {0};
-			char subdir[64] = {0};
-			char save_name[64] = {0};
 
-			switch(save_type) {
-			case st_every_day_split_dir_and_every_hour_split_file:
-				snprintf(subdir, sizeof(subdir) - 1, "%04d-%02d-%02d", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday);
-				snprintf(save_name, sizeof(save_name) - 1, "%02d", currTM->tm_hour);
-				break;
-			case st_every_month_split_dir_and_every_day_split_file:
-				snprintf(subdir, sizeof(subdir) - 1, "%04d-%02d", currTM->tm_year + 1900, currTM->tm_mon + 1);
-				snprintf(save_name, sizeof(save_name) - 1, "%04d-%02d-%02d", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday);
-				break;
-			case st_no_split_dir_and_every_day_split_file:
-				snprintf(save_name, sizeof(save_name) - 1, "%04d-%02d-%02d", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday);
-				break;
-			case st_no_split_dir_and_not_split_file:
-				strncpy(save_name, "log", sizeof(save_name) - 1);
-				save_name[sizeof(save_name) - 1] = '\0';
-				break;
-			default:
-				assert(false && "unknow save type...");
-				return;
-			}
+	{
+		char path_dir[512] = {0};
+		char subdir[64] = {0};
+		char save_name[64] = {0};
+		const char *path_dir_format = "%s/%s";
 
-			snprintf(path_dir, sizeof(path_dir) - 1, "%s/%s", directname, subdir);
-			mymkdir_r(path_dir);
-			snprintf(szFile, sizeof(szFile) - 1, "%s/%s.log", path_dir, save_name);
+		switch(info->save_type) {
+		case st_every_day_split_dir_and_every_hour_split_file:
+			snprintf(subdir, sizeof(subdir) - 1, "%04d-%02d-%02d", 
+					currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday);
+			snprintf(save_name, sizeof(save_name) - 1, "%02d", currTM->tm_hour);
+			break;
+		case st_every_month_split_dir_and_every_day_split_file:
+			snprintf(subdir, sizeof(subdir) - 1, "%04d-%02d", 
+					currTM->tm_year + 1900, currTM->tm_mon + 1);
+			snprintf(save_name, sizeof(save_name) - 1, "%04d-%02d-%02d", 
+					currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday);
+			break;
+		case st_no_split_dir_and_every_day_split_file:
+			path_dir_format = "%s%s";
+			snprintf(save_name, sizeof(save_name) - 1, "%04d-%02d-%02d", 
+					currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday);
+			break;
+		case st_no_split_dir_and_not_split_file:
+			path_dir_format = "%s%s";
+			strncpy(save_name, info->single_filename, sizeof(save_name) - 1);
+			save_name[sizeof(save_name) - 1] = '\0';
+			break;
+		default:
+			assert(false && "unknow save type...");
+			return;
 		}
-		break;
-	default:
-		assert(false && "_log_write_ error type...");
-		return;
+
+		snprintf(path_dir, sizeof(path_dir) - 1, path_dir_format, directory, subdir);
+		mymkdir_r(path_dir);
+		snprintf(szFile, sizeof(szFile) - 1, "%s/%s.log", path_dir, save_name);
 	}
 
 	if (strcmp(info->last_filename, szFile) != 0) {
@@ -331,13 +330,16 @@ void _log_write_(struct filelog *log, unsigned int type, const char *filename, c
 	if (info->fp) {
 		va_list args;
 		if (enum_log_type_log == type) {
-			if (info->logtime)
-				fprintf(info->fp, "[%04d-%02d-%02d %02d:%02d:%02d] ", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday,
-				currTM->tm_hour, currTM->tm_min, currTM->tm_sec);
+			if (info->append_time) {
+				fprintf(info->fp, "[%04d-%02d-%02d %02d:%02d:%02d] ", 
+						currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, 
+						currTM->tm_hour, currTM->tm_min, currTM->tm_sec);
+			}
+
 		} else {
 			fprintf(info->fp, "[%04d-%02d-%02d %02d:%02d:%02d] [file:%s, function:%s, line:%d] ", 
-			currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, currTM->tm_hour, currTM->tm_min, currTM->tm_sec, 
-			filename, func,	line);
+					currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, 
+					currTM->tm_hour, currTM->tm_min, currTM->tm_sec, filename, func, line);
 		}
 
 		va_start(args, fmt);
@@ -358,71 +360,79 @@ void _log_write_(struct filelog *log, unsigned int type, const char *filename, c
 	}
 }
 
-bool log_logtime(bool flag) {
-	bool prev;
-	if (!s_log.isinit)
-		logmgr_init();
 
-	prev = s_log.logobj.loggroup[enum_log_type_log].logtime;
-	s_log.logobj.loggroup[enum_log_type_log].logtime = flag;
-	return prev;
+struct filelog *filelog_create() {
+	struct filelog *self = (struct filelog *)malloc(sizeof(struct filelog));
+	if (!self)
+		return NULL;
+
+	filelog_init(self);
+	return self;
 }
 
-void log_everyflush(bool flag) {
-	if (!s_log.isinit)
-		logmgr_init();
-
-	s_log.logobj.loggroup[enum_log_type_log].everyflush = flag;
-}
-
-static void _setloginfo_(struct filelog *log, const char *directname) {
+void filelog_release(struct filelog *self) {
 	int i;
-	if (!directname)
+	if (!self)
 		return;
 
-	if (strcmp(directname, "") == 0)
-		return;
-
-	if (strcmp(directname, log->directname) == 0)
-		return;
-
-	strncpy(log->directname, directname, sizeof(log->directname) - 1);
-	log->directname[sizeof(log->directname) - 1] = '\0';
-	
-	{
-		/* set last char to '\0'. */
-		int end_idx = (int)strlen(log->directname) - 1;
-		if (log->directname[end_idx] == '/' || log->directname[end_idx] == '\\')
-			log->directname[end_idx] = '\0';
-	}
-	
 	for (i = 0; i < enum_log_type_max; ++i) {
-		if (log->loggroup[i].fp) {
-			fclose(log->loggroup[i].fp);
-		}
-
-		log->loggroup[i].fp = NULL;
-		memset(log->loggroup[i].last_filename, 0, sizeof(log->loggroup[i].last_filename));
+		logobj_close(&self->loggroup[i]);
 	}
+
+	free(self);
 }
 
-void _log_setdirect_(struct filelog *log, const char *directname) {
-	/* default log. */
-	if (!log) {
-		if (!s_log.isinit)
-			logmgr_init();
+void _filelog_setdirectory_(struct filelog *self, int type, const char *directory) {
+	LOG_CHECK_TYPE(type);
+	if (!self)
+		return;
 
-		_setloginfo_(&s_log.logobj, directname);
-	} else {
-		_setloginfo_(log, directname);
-	}
+	FILELOG_CHECK_INIT(self);
+	logobj_set_directory(&self->loggroup[type], directory);
 }
 
-const char *_log_getdirect_(struct filelog *log) {
-	if (!log) {
-		return s_log.logobj.directname;
-	} else {
-		return log->directname;
-	}
+const char *_filelog_getdirectory_(struct filelog *self, int type) {
+	LOG_CHECK_TYPE(type);
+	if (!self)
+		return NULL;
+
+	FILELOG_CHECK_INIT(self);
+	return logobj_get_directory(&self->loggroup[type]);
+}
+
+bool _filelog_set_save_type_(struct filelog *self, int type, int save_type) {
+	LOG_CHECK_TYPE(type);
+	if (!self)
+		return false;
+
+	FILELOG_CHECK_INIT(self);
+	return logobj_set_save_type(&self->loggroup[type], save_type);
+}
+
+bool _filelog_append_time_(struct filelog *self, int type, bool flag) {
+	LOG_CHECK_TYPE(type);
+	if (!self)
+		return true;
+
+	FILELOG_CHECK_INIT(self);
+	return logobj_append_time(&self->loggroup[type], flag);
+}
+
+bool _filelog_everyflush_(struct filelog *self, int type, bool flag) {
+	LOG_CHECK_TYPE(type);
+	if (!self)
+		return true;
+
+	FILELOG_CHECK_INIT(self);
+	return logobj_everyflush(&self->loggroup[type], flag);
+}
+
+void _filelog_flush_(struct filelog *self, int type) {
+	LOG_CHECK_TYPE(type);
+	if (!self)
+		return;
+
+	FILELOG_CHECK_INIT(self);
+	logobj_flush(&self->loggroup[type]);
 }
 

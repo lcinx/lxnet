@@ -4,8 +4,8 @@
  * lcinx@163.com
  */
 
-#ifndef _H_CROSSLIB_MY_H_
-#define _H_CROSSLIB_MY_H_
+#ifndef _H_CROSS_LIB_H_
+#define _H_CROSS_LIB_H_
 
 #ifdef __cplusplus
 extern "C" {

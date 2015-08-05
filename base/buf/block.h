@@ -49,7 +49,7 @@ static inline void block_init(struct block *self, int size) {
  */
 static inline struct buf_info block_get_do_process(struct block *self) {
 	struct buf_info pinfo;
-	
+
 	assert(self != NULL);
 	assert(self->maxsize >= self->write);
 	assert(self->write >= self->read);

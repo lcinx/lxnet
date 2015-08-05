@@ -171,7 +171,9 @@ static void cthread_list_destroy(struct cthread_list *self) {
  * cthread_pool method.
  * ================================================================================
  */
-static void cthread_pool_resume_some_thread(struct cthread_pool *self, int num, struct cthread_info *skip) {
+static void cthread_pool_resume_some_thread(struct cthread_pool *self, 
+		int num, struct cthread_info *skip) {
+
 	struct cthread_info *node;
 	for (node = self->all_list.head; node; node = node->next) {
 		if (num <= 0)
@@ -179,7 +181,7 @@ static void cthread_pool_resume_some_thread(struct cthread_pool *self, int num, 
 
 		if (node != skip && (!cthread_info_state_is_exit(node))) {
 			cthread_resume(cthread_info_get_handle_ptr(node));
-			
+
 			threadpool_debuglog("func:[%s] thread id:%d", 
 				__FUNCTION__, cthread_info_get_id(node));
 			--num;
@@ -191,7 +193,7 @@ static void cthread_pool_do_thread_exit(struct cthread_info *th) {
 	catomic_dec(&th->mgr->activity_num);
 
 	if (cthread_info_is_header(th)) {
-	
+
 		threadpool_debuglog("func:[%s][leader as exit] thread id:%d", 
 				__FUNCTION__, cthread_info_get_id(th));
 
@@ -203,7 +205,8 @@ static void cthread_pool_do_thread_exit(struct cthread_info *th) {
 
 	threadpool_debuglog("func:[%s] thread id:%d, activity num:%d, exit num:%d, has_leader:%d",
 			__FUNCTION__, cthread_info_get_id(th),
-			(int)catomic_read(&th->mgr->activity_num), (int)catomic_read(&th->mgr->exit_num), (int)catomic_read(&th->mgr->has_leader));
+			(int)catomic_read(&th->mgr->activity_num), (int)catomic_read(&th->mgr->exit_num), 
+			(int)catomic_read(&th->mgr->has_leader));
 }
 
 
@@ -236,7 +239,7 @@ static void th_pro_func(cthread *th) {
 			__FUNCTION__, cthread_info_get_id(cinfo));
 
 	while (catomic_read(&mgr->run) != 0) {
-		if (cthread_info_is_header(cinfo)) {	
+		if (cthread_info_is_header(cinfo)) {
 			/*
 			 * do leader function, 
 			 * if return value less than 0, then exit. 
@@ -246,10 +249,11 @@ static void th_pro_func(cthread *th) {
 			if (resume_num > 0) {
 				int real_resume_num = (int)min(resume_num, catomic_read(&mgr->need_exit_num));
 
-				threadpool_debuglog("func:[%s][leader func return] leader thread id:%d, resume_num:%d, activity num:%d, exit num:%d, has_leader:%d",
-						__FUNCTION__,
-						cthread_info_get_id(cinfo), resume_num, 
-						(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), (int)catomic_read(&mgr->has_leader));
+				threadpool_debuglog("func:[%s][leader func return] leader thread id:%d, "
+						"resume_num:%d, activity num:%d, exit num:%d, has_leader:%d",
+						__FUNCTION__, cthread_info_get_id(cinfo), resume_num, 
+						(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), 
+						(int)catomic_read(&mgr->has_leader));
 
 				cthread_info_change_to_henchman(cinfo);
 
@@ -282,15 +286,16 @@ static void th_pro_func(cthread *th) {
 					/* change own to leader. */
 					cthread_info_change_to_header(cinfo);
 
-					threadpool_debuglog("func:[%s][change to leader] task thread id:%d, activity num:%d, exit num:%d, has_leader:%d",
-							__FUNCTION__,
-							cthread_info_get_id(cinfo),
-							(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), (int)catomic_read(&mgr->has_leader));
+					threadpool_debuglog("func:[%s][change to leader] task thread id:%d, "
+							"activity num:%d, exit num:%d, has_leader:%d",
+							__FUNCTION__, cthread_info_get_id(cinfo),
+							(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), 
+							(int)catomic_read(&mgr->has_leader));
 
 					continue;
 				}
-				
-				assert(false && "is last activity thread, but not change to leader, error!");	
+
+				assert(false && "is last activity thread, but not change to leader, error!");
 				log_error("is last activity thread, but not change to leader, error!");
 
 			}
@@ -300,10 +305,10 @@ static void th_pro_func(cthread *th) {
 			catomic_dec(&mgr->activity_num);
 			catomic_inc(&mgr->suspend_num);
 
-			threadpool_debuglog("func:[%s][suspend thread] thread id:%d, activity num:%d, exit num:%d, has_leader:%d",
-					__FUNCTION__,
-					cthread_info_get_id(cinfo),
-					(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), (int)catomic_read(&mgr->has_leader));
+			threadpool_debuglog("func:[%s][suspend thread] thread id:%d, activity num:%d, "
+					"exit num:%d, has_leader:%d", __FUNCTION__, cthread_info_get_id(cinfo),
+					(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), 
+					(int)catomic_read(&mgr->has_leader));
 
 			/* real do suspend. */
 			cthread_suspend(cthread_info_get_handle_ptr(cinfo));
@@ -313,10 +318,10 @@ static void th_pro_func(cthread *th) {
 			catomic_dec(&mgr->suspend_num);
 			catomic_inc(&mgr->activity_num);
 
-			threadpool_debuglog("func:[%s][thread for resume] thread id:%d, activity num:%d, exit num:%d, has_leader:%d",
-					__FUNCTION__,
-					cthread_info_get_id(cinfo),
-					(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), (int)catomic_read(&mgr->has_leader));
+			threadpool_debuglog("func:[%s][thread for resume] thread id:%d, activity num:%d, "
+					"exit num:%d, has_leader:%d", __FUNCTION__,	cthread_info_get_id(cinfo),
+					(int)catomic_read(&mgr->activity_num), (int)catomic_read(&mgr->exit_num), 
+					(int)catomic_read(&mgr->has_leader));
 		}
 	}
 
@@ -399,7 +404,7 @@ void cthread_pool_release(struct cthread_pool *self) {
 
 	threadpool_debuglog("func[%s] mgr:%p", __FUNCTION__, self);
 
-	catomic_set(&self->run, 0);	
+	catomic_set(&self->run, 0);
 
 	while (catomic_read(&self->exit_num) != catomic_read(&self->need_exit_num)) {
 

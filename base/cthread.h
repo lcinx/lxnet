@@ -18,9 +18,16 @@ struct cspin_ {
 	volatile long lock;
 };
 
+/* read write lock, and is the spin lock. */
+struct crwspin_ {
+	volatile long read;
+	volatile long write;
+};
+
 typedef struct cthread_ * cthread;
 typedef struct cmutex_ * cmutex;
 typedef struct cspin_ cspin;
+typedef struct crwspin_ crwspin;
 
 
 
@@ -67,6 +74,24 @@ void cspin_unlock(cspin *lock);
 int cspin_trylock(cspin *lock);
 
 void cspin_destroy(cspin *lock);
+
+
+
+int crwspin_init(crwspin *lock);
+
+void crwspin_read_lock(crwspin *lock);
+
+void crwspin_read_unlock(crwspin *lock);
+
+void crwspin_write_lock(crwspin *lock);
+
+void crwspin_write_unlock(crwspin *lock);
+
+int crwspin_try_read_lock(crwspin *lock);
+
+int crwspin_try_write_lock(crwspin *lock);
+
+void crwspin_destroy(crwspin *lock);
 
 
 #ifdef __cplusplus

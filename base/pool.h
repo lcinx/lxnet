@@ -4,8 +4,8 @@
  * lcinx@163.com
  */
 
-#ifndef _H_C_POOL_C_H_
-#define _H_C_POOL_C_H_
+#ifndef _H_POOL_H_
+#define _H_POOL_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,7 +23,8 @@ struct poolmgr;
  * next_multiple is next num, the next num is num * next_multiple, if next_multiple is zero, then only has one sub pool. 
  * name is poolmgr name.
  */
-struct poolmgr *poolmgr_create(size_t size, size_t alignment, size_t num, size_t next_multiple, const char *name);
+struct poolmgr *poolmgr_create(size_t size, size_t alignment, 
+		size_t num, size_t next_multiple, const char *name);
 
 void poolmgr_set_shrink(struct poolmgr *self, size_t free_pool_num, double free_node_ratio);
 

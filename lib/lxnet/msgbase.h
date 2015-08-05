@@ -171,7 +171,7 @@ struct MessagePack:public Msg {
 		assert(size >= 0);
 		if (size < 0)
 			return false;
-		
+
 		if (!CanPush(sizeof(int32) + (size_t)size)) {
 			assert(false && "error!");
 			return false;
@@ -194,7 +194,7 @@ struct MessagePack:public Msg {
 		assert(size >= 0);
 		if (size < 0)
 			return false;
-		
+
 		if (!CanPush(sizeof(int32) + (size_t)size)) {
 			assert(false && "error!");
 			return false;
@@ -297,7 +297,7 @@ struct MessagePack:public Msg {
 		assert(size >= 0);
 		if (size < 0)
 			return NULL;
-		
+
 		if (0 == size)
 			return "";
 
@@ -305,7 +305,7 @@ struct MessagePack:public Msg {
 			assert(false && "error!");
 			return NULL;
 		}
-		
+
 		const char *data = &m_buf[m_index];
 		*datalen = (size_t)size;
 		m_index += size;
@@ -354,7 +354,7 @@ struct MessagePack:public Msg {
 		buf[(size_t)(buflen > (size_t)size ? size : (buflen - 1))] = '\0';
 		return GetBlock(buf, (size_t)(buflen > (size_t)size ? size : (buflen - 1)));
 	}
-	
+
 	const char *GetLBigString(size_t *datalen) {
 		*datalen = 0;
 		int32 size = GetInt32();
@@ -404,7 +404,7 @@ struct MessagePack:public Msg {
 			assert(false && "error!");
 			return temp;
 		}
-	
+
 		memcpy(&temp, &m_buf[m_index], sizeof(temp));
 		m_index += sizeof(temp);
 		return temp;
@@ -468,7 +468,7 @@ struct MessagePack:public Msg {
 			assert(false && "error!");
 			return temp;
 		}
-	
+
 		memcpy(&temp, &m_buf[m_index], sizeof(temp));
 		m_index += sizeof(temp);
 		return temp;

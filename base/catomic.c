@@ -8,7 +8,10 @@
 
 #ifdef _MSC_VER
 #include <windows.h>
-#define win_catomic_compare_set64(counter, old, set) (InterlockedCompareExchange64(counter, set, old) == old)
+
+#define win_catomic_compare_set64(counter, old, set)	\
+	(InterlockedCompareExchange64(counter, set, old) == old)
+
 #endif
 
 

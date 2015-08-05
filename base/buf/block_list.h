@@ -11,7 +11,6 @@
 extern "C" {
 #endif
 
-#include <limits.h>
 #include "catomic.h"
 #include "cthread.h"
 #include "buf/block.h"

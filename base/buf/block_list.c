@@ -4,6 +4,7 @@
  * lcinx@163.com
  */
 
+#include <limits.h>
 #include "buf/block_list.h"
 
 
@@ -98,7 +99,7 @@ void blocklist_release(struct blocklist *self) {
 
 	self->can_write_size = 0;
 	catomic_set(&self->datasize, 0);
-	
+
 	self->create_func = NULL;
 	self->release_func = NULL;
 	self->func_arg = NULL;
@@ -204,14 +205,15 @@ bool blocklist_put_data(struct blocklist *self, const void *data, int data_len) 
 	}
 
 	assert(writesize == data_len);
-	return true;	
+	return true;
 }
 
 bool blocklist_put_message(struct blocklist *self, const void *data, int data_len) {
 	assert(self != NULL);
 	assert(data != NULL);
 	assert(data_len > 0);
-	assert(data_len <= self->message_maxlen && "need put data length greater than message max length, error!");
+	assert(data_len <= self->message_maxlen && 
+			"need put data length greater than message max length, error!");
 
 	if (data_len > self->message_maxlen)
 		return false;
@@ -259,7 +261,9 @@ void blocklist_add_read(struct blocklist *self, int len) {
 	blocklist_check_free_block(self);
 }
 
-static int blocklist_get_data_by_size(struct blocklist *self, char *buf, int buf_size, int needread) {
+static int blocklist_get_data_by_size(struct blocklist *self, 
+		char *buf, int buf_size, int needread) {
+
 	int readsize, getsize;
 	assert(self != NULL);
 	assert(buf != NULL);
@@ -319,7 +323,8 @@ bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, int *re
 int blocklist_get_message(struct blocklist *self, char *buf, int buf_size) {
 	assert(self != NULL);
 	assert(buf != NULL);
-	assert(buf_size >= self->message_maxlen && "get message need greater than message max length buffer, error!");
+	assert(buf_size >= self->message_maxlen && 
+			"get message need greater than message max length buffer, error!");
 
 	if (!self->custom_get_func) {
 		/* check new message. */
@@ -327,7 +332,9 @@ int blocklist_get_message(struct blocklist *self, char *buf, int buf_size) {
 		int res = 0;
 		assert((int)sizeof(self->message_len) >= length_len);
 		if (!self->is_new_message) {
-			res = blocklist_get_data_by_size(self, (char *)&self->message_len, length_len, length_len);
+			res = blocklist_get_data_by_size(self, 
+					(char *)&self->message_len, length_len, length_len);
+
 			if (res == 0) {
 				return 0;
 			} else if (res < 0) {
@@ -347,7 +354,9 @@ int blocklist_get_message(struct blocklist *self, char *buf, int buf_size) {
 
 		/* first load message length. */
 		memcpy(&buf[0], &self->message_len, length_len);
-		res = blocklist_get_data_by_size(self, &buf[length_len], (self->message_len - length_len), (self->message_len - length_len));
+		res = blocklist_get_data_by_size(self, &buf[length_len], 
+				(self->message_len - length_len), (self->message_len - length_len));
+
 		if (res == 0) {
 			return 0;
 		} else if (res < 0) {
@@ -368,7 +377,8 @@ int blocklist_get_message(struct blocklist *self, char *buf, int buf_size) {
 		return res;
 
 	} else {
-		return self->custom_get_func(blocklist_get_data_by_size, self, catomic_read(&self->datasize),
+		return self->custom_get_func(blocklist_get_data_by_size, self, 
+									 catomic_read(&self->datasize),
 									 &self->is_new_message, &self->message_len,
 									 buf, buf_size);
 	}

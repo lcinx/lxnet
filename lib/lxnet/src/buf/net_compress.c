@@ -9,7 +9,7 @@
 #include "quicklz.h"
 #include "log.h"
 
-/*#define print_debug debug_log*/
+/*#define print_debug debug_print_call*/
 #define print_debug(...) ((void) 0)
 
 /*

@@ -4,8 +4,8 @@
  * lcinx@163.com
  */
 
-#ifndef _H_NET_SOCKET_H_
-#define _H_NET_SOCKET_H_
+#ifndef _H_LXNET_H_
+#define _H_LXNET_H_
 
 #include <stddef.h>
 
@@ -13,6 +13,7 @@ struct Msg;
 struct socketer;
 struct listener;
 struct datainfo;
+struct datainfomgr;
 struct encryptinfo;
 
 namespace lxnet {
@@ -78,6 +79,9 @@ public:
 	static void Release(Socketer *self);
 
 public:
+	/* 设置关联的统计对象 */
+	void SetDataInfoMgr(struct datainfomgr *infomgr);
+
 	/* 设置接收数据字节的临界值，超过此值，则停止接收，若小于等于0，则视为不限制 */
 	void SetRecvLimit(int size);
 
@@ -154,6 +158,7 @@ public:
 	char *GetData(char *buf, size_t bufsize, int *datalen);
 
 public:
+	struct datainfomgr *m_infomgr;
 	struct encryptinfo *m_encrypt;
 	struct encryptinfo *m_decrypt;
 	struct socketer *m_self;
@@ -162,19 +167,31 @@ public:
 
 
 /*
- * 初始化网络，
- * bigbufsize指定大块的大小，bigbufnum指定大块的数目，
- * smallbufsize指定小块的大小，smallbufnum指定小块的数目
- * listen num指定用于监听的套接字的数目，socket num用于连接的总数目
- * threadnum指定网络线程数目，若设置为小于等于0，则会开启cpu个数的线程数目
+ * 初始化网络
+ * bigbufsize 指定大块的大小，bigbufnum指定大块的数目，
+ * smallbufsize 指定小块的大小，smallbufnum指定小块的数目
+ * listen num 指定用于监听的套接字的数目，socket num用于连接的总数目
+ * threadnum 指定网络线程数目，若设置为小于等于0，则会开启cpu个数的线程数目
+ * infomgr 默认的网络数据统计管理器，一般为NULL
  */
-bool net_init(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t smallbufnum, size_t listenernum, size_t socketnum, int threadnum);
+bool net_init(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t smallbufnum, 
+		size_t listenernum, size_t socketnum, int threadnum, struct datainfomgr *infomgr = NULL);
 
 /* 释放网络相关 */
 void net_release();
 
 /* 执行相关操作，需要在主逻辑中调用此函数 */
 void net_run();
+
+/* 获取socket对象池，listen对象池，大块池，小块池的使用情况 */
+const char *net_memory_info(char *buf, size_t buflen);
+
+
+/* 启用/禁用接受的连接导致的错误日志，并返回之前的值 */
+bool SetEnableErrorLog(bool flag);
+
+/* 获取当前启用或禁用接受的连接导致的错误日志 */
+bool GetEnableErrorLog();
 
 
 /* 获取此进程所在的机器名 */
@@ -184,21 +201,18 @@ bool GetHostName(char *buf, size_t buflen);
 bool GetHostIPByName(const char *hostname, char *buf, size_t buflen, bool ipv6 = false);
 
 
-/* 启用/禁用接受的连接导致的错误日志，并返回之前的值 */
-bool SetEnableErrorLog(bool flag);
 
-/* 获取当前启用或禁用接受的连接导致的错误日志 */
-bool GetEnableErrorLog();
+/* 创建网络数据统计管理器 */
+struct datainfomgr *DataInfoMgr_CreateObj();
 
-	
-/* 获取socket对象池，listen对象池，大块池，小块池的使用情况 */
-const char *GetNetMemoryInfo();
+/* 释放指定网络数据统计管理器 */
+void DataInfoMgr_ReleaseObj(struct datainfomgr *infomgr);
 
-/* 获取网络库通讯详情 */
-const char *GetNetDataAllInfo();
+/* 执行网络数据统计相关操作 */
+void DataInfoMgr_Run(struct datainfomgr *infomgr);
 
-/* 获取网络库的指定类型的详情 */
-struct datainfo *GetNetDataInfoByType(int type);
+/* 获取网络数据统计信息 */
+const char *GetNetDataAllInfo(char *buf, size_t buflen, struct datainfomgr *infomgr = NULL);
 
 }
 

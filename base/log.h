@@ -4,28 +4,29 @@
  * lcinx@163.com
  */
 
-#ifndef _H_C_LOG_C_H_
-#define _H_C_LOG_C_H_
+#ifndef _H_LOG_H_
+#define _H_LOG_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include "platform_config.h"
-#include <assert.h>
 
-enum logtypelog_ {
-	enum_log_type_assert = 0,
+int mymkdir_r(const char *directory);
+
+
+
+enum write_log_type_ {
+	enum_log_type_log = 0,
 	enum_log_type_error,
-	enum_log_type_log,
 	enum_log_type_max,
 };
 
-enum debugtypelog_ {
-	enum_debug_for_assert = 0,
-	enum_debug_for_log,	
-	enum_debug_for_debug,
-	enum_debug_for_time_debug,
+enum debug_print_type_ {
+	enum_debug_print = 0,
+	enum_debug_print_call,
+	enum_debug_print_time,
 	enum_debug_max,
 };
 
@@ -36,92 +37,111 @@ enum logfile_save_type {
 	st_no_split_dir_and_not_split_file,
 };
 
-#ifndef NDEBUG
-#define Assert(cond, ...) \
-	do {\
-		if (!(cond)) {\
-			_log_printf_(enum_debug_for_assert, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);\
-			assert(false);\
-		}\
-	} while (0)
-#else
-#define Assert(cond, ...) \
-	do {\
-		if (!(cond)) {\
-			_log_write_(((struct filelog *)0), enum_log_type_assert, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);\
-		}\
-	} while (0)
-#endif
-
-
 #define _LINE_TO_STRING_REAL_(line)		#line
 #define _LINE_TO_STRING_(line)			_LINE_TO_STRING_REAL_(line)
 #define __LINE__STRING__				_LINE_TO_STRING_(__LINE__)
 
 
-
 struct filelog;
+extern struct filelog *g_filelog_obj_;
 
-int mymkdir_r(const char *directname);
-
-void _log_printf_(unsigned int type, const char *filename, const char *func, int line, const char *fmt, ...);
-
-/* print debug info and code file line */
-#define debug_log(...) _log_printf_(enum_debug_for_assert, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
-
-/* print debug info to console */
-#define log_debug(...) _log_printf_(enum_debug_for_debug, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
-
-/* print log info to console */
-#define log_showlog(...) _log_printf_(enum_debug_for_log, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
-
-/* print log info to console and time */
-#define log_timelog(...) _log_printf_(enum_debug_for_time_debug, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__);
-
-/* show/hide log_debug function out */
-void log_setdebug(bool show);
-
-/* show/hide log_showlog function out */
-void log_setshow(bool show);
-
-/* show/hide log_timelog function out */
-void log_settimelog(bool show);
-
-void _log_write_(struct filelog *log, unsigned int type, const char *filename, const char *func, int line, const char *fmt, ...);
-
-void _log_setdirect_(struct filelog *log, const char *directname);
-const char *_log_getdirect_(struct filelog *log);
-
-#define log_setdirect(name) _log_setdirect_(((struct filelog *)0), (name))
-#define log_getdirect() _log_getdirect_((struct filelog *)0)
-
-bool log_logtime(bool flag);
-
-void log_everyflush(bool flag);
-
-#define log_writelog(...) _log_write_(((struct filelog *)0), enum_log_type_log, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
-
-#define log_error(...) _log_write_(((struct filelog *)0), enum_log_type_error, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+void _log_printf_(int type, const char *filename, const char *func, 
+		int line, const char *fmt, ...);
+void _log_printf_set_show(int type, bool flag);
+void _filelog_write_(struct filelog *log, int type, const char *filename, 
+		const char *func, int line, const char *fmt, ...);
+void _filelog_setdirectory_(struct filelog *self, int type, const char *directory);
+const char *_filelog_getdirectory_(struct filelog *self, int type);
+bool _filelog_set_save_type_(struct filelog *self, int type, int save_type);
+bool _filelog_append_time_(struct filelog *self, int type, bool flag);
+bool _filelog_everyflush_(struct filelog *self, int type, bool flag);
+void _filelog_flush_(struct filelog *self, int type);
 
 
 struct filelog *filelog_create();
-
 void filelog_release(struct filelog *self);
 
-bool filelog_set_save_mode(struct filelog *self, int save_type);
+#define filelog_set_directory(self, directory)							\
+	_filelog_setdirectory_(self, enum_log_type_log, (directory));		\
+	_filelog_setdirectory_(self, enum_log_type_error, (directory))
 
-bool filelog_logtime(struct filelog *self, bool flag);
+#define filelog_set_log_directory(self, directory)						\
+	_filelog_setdirectory_(self, enum_log_type_log, (directory))
 
-void filelog_everyflush(struct filelog *self, bool flag);
+#define filelog_set_error_directory(self, directory)					\
+	_filelog_setdirectory_(self, enum_log_type_error, (directory))
 
-void filelog_flush(struct filelog *self);
+#define filelog_get_log_directory(self)									\
+	_filelog_getdirectory_(self, enum_log_type_log)
 
-#define filelog_setdirect(log, name) _log_setdirect_((log), (name))
-#define filelog_getdirect(log) _log_getdirect_((log))
+#define filelog_get_error_directory(self)								\
+	_filelog_getdirectory_(self, enum_log_type_error)
 
-#define filelog_writelog(log, ...) _log_write_((log), enum_log_type_log, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define filelog_set_log_save_type(self, save_type)						\
+	_filelog_set_save_type_(self, enum_log_type_log, (save_type))
 
-#define filelog_error(log, ...) _log_write_((log), enum_log_type_error, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define filelog_set_error_save_type(self, save_type)					\
+	_filelog_set_save_type_(self, enum_log_type_error, (save_type))
+
+#define filelog_append_time(self, flag)									\
+	_filelog_append_time_(self, enum_log_type_log, (flag))
+
+#define filelog_everyflush(self, flag)									\
+	_filelog_everyflush_(self, enum_log_type_log, (flag))
+
+#define filelog_flush(self)												\
+	_filelog_flush_(self, enum_log_type_log)
+
+#define filelog_writelog(self, ...)										\
+	_filelog_write_(self, enum_log_type_log, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+
+#define filelog_error(self, ...)										\
+	_filelog_write_(self, enum_log_type_error, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+
+
+
+
+
+#define log_set_directory(directory)									\
+	_filelog_setdirectory_(g_filelog_obj_, enum_log_type_log, (directory));\
+	_filelog_setdirectory_(g_filelog_obj_, enum_log_type_error, (directory))
+
+#define log_get_directory()												\
+	_filelog_getdirectory_(g_filelog_obj_, enum_log_type_log)
+
+#define log_append_time(flag)											\
+	_filelog_append_time_(g_filelog_obj_, enum_log_type_log, flag)
+
+#define log_everyflush(flag)											\
+	_filelog_everyflush_(g_filelog_obj_, enum_log_type_log, flag)
+
+#define log_writelog(...)												\
+	_filelog_write_(g_filelog_obj_, enum_log_type_log, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+
+#define log_error(...)													\
+	_filelog_write_(g_filelog_obj_, enum_log_type_error, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+
+
+
+#define debug_print(...)												\
+	_log_printf_(enum_debug_print, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+
+#define debug_print_call(...)											\
+	_log_printf_(enum_debug_print_call, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+
+#define debug_print_time(...)											\
+	_log_printf_(enum_debug_print_time, __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+
+
+#define debug_enable_print(flag)										\
+	_log_printf_set_show(enum_debug_print, flag)
+
+#define debug_enable_print_call(flag)									\
+	_log_printf_set_show(enum_debug_print_call, flag)
+
+#define debug_enable_print_time(flag)									\
+	_log_printf_set_show(enum_debug_print_time, flag)
+
 
 #ifdef __cplusplus
 }
