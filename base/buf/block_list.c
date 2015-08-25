@@ -37,18 +37,6 @@ void blocklist_init(struct blocklist *self, create_block_func create_func,
 	cspin_init(&self->list_lock);
 }
 
-void blocklist_set_message_custom_arg(struct blocklist *self, 
-		int message_maxlen, put_message_func pfunc, get_message_func gfunc) {
-
-	assert(message_maxlen > 0);
-	if (message_maxlen <= 0)
-		return;
-
-	self->message_maxlen = message_maxlen;
-	self->custom_put_func = pfunc;
-	self->custom_get_func = gfunc;
-}
-
 static inline struct block *blocklist_popfront(struct blocklist *self) {
 	struct block *bk;
 	cspin_lock(&self->list_lock);
@@ -106,6 +94,18 @@ void blocklist_release(struct blocklist *self) {
 	self->block_size = 0;
 
 	cspin_destroy(&self->list_lock);
+}
+
+void blocklist_set_message_custom_arg(struct blocklist *self, 
+		int message_maxlen, put_message_func pfunc, get_message_func gfunc) {
+
+	assert(message_maxlen > 0);
+	if (message_maxlen <= 0)
+		return;
+
+	self->message_maxlen = message_maxlen;
+	self->custom_put_func = pfunc;
+	self->custom_get_func = gfunc;
 }
 
 static inline struct block *blocklist_create_block(struct blocklist *self) {

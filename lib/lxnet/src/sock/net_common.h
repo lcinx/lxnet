@@ -83,7 +83,6 @@ extern "C" {
 
 #endif
 
-net_socket socket_create();
 
 int socket_close(net_socket *sockfd);
 

@@ -73,7 +73,7 @@ static struct cthread_info *cthread_info_create(struct cthread_pool *mgr, void (
 	if (!self)
 		return NULL;
 
-	self->handle = NULL;
+	self->handle = cthread_nil;
 	self->is_leader = false;
 	self->state = ecState_None;
 	self->next = NULL;
@@ -92,10 +92,7 @@ static void cthread_info_release(struct cthread_info *self) {
 	if (!self)
 		return;
 
-	if (self->handle) {
-		cthread_release(&self->handle);
-	}
-
+	cthread_release(&self->handle);
 	self->mgr = NULL;
 	free(self);
 }
@@ -149,11 +146,6 @@ static void cthread_list_init(struct cthread_list *self) {
 	self->head = NULL;
 }
 
-static void cthread_list_push_back(struct cthread_list *self, struct cthread_info *th) {
-	th->next = self->head;
-	self->head = th;
-}
-
 static void cthread_list_destroy(struct cthread_list *self) {
 	struct cthread_info *node, *cur;
 	for (node = self->head; node;) {
@@ -163,6 +155,11 @@ static void cthread_list_destroy(struct cthread_list *self) {
 	}
 
 	self->head = NULL;
+}
+
+static void cthread_list_push_back(struct cthread_list *self, struct cthread_info *th) {
+	th->next = self->head;
+	self->head = th;
 }
 
 

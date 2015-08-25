@@ -517,6 +517,24 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 	return self;
 }
 
+void poolmgr_release(struct poolmgr *self) {
+	if (!self)
+		return;
+
+#ifndef NOTUSE_POOL
+
+	poolmgr_release_nodepool_fromlist(self, &self->full_use_list);
+	poolmgr_release_nodepool_fromlist(self, &self->portion_use_list);
+	poolmgr_release_nodepool_fromlist(self, &self->free_list);
+
+	/* check memory leak. */
+	assert(self->node_total == self->node_free_total && "poolmgr_release has memory not free!");
+
+#endif
+
+	free(self->raw);
+}
+
 void poolmgr_set_shrink(struct poolmgr *self, size_t free_pool_num, double free_node_ratio) {
 	if (!self)
 		return;
@@ -648,24 +666,6 @@ void poolmgr_freeobject(struct poolmgr *self, void *bk) {
 	free(bk);
 #endif
 
-}
-
-void poolmgr_release(struct poolmgr *self) {
-	if (!self)
-		return;
-
-#ifndef NOTUSE_POOL
-
-	poolmgr_release_nodepool_fromlist(self, &self->full_use_list);
-	poolmgr_release_nodepool_fromlist(self, &self->portion_use_list);
-	poolmgr_release_nodepool_fromlist(self, &self->free_list);
-
-	/* check memory leak. */
-	assert(self->node_total == self->node_free_total && "poolmgr_release has memory not free!");
-
-#endif
-
-	free(self->raw);
 }
 
 #define _STR_HEAD "\n%s:\n<<<<<<<<<<<<<<<<<< poolmgr info begin <<<<<<<<<<<<<<<<<\n\

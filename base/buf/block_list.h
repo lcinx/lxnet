@@ -42,10 +42,10 @@ struct blocklist {
 void blocklist_init(struct blocklist *self, create_block_func create_func, 
 		release_block_func release_func, void *func_arg, size_t block_size);
 
+void blocklist_release(struct blocklist *self);
+
 void blocklist_set_message_custom_arg(struct blocklist *self, 
 		int message_maxlen, put_message_func pfunc, get_message_func gfunc);
-
-void blocklist_release(struct blocklist *self);
 
 static inline int blocklist_get_message_maxlen(struct blocklist *self) {
 	return self->message_maxlen;

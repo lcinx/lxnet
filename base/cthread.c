@@ -23,12 +23,20 @@
 
 #endif
 
+
+/* initialize for nil. */
+const cthread g_cthread_nil_ = NULL;
+const cmutex g_cmutex_nil_ = NULL;
+const cspin g_cspin_nil_ = {0};
+const crwspin g_crwspin_nil_ = {0, 0};
+
+
+
 enum {
 	eState_None = 0,
 	eState_Run,
 	eState_Exit,
 };
-
 
 struct cthread_ {
 	void *udata;
@@ -123,6 +131,35 @@ err_do:
 #endif
 }
 
+void cthread_release(cthread *tid) {
+	cthread self;
+	if (*tid == NULL)
+		return;
+
+	self = *tid;
+
+	cthread_resume(tid);
+
+	cthread_join(tid);
+
+#ifdef WIN32
+	if (self->handle)
+		CloseHandle(self->handle);
+
+	if (self->event)
+		CloseHandle(self->event);
+
+	self->handle = NULL;
+	self->event = NULL;
+#else
+	pthread_cond_destroy(&self->cond);
+	pthread_mutex_destroy(&self->mutex);
+#endif
+
+	free(self);
+	*tid = NULL;
+}
+
 void *cthread_get_udata(cthread *tid) {
 	cthread self;
 	if (*tid == NULL)
@@ -193,34 +230,6 @@ void cthread_join(cthread *tid) {
 #endif
 }
 
-void cthread_release(cthread *tid) {
-	cthread self;
-	if (*tid == NULL)
-		return;
-
-	self = *tid;
-
-	cthread_resume(tid);
-
-	cthread_join(tid);
-
-#ifdef WIN32
-	if (self->handle)
-		CloseHandle(self->handle);
-
-	if (self->event)
-		CloseHandle(self->event);
-
-	self->handle = NULL;
-	self->event = NULL;
-#else
-	pthread_cond_destroy(&self->cond);
-	pthread_mutex_destroy(&self->mutex);
-#endif
-
-	free(self);
-	*tid = NULL;
-}
 
 unsigned int cthread_self_id() {
 #ifdef WIN32
@@ -269,6 +278,23 @@ int cmutex_init(cmutex *mutex) {
 	return 0;
 }
 
+void cmutex_destroy(cmutex *mutex) {
+	cmutex self;
+	if (*mutex == NULL)
+		return;
+
+	self = *mutex;
+
+#ifdef WIN32
+	DeleteCriticalSection(&self->mutex);
+#else
+	pthread_mutex_destroy(&self->mutex);
+#endif
+
+	free(self);
+	*mutex = NULL;
+}
+
 void cmutex_lock(cmutex *mutex) {
 	cmutex self;
 	if (*mutex == NULL)
@@ -315,23 +341,6 @@ int cmutex_trylock(cmutex *mutex) {
 	return 0;
 }
 
-void cmutex_destroy(cmutex *mutex) {
-	cmutex self;
-	if (*mutex == NULL)
-		return;
-
-	self = *mutex;
-
-#ifdef WIN32
-	DeleteCriticalSection(&self->mutex);
-#else
-	pthread_mutex_destroy(&self->mutex);
-#endif
-
-	free(self);
-	*mutex = NULL;
-}
-
 
 
 #ifdef _MSC_VER
@@ -352,6 +361,13 @@ int cspin_init(cspin *lock) {
 
 	*((volatile long *)&lock->lock) = 0;
 	return 0;
+}
+
+void cspin_destroy(cspin *lock) {
+	if (!lock)
+		return;
+
+	*((volatile long *)&lock->lock) = 0;
 }
 
 void cspin_lock(cspin *lock) {
@@ -378,12 +394,7 @@ int cspin_trylock(cspin *lock) {
 	return 0;
 }
 
-void cspin_destroy(cspin *lock) {
-	if (!lock)
-		return;
 
-	*((volatile long *)&lock->lock) = 0;
-}
 
 int crwspin_init(crwspin *lock) {
 	if (!lock)
@@ -392,6 +403,14 @@ int crwspin_init(crwspin *lock) {
 	*((volatile long *)&lock->read) = 0;
 	*((volatile long *)&lock->write) = 0;
 	return 0;
+}
+
+void crwspin_destroy(crwspin *lock) {
+	if (!lock)
+		return;
+
+	*((volatile long *)&lock->read) = 0;
+	*((volatile long *)&lock->write) = 0;
 }
 
 void crwspin_read_lock(crwspin *lock) {
@@ -461,13 +480,5 @@ int crwspin_try_write_lock(crwspin *lock) {
 	}
 
 	return 0;
-}
-
-void crwspin_destroy(crwspin *lock) {
-	if (!lock)
-		return;
-
-	*((volatile long *)&lock->read) = 0;
-	*((volatile long *)&lock->write) = 0;
 }
 

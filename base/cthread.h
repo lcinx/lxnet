@@ -31,7 +31,24 @@ typedef struct crwspin_ crwspin;
 
 
 
+extern const cthread g_cthread_nil_;
+extern const cmutex g_cmutex_nil_;
+extern const cspin g_cspin_nil_;
+extern const crwspin g_crwspin_nil_;
+
+
+/* initialize for nil. */
+#define cthread_nil		g_cthread_nil_
+#define cmutex_nil		g_cmutex_nil_
+#define cspin_nil		g_cspin_nil_
+#define crwspin_nil		g_crwspin_nil_
+
+
+
+
 int cthread_create(cthread *tid, void *udata, void (*thread_func)(cthread *));
+
+void cthread_release(cthread *tid);
 
 void *cthread_get_udata(cthread *tid);
 
@@ -44,8 +61,6 @@ void cthread_resume(cthread *tid);
 
 void cthread_join(cthread *tid);
 
-void cthread_release(cthread *tid);
-
 
 unsigned int cthread_self_id();
 
@@ -55,17 +70,19 @@ void cthread_self_sleep(unsigned int millisecond);
 
 int cmutex_init(cmutex *mutex);
 
+void cmutex_destroy(cmutex *mutex);
+
 void cmutex_lock(cmutex *mutex);
 
 void cmutex_unlock(cmutex *mutex);
 
 int cmutex_trylock(cmutex *mutex);
 
-void cmutex_destroy(cmutex *mutex);
-
 
 
 int cspin_init(cspin *lock);
+
+void cspin_destroy(cspin *lock);
 
 void cspin_lock(cspin *lock);
 
@@ -73,11 +90,11 @@ void cspin_unlock(cspin *lock);
 
 int cspin_trylock(cspin *lock);
 
-void cspin_destroy(cspin *lock);
-
 
 
 int crwspin_init(crwspin *lock);
+
+void crwspin_destroy(crwspin *lock);
 
 void crwspin_read_lock(crwspin *lock);
 
@@ -90,8 +107,6 @@ void crwspin_write_unlock(crwspin *lock);
 int crwspin_try_read_lock(crwspin *lock);
 
 int crwspin_try_write_lock(crwspin *lock);
-
-void crwspin_destroy(crwspin *lock);
 
 
 #ifdef __cplusplus

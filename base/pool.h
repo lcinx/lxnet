@@ -26,13 +26,13 @@ struct poolmgr;
 struct poolmgr *poolmgr_create(size_t size, size_t alignment, 
 		size_t num, size_t next_multiple, const char *name);
 
+void poolmgr_release(struct poolmgr *self);
+
 void poolmgr_set_shrink(struct poolmgr *self, size_t free_pool_num, double free_node_ratio);
 
 void *poolmgr_getobject(struct poolmgr *self);
 
 void poolmgr_freeobject(struct poolmgr *self, void *bk);
-
-void poolmgr_release(struct poolmgr *self);
 
 void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize);
 

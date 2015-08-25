@@ -140,7 +140,7 @@ int mymkdir_r(const char *directory) {
 
 	tmp[sizeof(tmp) - 1] = '\0';
 	len = (int)strlen(tmp);
-	if (len >= sizeof(tmp) - 1)
+	if (len >= (int)sizeof(tmp) - 1)
 		return -2;
 
 	if (tmp[len - 1] != '/') {
