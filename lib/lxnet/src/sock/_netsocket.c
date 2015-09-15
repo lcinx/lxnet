@@ -345,6 +345,16 @@ int socketer_get_send_buffer_byte_size(struct socketer *self) {
 	return buf_get_data_size(self->sendbuf);
 }
 
+int socketer_get_recv_buffer_byte_size(struct socketer *self) {
+	if (!self)
+		return 0;
+
+	if (!self->recvbuf)
+		return 0;
+
+	return buf_get_now_data_size(self->recvbuf);
+}
+
 bool socketer_gethostname(char *buf, size_t len) {
 	if (!buf || len < 1)
 		return false;

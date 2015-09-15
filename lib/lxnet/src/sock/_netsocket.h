@@ -40,6 +40,8 @@ void socketer_getip(struct socketer *self, char *ip, size_t len);
 
 int socketer_get_send_buffer_byte_size(struct socketer *self);
 
+int socketer_get_recv_buffer_byte_size(struct socketer *self);
+
 bool socketer_gethostname(char *buf, size_t len);
 
 bool socketer_gethostbyname(const char *name, char *buf, size_t len, bool ipv6);

@@ -130,11 +130,8 @@ public:
 	/* 获取发送缓冲待发送字节数(若为0表示不存在待发送数据或数据已写入系统缓冲) */
 	int GetSendBufferByteSize();
 
-	/*
-	 * 发送数据，仅仅是把数据压入包队列中，
-	 * adddata为附加到pMsg后面的数据，当然会自动修改pMsg的长度，addsize指定adddata的长度
-	 */
-	bool SendMsg(Msg *pMsg, void *adddata = 0, size_t addsize = 0);
+	/* 获取接收缓冲中待读取的字节数(若为0表示目前无数据可读) */
+	int GetRecvBufferByteSize();
 
 	/* 对as3发送策略文件 */
 	bool SendPolicyData();
@@ -142,11 +139,11 @@ public:
 	/* 发送TGW信息头 */
 	bool SendTGWInfo(const char *domain, int port);
 
-	/* 触发真正的发送数据 */
-	void CheckSend();
-
-	/* 尝试投递接收操作 */
-	void CheckRecv();
+	/*
+	 * 发送数据，仅仅是把数据压入包队列中，
+	 * adddata为附加到pMsg后面的数据，当然会自动修改pMsg的长度，addsize指定adddata的长度
+	 */
+	bool SendMsg(Msg *pMsg, void *adddata = 0, size_t addsize = 0);
 
 	/* 接收数据 */
 	Msg *GetMsg(char *buf = 0, size_t bufsize = 0);
@@ -156,6 +153,12 @@ public:
 
 	/* 接收数据 */
 	char *GetData(char *buf, size_t bufsize, int *datalen);
+
+	/* 触发真正的发送数据 */
+	void CheckSend();
+
+	/* 尝试投递接收操作 */
+	void CheckRecv();
 
 public:
 	struct datainfomgr *m_infomgr;

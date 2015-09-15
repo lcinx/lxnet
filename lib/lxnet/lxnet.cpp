@@ -240,6 +240,7 @@ void Socketer::Release(Socketer *self) {
 
 /* 设置关联的统计对象 */
 void Socketer::SetDataInfoMgr(struct datainfomgr *infomgr) {
+	assert(infomgr != NULL);
 	m_infomgr = infomgr;
 }
 
@@ -373,6 +374,42 @@ int Socketer::GetSendBufferByteSize() {
 	return socketer_get_send_buffer_byte_size(m_self);
 }
 
+/* 获取接收缓冲中待读取的字节数(若为0表示目前无数据可读) */
+int Socketer::GetRecvBufferByteSize() {
+	return socketer_get_recv_buffer_byte_size(m_self);
+}
+
+/* 对as3发送策略文件 */
+bool Socketer::SendPolicyData() {
+	//as3套接字策略文件
+	char buf[512] = "<cross-domain-policy> <allow-access-from domain=\"*\" secure=\"false\" to-ports=\"*\"/> </cross-domain-policy> ";
+	size_t datasize = strlen(buf);
+	if (socketer_send_islimit(m_self, datasize)) {
+		Close();
+		return false;
+	}
+
+	on_sendmsg(m_infomgr, 0, datasize + 1);
+	return socketer_sendmsg(m_self, buf, datasize + 1);
+}
+
+/* 发送TGW信息头 */
+bool Socketer::SendTGWInfo(const char *domain, int port) {
+	char buf[1024] = {0};
+	size_t datasize;
+	snprintf(buf, sizeof(buf) - 1, "tgw_l7_forward\r\nHost: %s:%d\r\n\r\n", domain, port);
+	buf[sizeof(buf) - 1] = '\0';
+	datasize = strlen(buf);
+	if (socketer_send_islimit(m_self, datasize)) {
+		Close();
+		return false;
+	}
+
+	socketer_set_raw_datasize(m_self, datasize);
+	on_sendmsg(m_infomgr, 0, datasize);
+	return socketer_sendmsg(m_self, buf, datasize);
+}
+
 /*
  * 发送数据，仅仅是把数据压入包队列中，
  * adddata为附加到pMsg后面的数据，当然会自动修改pMsg的长度，addsize指定adddata的长度
@@ -422,47 +459,6 @@ bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 	}
 }
 
-/* 对as3发送策略文件 */
-bool Socketer::SendPolicyData() {
-	//as3套接字策略文件
-	char buf[512] = "<cross-domain-policy> <allow-access-from domain=\"*\" secure=\"false\" to-ports=\"*\"/> </cross-domain-policy> ";
-	size_t datasize = strlen(buf);
-	if (socketer_send_islimit(m_self, datasize)) {
-		Close();
-		return false;
-	}
-
-	on_sendmsg(m_infomgr, 0, datasize + 1);
-	return socketer_sendmsg(m_self, buf, datasize + 1);
-}
-
-/* 发送TGW信息头 */
-bool Socketer::SendTGWInfo(const char *domain, int port) {
-	char buf[1024] = {};
-	size_t datasize;
-	snprintf(buf, sizeof(buf) - 1, "tgw_l7_forward\r\nHost: %s:%d\r\n\r\n", domain, port);
-	buf[sizeof(buf) - 1] = '\0';
-	datasize = strlen(buf);
-	if (socketer_send_islimit(m_self, datasize)) {
-		Close();
-		return false;
-	}
-
-	socketer_set_raw_datasize(m_self, datasize);
-	on_sendmsg(m_infomgr, 0, datasize);
-	return socketer_sendmsg(m_self, buf, datasize);
-}
-
-/* 触发真正的发送数据 */
-void Socketer::CheckSend() {
-	socketer_checksend(m_self);
-}
-
-/* 尝试投递接收操作 */
-void Socketer::CheckRecv() {
-	socketer_checkrecv(m_self);
-}
-
 /* 接收数据 */
 Msg *Socketer::GetMsg(char *buf, size_t bufsize) {
 	Msg *obj = (Msg *)socketer_getmsg(m_self, buf, bufsize);
@@ -500,6 +496,16 @@ char *Socketer::GetData(char *buf, size_t bufsize, int *datalen) {
 	}
 
 	return data;
+}
+
+/* 触发真正的发送数据 */
+void Socketer::CheckSend() {
+	socketer_checksend(m_self);
+}
+
+/* 尝试投递接收操作 */
+void Socketer::CheckRecv() {
+	socketer_checkrecv(m_self);
 }
 
 

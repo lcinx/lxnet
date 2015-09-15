@@ -217,6 +217,13 @@ void buf_set_raw_datasize(struct net_buf *self, size_t size) {
 	self->raw_size_for_compress = size;
 }
 
+int buf_get_now_data_size(struct net_buf *self) {
+	if (!self)
+		return 0;
+
+	return (int)blocklist_get_datasize(&self->logiclist);
+}
+
 int buf_get_data_size(struct net_buf *self) {
 	if (!self)
 		return 0;

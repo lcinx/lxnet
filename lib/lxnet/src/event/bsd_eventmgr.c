@@ -243,6 +243,9 @@ bool eventmgr_init(int socketnum, int threadnum) {
 		threadnum = get_cpu_num();
 	}
 
+	/* in kqueue, must only one thead. */
+	threadnum = 1;
+
 	{
 		struct sigaction sa;
 		memset(&sa, 0, sizeof(sa));

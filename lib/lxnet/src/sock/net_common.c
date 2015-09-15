@@ -65,8 +65,8 @@ bool socket_setopt_for_connect(net_socket sockfd) {
 
 	{
 		struct linger ling;
-		ling.l_onoff=1;
-		ling.l_linger=0;
+		ling.l_onoff = 1;
+		ling.l_linger = 0;
 		setsockopt(sockfd, SOL_SOCKET, SO_LINGER, (char *)&ling, sizeof(ling));
 	}
 	/*int bDontLinger = true;
@@ -103,11 +103,11 @@ int socket_can_read(net_socket fd) {
 	struct timeval tout;
 	tout.tv_sec = 0;
 	tout.tv_usec = 0;
-	
+
 	FD_ZERO(&set);
 	FD_SET(fd, &set);
 	return select((int)fd + 1, &set, NULL, NULL, &tout);
-	
+
 #else
 
 	struct pollfd set;
@@ -124,11 +124,11 @@ int socket_can_write(net_socket fd) {
 	struct timeval tout;
 	tout.tv_sec = 0;
 	tout.tv_usec = 0;
-	
+
 	FD_ZERO(&set);
 	FD_SET(fd, &set);
 	return select((int)fd + 1, NULL, &set, NULL, &tout);
-	
+
 #else
 
 	struct pollfd set;
