@@ -7,10 +7,11 @@
 PLAT = none
 
 TARGET_NAME = liblxnet.a
-CC = gcc
-CXX = g++
-AR = ar rcu
-RANLIB = ranlib
+CC = $(CROSS)gcc
+CXX = $(CROSS)g++
+AR = $(CROSS)ar rcu
+RANLIB = $(CROSS)ranlib
+STRIP = $(CROSS)strip
 RM = rm -f
 
 CFLAGS = $(ADD_CFLAGS)
