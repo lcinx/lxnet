@@ -14,14 +14,14 @@ RANLIB = $(CROSS)ranlib
 STRIP = $(CROSS)strip
 RM = rm -f
 
-CFLAGS = $(ADD_CFLAGS)
-CXXFLAGS = $(ADD_CXXFLAGS)
+CFLAGS = $(CROSS_FLAGS) $(EXTRA_CFLAGS)
+CXXFLAGS = $(CROSS_FLAGS) $(EXTRA_CXXFLAGS)
 
-ADD_CFLAGS = 
-ADD_CXXFLAGS = 
+EXTRA_CFLAGS = 
+EXTRA_CXXFLAGS = 
 
-ADD_INCS = 
-ADD_LIBS = 
+EXTRA_INCS = 
+EXTRA_LIBS = 
 
 
 SRC_INCS = -I"./../../base/" -I"./src/buf/" -I"./src/event/" -I"./src/sock/" -I"./../../3rd/quicklz/"
@@ -42,17 +42,17 @@ none:
 	@echo " $(PLATS)"
 
 win32-debug:
-	$(MAKE) all ADD_INCS="" ADD_LIBS="" ADD_CFLAGS="-Wall -march=i686 -DWIN32 -DDEBUG -g" ADD_CXXFLAGS="-Wall -march=i686 -DWIN32 -DDEBUG -g"
+	$(MAKE) all EXTRA_CFLAGS="-Wall -march=i686 -DWIN32 -DDEBUG -g" EXTRA_CXXFLAGS="-Wall -march=i686 -DWIN32 -DDEBUG -g"
 
 win32-release:
-	$(MAKE) all ADD_INCS="" ADD_LIBS="" ADD_CFLAGS="-Wall -march=i686 -DWIN32 -DNDEBUG -O2" ADD_CXXFLAGS="-Wall -march=i686 -DWIN32 -DNDEBUG -O2"
+	$(MAKE) all EXTRA_CFLAGS="-Wall -march=i686 -DWIN32 -DNDEBUG -O2" EXTRA_CXXFLAGS="-Wall -march=i686 -DWIN32 -DNDEBUG -O2"
 
 
 linux-debug:
-	$(MAKE) all ADD_INCS=-I"/usr/include" ADD_LIBS=-L"/usr/lib" ADD_CFLAGS="-fPIC -Wall -DDEBUG -g" ADD_CXXFLAGS="-fPIC -Wall -DDEBUG -g"
+	$(MAKE) all EXTRA_CFLAGS="-fPIC -Wall -DDEBUG -g" EXTRA_CXXFLAGS="-fPIC -Wall -DDEBUG -g"
 
 linux-release:
-	$(MAKE) all ADD_INCS=-I"/usr/include" ADD_LIBS=-L"/usr/lib" ADD_CFLAGS="-fPIC -Wall -DNDEBUG -O2" ADD_CXXFLAGS="-fPIC -Wall -DNDEBUG -O2"
+	$(MAKE) all EXTRA_CFLAGS="-fPIC -Wall -DNDEBUG -O2" EXTRA_CXXFLAGS="-fPIC -Wall -DNDEBUG -O2"
 
 all:$(TARGET_NAME)
 
@@ -64,8 +64,10 @@ echo:
 	@echo "AR = $(AR)"
 	@echo "RANLIB = $(RANLIB)"
 	@echo "RM = $(RM)"
-	@echo "ADD_CFLAGS = $(ADD_CFLAGS)"
-	@echo "ADD_CXXFLAGS = $(ADD_CXXFLAGS)"
+	@echo "CFLAGS = $(CFLAGS)"
+	@echo "CXXFLAGS = $(CXXFLAGS)"
+	@echo "EXTRA_CFLAGS = $(EXTRA_CFLAGS)"
+	@echo "EXTRA_CXXFLAGS = $(EXTRA_CXXFLAGS)"
 
 
 
@@ -75,9 +77,9 @@ CXX_OBJ_ALL := $(CXX_SRC_ALL:.cpp=.o)
 #$(OBJS):%.o :%.c  先用$(OBJS)中的一项，比如foo.o: %.o : %.c  含义为:试着用%.o匹配foo.o。如果成功%就等于foo。如果不成功，Make就会警告，然后。给foo.o添加依赖文件foo.c(用foo替换了%.c里的%)
 # $@--目标文件，$^--所有的依赖文件，$<--第一个依赖文件。每次$< $@ 代表的值就是列表中的
 $(C_OBJ_ALL) : %.o: %.c
-	$(CC) -c $< -o $@ $(ADD_INCS) $(SRC_INCS) $(CFLAGS)
+	$(CC) -c $< -o $@ $(EXTRA_INCS) $(SRC_INCS) $(CFLAGS)
 $(CXX_OBJ_ALL) : %.o: %.cpp
-	$(CXX) -c $< -o $@ $(ADD_INCS) $(SRC_INCS) $(CXXFLAGS)
+	$(CXX) -c $< -o $@ $(EXTRA_INCS) $(SRC_INCS) $(CXXFLAGS)
 
 
 $(TARGET_NAME): $(C_OBJ_ALL) $(CXX_OBJ_ALL)
