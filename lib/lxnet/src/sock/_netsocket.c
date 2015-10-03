@@ -678,6 +678,7 @@ void socketer_on_recv(struct socketer *self, int len) {
 			buf_addwrite(self->recvbuf, writebuf.buf, res);
 			debuglog("recv :%d size\n", res);
 		} else {
+			int lasterror = NET_GetLastError();
 			if (!buf_recv_end_do(self->recvbuf)) {
 				/* uncompress error, close socket. */
 				socketer_close(self);
@@ -691,7 +692,7 @@ void socketer_on_recv(struct socketer *self, int len) {
 				return;
 			}
 
-			if ((!SOCKET_ERR_RW_RETRIABLE(NET_GetLastError())) || (res == 0)) {
+			if ((!SOCKET_ERR_RW_RETRIABLE(lasterror)) || (res == 0)) {
 				/* error, close socket. */
 				socketer_close(self);
 
@@ -769,7 +770,8 @@ void socketer_on_send(struct socketer *self, int len) {
 			buf_addread(self->sendbuf, res);
 			debuglog("send :%d size\n", res);
 		} else {
-			if (!SOCKET_ERR_RW_RETRIABLE(NET_GetLastError())) {
+			int lasterror = NET_GetLastError();
+			if (!SOCKET_ERR_RW_RETRIABLE(lasterror)) {
 				/* error, close socket. */
 				socketer_close(self);
 				

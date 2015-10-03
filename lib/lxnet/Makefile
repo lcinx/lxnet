@@ -36,15 +36,17 @@ CXX_SRC_ALL = $(wildcard ./*.cpp)
 
 
 
-PLATS = win32-debug win32-release linux-debug linux-release
+PLATS = win-debug win-release linux-debug linux-release
 none:
 	@echo "Please choose a platform:"
 	@echo " $(PLATS)"
 
-win32-debug:
+
+
+win-debug:
 	$(MAKE) all EXTRA_CFLAGS="-Wall -march=i686 -DWIN32 -DDEBUG -g" EXTRA_CXXFLAGS="-Wall -march=i686 -DWIN32 -DDEBUG -g"
 
-win32-release:
+win-release:
 	$(MAKE) all EXTRA_CFLAGS="-Wall -march=i686 -DWIN32 -DNDEBUG -O2" EXTRA_CXXFLAGS="-Wall -march=i686 -DWIN32 -DNDEBUG -O2"
 
 
@@ -53,6 +55,7 @@ linux-debug:
 
 linux-release:
 	$(MAKE) all EXTRA_CFLAGS="-fPIC -Wall -DNDEBUG -O2" EXTRA_CXXFLAGS="-fPIC -Wall -DNDEBUG -O2"
+
 
 all:$(TARGET_NAME)
 

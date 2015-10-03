@@ -183,7 +183,7 @@ static int task_func(void *argv) {
 		sock = (struct socketer *)ev->udata;
 
 		/* error event. */
-		if (ev->flags & EV_ERROR) {
+		if (ev->flags & EV_EOF || ev->flags & EV_ERROR) {
 			socketer_close(sock);
 			continue;
 		}
