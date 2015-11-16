@@ -37,9 +37,9 @@ enum logfile_save_type {
 	st_no_split_dir_and_not_split_file,
 };
 
-#define _LINE_TO_STRING_REAL_(line)		#line
-#define _LINE_TO_STRING_(line)			_LINE_TO_STRING_REAL_(line)
-#define __LINE__STRING__				_LINE_TO_STRING_(__LINE__)
+#define _NUMBER_TO_STRING_REAL_(number_value)	#number_value
+#define _NUMBER_TO_STRING_(number_value)		_NUMBER_TO_STRING_REAL_(number_value)
+#define __LINE__STRING__						_NUMBER_TO_STRING_(__LINE__)
 
 
 struct filelog;
