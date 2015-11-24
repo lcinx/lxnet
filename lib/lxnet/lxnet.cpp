@@ -349,14 +349,14 @@ void Socketer::UseTGW() {
 	socketer_use_tgw(m_self);
 }
 
-/* 关闭用于连接的socket对象 */
-void Socketer::Close() {
-	socketer_close(m_self);
-}
-
 /* 连接指定的服务器 */
 bool Socketer::Connect(const char *ip, short port) {
 	return socketer_connect(m_self, ip, port);
+}
+
+/* 关闭用于连接的socket对象 */
+void Socketer::Close() {
+	socketer_close(m_self);
 }
 
 /* 测试socket套接字是否已关闭 */
@@ -489,7 +489,7 @@ bool Socketer::SendData(const char *data, size_t datasize) {
 }
 
 /* 接收数据 */
-char *Socketer::GetData(char *buf, size_t bufsize, int *datalen) {
+const char *Socketer::GetData(char *buf, size_t bufsize, int *datalen) {
 	char *data = (char *)socketer_getdata(m_self, buf, bufsize, datalen);
 	if (data) {
 		on_recvmsg(m_infomgr, 0, *datalen);

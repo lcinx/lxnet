@@ -115,11 +115,11 @@ public:
 	/* 启用TGW接入 */
 	void UseTGW();
 
-	/* 关闭用于连接的socket对象 */
-	void Close();
-
 	/* 连接指定的服务器 */
 	bool Connect(const char *ip, short port);
+
+	/* 关闭用于连接的socket对象 */
+	void Close();
 
 	/* 测试socket套接字是否已关闭 */
 	bool IsClose();
@@ -152,7 +152,7 @@ public:
 	bool SendData(const char *data, size_t datasize);
 
 	/* 接收数据 */
-	char *GetData(char *buf, size_t bufsize, int *datalen);
+	const char *GetData(char *buf, size_t bufsize, int *datalen);
 
 	/* 触发真正的发送数据 */
 	void CheckSend();
