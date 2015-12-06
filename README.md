@@ -10,9 +10,9 @@ is the game network library
 是一个tcp的非通用网络库，在考虑空间占用、性能、功能性的基础上，结合项目需求而产生的。
 压缩，加密在网络线程里执行。
 
-使用平台：
+适用平台：
 
-Windows 与 Linux
+Windows、Linux、Mac OS X
 适用场合、范围:
 
 适合于这样的应用： 
