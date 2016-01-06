@@ -108,7 +108,6 @@ int crwspin_try_read_lock(crwspin *lock);
 
 int crwspin_try_write_lock(crwspin *lock);
 
-
 #ifdef __cplusplus
 }
 #endif

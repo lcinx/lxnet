@@ -95,8 +95,6 @@ int64 catomic_and_fetch(catomic *atom_value, int64 value);
 bool catomic_compare_set(catomic *atom_value, int64 old, int64 set);
 void catomic_synchronize();
 
-
-
 #ifdef __cplusplus
 }
 #endif

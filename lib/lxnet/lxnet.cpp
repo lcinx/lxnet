@@ -104,7 +104,7 @@ static void encrypt_info_release(void *info) {
 		return;
 
 	cspin_lock(&s_infomgr.encrypt_lock);
-	poolmgr_freeobject(s_infomgr.encrypt_pool, info);
+	poolmgr_free_object(s_infomgr.encrypt_pool, info);
 	cspin_unlock(&s_infomgr.encrypt_lock);
 }
 
@@ -125,7 +125,7 @@ Listener *Listener::Create() {
 		return NULL;
 
 	cspin_lock(&s_infomgr.listen_lock);
-	Listener *self = (Listener *)poolmgr_getobject(s_infomgr.listen_pool);
+	Listener *self = (Listener *)poolmgr_alloc_object(s_infomgr.listen_pool);
 	cspin_unlock(&s_infomgr.listen_lock);
 	if (!self) {
 		listener_release(ls);
@@ -147,7 +147,7 @@ void Listener::Release(Listener *self) {
 	}
 
 	cspin_lock(&s_infomgr.listen_lock);
-	poolmgr_freeobject(s_infomgr.listen_pool, self);
+	poolmgr_free_object(s_infomgr.listen_pool, self);
 	cspin_unlock(&s_infomgr.listen_lock);
 }
 
@@ -173,7 +173,7 @@ Socketer *Listener::Accept(bool bigbuf) {
 		return NULL;
 
 	cspin_lock(&s_infomgr.socket_lock);
-	Socketer *self = (Socketer *)poolmgr_getobject(s_infomgr.socket_pool);
+	Socketer *self = (Socketer *)poolmgr_alloc_object(s_infomgr.socket_pool);
 	cspin_unlock(&s_infomgr.socket_lock);
 	if (!self) {
 		socketer_release(sock);
@@ -206,7 +206,7 @@ Socketer *Socketer::Create(bool bigbuf) {
 		return NULL;
 
 	cspin_lock(&s_infomgr.socket_lock);
-	Socketer *self = (Socketer *)poolmgr_getobject(s_infomgr.socket_pool);
+	Socketer *self = (Socketer *)poolmgr_alloc_object(s_infomgr.socket_pool);
 	cspin_unlock(&s_infomgr.socket_lock);
 	if (!self) {
 		socketer_release(so);
@@ -234,7 +234,7 @@ void Socketer::Release(Socketer *self) {
 	self->m_decrypt = NULL;
 
 	cspin_lock(&s_infomgr.socket_lock);
-	poolmgr_freeobject(s_infomgr.socket_pool, self);
+	poolmgr_free_object(s_infomgr.socket_pool, self);
 	cspin_unlock(&s_infomgr.socket_lock);
 }
 
@@ -293,7 +293,7 @@ void Socketer::SetEncryptKey(const char *key, int key_len) {
 
 	if (!m_encrypt) {
 		cspin_lock(&s_infomgr.encrypt_lock);
-		m_encrypt = (struct encryptinfo *)poolmgr_getobject(s_infomgr.encrypt_pool);
+		m_encrypt = (struct encryptinfo *)poolmgr_alloc_object(s_infomgr.encrypt_pool);
 		cspin_unlock(&s_infomgr.encrypt_lock);
 
 		if (m_encrypt) {
@@ -317,7 +317,7 @@ void Socketer::SetDecryptKey(const char *key, int key_len) {
 
 	if (!m_decrypt) {
 		cspin_lock(&s_infomgr.encrypt_lock);
-		m_decrypt = (struct encryptinfo *)poolmgr_getobject(s_infomgr.encrypt_pool);
+		m_decrypt = (struct encryptinfo *)poolmgr_alloc_object(s_infomgr.encrypt_pool);
 		cspin_unlock(&s_infomgr.encrypt_lock);
 
 		if (m_decrypt) {

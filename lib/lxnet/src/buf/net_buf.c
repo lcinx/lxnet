@@ -300,12 +300,12 @@ static bool buf_try_parse_tgw(struct blocklist *lst, char **buf, int *len) {
 	int i;
 	int canreadsize;
 	char *f;
-	
+
 	*buf = NULL;
 	*len = 0;
 	for (bk = lst->head; bk; bk = bk->next) {
-		f = block_getreadbuf(bk);
-		canreadsize = block_getreadsize(bk);
+		f = block_get_readbuf(bk);
+		canreadsize = block_get_readsize(bk);
 		for (i = 0; i < canreadsize; ++i) {
 			if (num >= maxchecksize)
 				return false;
@@ -392,7 +392,7 @@ bool buf_recv_end_do(struct net_buf *self) {
 
 			/* uncompress function will be responsible for header length of removed. */
 			resbuf = compressmgr_uncompressdata(compressbuf.buf, compressbuf.len, quicklzbuf, srcbuf.buf, srcbuf.len);
-			
+
 			/*
 			 * if return null, then uncompress error,
 			 * uncompress error, probably because the uncompress buffer is less than uncompress data length.
@@ -531,7 +531,7 @@ char *buf_getmessage(struct net_buf *self, bool *needclose, char *buf, size_t bu
 			assert(false && "why bufsize < _MAX_MSG_LEN");
 			return NULL;
 		}
-		
+
 		dst.buf = buf;
 		dst.len = (int)bufsize;
 	}
@@ -564,7 +564,7 @@ char *buf_getdata(struct net_buf *self, bool *needclose, char *buf, int bufsize,
 	lst = &self->logiclist;
 	if (blocklist_get_datasize(lst) <= 0)
 		return NULL;
-	
+
 	if (!blocklist_get_data(lst, buf, bufsize, datalen)) {
 		*needclose = true;
 		if (s_enable_errorlog) {

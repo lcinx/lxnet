@@ -89,7 +89,7 @@ void *netpool_createsocket() {
 	}
 
 	cspin_lock(&s_netpool.socket_lock);
-	self = poolmgr_getobject(s_netpool.socket_pool);
+	self = poolmgr_alloc_object(s_netpool.socket_pool);
 	cspin_unlock(&s_netpool.socket_lock);
 	return self;
 }
@@ -99,7 +99,7 @@ void netpool_releasesocket(void *self) {
 		return;
 
 	cspin_lock(&s_netpool.socket_lock);
-	poolmgr_freeobject(s_netpool.socket_pool, self);
+	poolmgr_free_object(s_netpool.socket_pool, self);
 	cspin_unlock(&s_netpool.socket_lock);
 }
 
@@ -111,7 +111,7 @@ void *netpool_createlisten() {
 	}
 
 	cspin_lock(&s_netpool.listen_lock);
-	self = poolmgr_getobject(s_netpool.listen_pool);
+	self = poolmgr_alloc_object(s_netpool.listen_pool);
 	cspin_unlock(&s_netpool.listen_lock);
 	return self;
 }
@@ -121,7 +121,7 @@ void netpool_releaselisten(void *self) {
 		return;
 
 	cspin_lock(&s_netpool.listen_lock);
-	poolmgr_freeobject(s_netpool.listen_pool, self);
+	poolmgr_free_object(s_netpool.listen_pool, self);
 	cspin_unlock(&s_netpool.listen_lock);
 }
 

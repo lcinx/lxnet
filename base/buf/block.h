@@ -83,20 +83,20 @@ static inline bool block_is_write_over(struct block *self) {
 	return (self->write == self->maxsize);
 }
 
-static inline int block_getreadsize(struct block *self) {
+static inline int block_get_readsize(struct block *self) {
 	assert(self != NULL);
 	assert(self->write >= self->read);
 	return (self->write - self->read);
 }
 
-static inline char *block_getreadbuf(struct block *self) {
+static inline char *block_get_readbuf(struct block *self) {
 	assert(self != NULL);
 	assert(self->write >= self->read);
 	assert(self->maxsize > self->read);
 	return &self->buf[self->read];
 }
 
-static inline void block_addread(struct block *self, int len) {
+static inline void block_add_read(struct block *self, int len) {
 	assert(self != NULL);
 	assert(len >= 0);
 	assert(self->write >= (self->read + len));
@@ -109,7 +109,7 @@ static inline int block_get(struct block *self, void *data, int len) {
 	assert(self->write >= self->read);
 	assert(data != NULL);
 	assert(len != 0);
-	readsize = min(block_getreadsize(self), len);
+	readsize = min(block_get_readsize(self), len);
 	memcpy(data, &self->buf[self->read], readsize);
 	self->read += readsize;
 	assert(self->read <= self->write);
@@ -123,19 +123,19 @@ static inline int block_get(struct block *self, void *data, int len) {
  * writer interface.
  * ================================================================================
  */
-static inline int block_getwritesize(struct block *self) {
+static inline int block_get_writesize(struct block *self) {
 	assert(self != NULL);
 	assert(self->maxsize >= self->write);
 	return (self->maxsize - self->write);
 }
 
-static inline char *block_getwritebuf(struct block *self) {
+static inline char *block_get_writebuf(struct block *self) {
 	assert(self != NULL);
 	assert(self->maxsize > self->write);
 	return &self->buf[self->write];
 }
 
-static inline void block_addwrite(struct block *self, int len) {
+static inline void block_add_write(struct block *self, int len) {
 	assert(self != NULL);
 	assert(len >= 0);
 	assert(self->maxsize >= (self->write + len));
@@ -148,7 +148,7 @@ static inline int block_put(struct block *self, void *data, int len) {
 	assert(self->maxsize > self->write);
 	assert(data != NULL);
 	assert(len != 0);
-	writesize = min(block_getwritesize(self), len);
+	writesize = min(block_get_writesize(self), len);
 	memcpy(&self->buf[self->write], data, writesize);
 	self->write += writesize;
 	assert(self->write <= self->maxsize);

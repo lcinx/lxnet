@@ -93,8 +93,6 @@ bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, int *re
  */
 int blocklist_get_message(struct blocklist *self, char *buf, int buf_size);
 
-
-
 #ifdef __cplusplus
 }
 #endif

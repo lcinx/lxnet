@@ -28,7 +28,7 @@ struct logobj {
 	FILE *fp;
 	int save_type;
 	bool append_time;
-	bool everyflush;
+	bool every_flush;
 	char directory[512];
 	char single_filename[64];
 	char last_filename[1024];
@@ -82,9 +82,9 @@ static inline bool logobj_append_time(struct logobj *self, bool flag) {
 	return old;
 }
 
-static inline bool logobj_everyflush(struct logobj *self, bool flag) {
-	bool old = self->everyflush;
-	self->everyflush = flag;
+static inline bool logobj_every_flush(struct logobj *self, bool flag) {
+	bool old = self->every_flush;
+	self->every_flush = flag;
 	return old;
 }
 
@@ -123,7 +123,7 @@ static void logobj_init(struct logobj *self) {
 	self->fp = NULL;
 	self->save_type = st_every_day_split_dir_and_every_hour_split_file;
 	self->append_time = true;
-	self->everyflush = true;
+	self->every_flush = true;
 
 	logobj_set_directory(self, default_directory_name);
 	logobj_set_single_filename(self, default_single_filename);
@@ -355,7 +355,7 @@ void _filelog_write_(struct filelog *self, int type, const char *filename,
 		fprintf(info->fp, "fflush need:%d us\n", (int)(begin - end));
 #endif
 
-		if (info->everyflush)
+		if (info->every_flush)
 			fflush(info->fp);
 	}
 }
@@ -382,7 +382,7 @@ void filelog_release(struct filelog *self) {
 	free(self);
 }
 
-void _filelog_setdirectory_(struct filelog *self, int type, const char *directory) {
+void _filelog_set_directory_(struct filelog *self, int type, const char *directory) {
 	LOG_CHECK_TYPE(type);
 	if (!self)
 		return;
@@ -391,7 +391,7 @@ void _filelog_setdirectory_(struct filelog *self, int type, const char *director
 	logobj_set_directory(&self->loggroup[type], directory);
 }
 
-const char *_filelog_getdirectory_(struct filelog *self, int type) {
+const char *_filelog_get_directory_(struct filelog *self, int type) {
 	LOG_CHECK_TYPE(type);
 	if (!self)
 		return NULL;
@@ -418,13 +418,13 @@ bool _filelog_append_time_(struct filelog *self, int type, bool flag) {
 	return logobj_append_time(&self->loggroup[type], flag);
 }
 
-bool _filelog_everyflush_(struct filelog *self, int type, bool flag) {
+bool _filelog_every_flush_(struct filelog *self, int type, bool flag) {
 	LOG_CHECK_TYPE(type);
 	if (!self)
 		return true;
 
 	FILELOG_CHECK_INIT(self);
-	return logobj_everyflush(&self->loggroup[type], flag);
+	return logobj_every_flush(&self->loggroup[type], flag);
 }
 
 void _filelog_flush_(struct filelog *self, int type) {

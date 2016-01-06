@@ -543,7 +543,7 @@ void poolmgr_set_shrink(struct poolmgr *self, size_t free_pool_num, double free_
 	self->free_node_ratio_for_shrink = free_node_ratio;
 }
 
-void *poolmgr_getobject(struct poolmgr *self) {
+void *poolmgr_alloc_object(struct poolmgr *self) {
 #ifndef NOTUSE_POOL
 	struct node *nd;
 #endif
@@ -619,18 +619,18 @@ static bool poolmgr_check_is_using(struct poolmgr *mgr,
 
 	if (nodepool_isin(mgr, np, begin_bk)) {
 		if (nodepool_isbad_point(np, begin_bk)) {
-			assert(false && "poolmgr_freeobject block is in pool, but is bad pointer!");
+			assert(false && "poolmgr_free_object block is in pool, but is bad pointer!");
 			return false;
 		} else {
 			if (nodepool_is_not_alloc(np, begin_bk)) {
-				assert(false && "poolmgr_freeobject free the undistributed of block!");
+				assert(false && "poolmgr_free_object free the undistributed of block!");
 				return false;
 			} else {
 				if (nd->flag.debug_addr == NODE_IS_FREED_VALUE(mgr)) {
-					assert(false && "poolmgr_freeobject repeated free block!");
+					assert(false && "poolmgr_free_object repeated free block!");
 					return false;
 				} else if (nd->flag.debug_addr != NODE_IS_USED_VALUE(mgr)) {
-					assert(false && "poolmgr_freeobject free the bad block!");
+					assert(false && "poolmgr_free_object free the bad block!");
 					return false;
 				}
 				return true;
@@ -638,13 +638,13 @@ static bool poolmgr_check_is_using(struct poolmgr *mgr,
 		}
 	}
 
-	assert(false && "poolmgr_freeobject this address is not in poolmgr!");
+	assert(false && "poolmgr_free_object this address is not in poolmgr!");
 	return false;
 }
 #endif
 #endif
 
-void poolmgr_freeobject(struct poolmgr *self, void *bk) {
+void poolmgr_free_object(struct poolmgr *self, void *bk) {
 
 #ifndef NOTUSE_POOL
 

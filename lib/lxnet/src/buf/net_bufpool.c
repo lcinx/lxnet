@@ -63,7 +63,7 @@ bool bufpool_init(size_t bigblocknum, size_t bigblocksize, size_t smallblocknum,
 	cspin_init(&s_pool.big_lock);
 	cspin_init(&s_pool.small_lock);
 	cspin_init(&s_pool.buf_lock);
-	
+
 	s_pool.bigpoolnum = bigblocknum;
 	s_pool.bigpoolsize = bigblocksize;
 
@@ -99,7 +99,7 @@ void bufpool_release() {
 	s_pool.buf_pool = NULL;
 	cspin_unlock(&s_pool.buf_lock);
 	cspin_destroy(&s_pool.buf_lock);
-	
+
 	s_pool.isinit = false;
 }
 
@@ -109,7 +109,7 @@ void *bufpool_createbigblock() {
 		return NULL;
 
 	cspin_lock(&s_pool.big_lock);
-	self = poolmgr_getobject(s_pool.bigblockpool);
+	self = poolmgr_alloc_object(s_pool.bigblockpool);
 	cspin_unlock(&s_pool.big_lock);
 	return self;
 }
@@ -119,7 +119,7 @@ void bufpool_releasebigblock(void *self) {
 		return;
 
 	cspin_lock(&s_pool.big_lock);
-	poolmgr_freeobject(s_pool.bigblockpool, self);
+	poolmgr_free_object(s_pool.bigblockpool, self);
 	cspin_unlock(&s_pool.big_lock);
 }
 
@@ -129,7 +129,7 @@ void *bufpool_createsmallblock() {
 		return NULL;
 
 	cspin_lock(&s_pool.small_lock);
-	self = poolmgr_getobject(s_pool.smallblockpool);
+	self = poolmgr_alloc_object(s_pool.smallblockpool);
 	cspin_unlock(&s_pool.small_lock);
 	return self;
 }
@@ -139,7 +139,7 @@ void bufpool_releasesmallblock(void *self) {
 		return;
 
 	cspin_lock(&s_pool.small_lock);
-	poolmgr_freeobject(s_pool.smallblockpool, self);
+	poolmgr_free_object(s_pool.smallblockpool, self);
 	cspin_unlock(&s_pool.small_lock);
 }
 
@@ -149,7 +149,7 @@ void *bufpool_createbuf() {
 		return NULL;
 
 	cspin_lock(&s_pool.buf_lock);
-	self = poolmgr_getobject(s_pool.buf_pool);
+	self = poolmgr_alloc_object(s_pool.buf_pool);
 	cspin_unlock(&s_pool.buf_lock);
 	return self;
 }
@@ -159,7 +159,7 @@ void bufpool_releasebuf(void *self) {
 		return;
 
 	cspin_lock(&s_pool.buf_lock);
-	poolmgr_freeobject(s_pool.buf_pool, self);
+	poolmgr_free_object(s_pool.buf_pool, self);
 	cspin_unlock(&s_pool.buf_lock);
 }
 

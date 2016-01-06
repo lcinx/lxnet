@@ -37,7 +37,7 @@ void blocklist_init(struct blocklist *self, create_block_func create_func,
 	cspin_init(&self->list_lock);
 }
 
-static inline struct block *blocklist_popfront(struct blocklist *self) {
+static inline struct block *blocklist_pop_front(struct blocklist *self) {
 	struct block *bk;
 	cspin_lock(&self->list_lock);
 	bk = self->head;
@@ -53,7 +53,7 @@ static inline struct block *blocklist_popfront(struct blocklist *self) {
 	return bk;
 }
 
-static inline void blocklist_pushback(struct blocklist *self, struct block *bk) {
+static inline void blocklist_push_back(struct blocklist *self, struct block *bk) {
 	cspin_lock(&self->list_lock);
 	bk->next = NULL;
 	if (self->tail) {
@@ -68,7 +68,7 @@ static inline void blocklist_pushback(struct blocklist *self, struct block *bk) 
 
 void blocklist_release(struct blocklist *self) {
 	while (true) {
-		struct block *bk = blocklist_popfront(self);
+		struct block *bk = blocklist_pop_front(self);
 		if (!bk)
 			break;
 
@@ -119,7 +119,7 @@ static inline struct block *blocklist_create_block(struct blocklist *self) {
 static inline void blocklist_check_free_block(struct blocklist *self) {
 	/* check is need free. */
 	if (block_is_read_over(self->head) && block_is_write_over(self->head)) {
-		struct block *bk = blocklist_popfront(self);
+		struct block *bk = blocklist_pop_front(self);
 		self->release_func(self->func_arg, bk);
 	}
 }
@@ -131,8 +131,8 @@ static inline bool blocklist_check_alloc_block(struct blocklist *self) {
 		if (!bk)
 			return false;
 
-		blocklist_pushback(self, bk);
-		self->can_write_size = block_getwritesize(bk);
+		blocklist_push_back(self, bk);
+		self->can_write_size = block_get_writesize(bk);
 	}
 
 	return true;
@@ -151,8 +151,8 @@ struct buf_info blocklist_get_write_bufinfo(struct blocklist *self) {
 	writebuf.len = 0;
 
 	if (blocklist_check_alloc_block(self)) {
-		writebuf.buf = block_getwritebuf(self->tail);
-		writebuf.len = block_getwritesize(self->tail);
+		writebuf.buf = block_get_writebuf(self->tail);
+		writebuf.len = block_get_writesize(self->tail);
 	}
 
 	assert(self->can_write_size == writebuf.len);
@@ -170,7 +170,7 @@ void blocklist_add_write(struct blocklist *self, int len) {
 	 * add block write position first,
 	 * then add datasize!
 	 */
-	block_addwrite(self->tail, len);
+	block_add_write(self->tail, len);
 
 	catomic_fetch_add(&self->datasize, len);
 }
@@ -241,8 +241,8 @@ struct buf_info blocklist_get_read_bufinfo(struct blocklist *self) {
 	readbuf.len = 0;
 
 	if (blocklist_get_datasize(self) > 0) {
-		readbuf.buf = block_getreadbuf(self->head);
-		readbuf.len = block_getreadsize(self->head);
+		readbuf.buf = block_get_readbuf(self->head);
+		readbuf.len = block_get_readsize(self->head);
 	}
 
 	return readbuf;
@@ -254,7 +254,7 @@ void blocklist_add_read(struct blocklist *self, int len) {
 	assert(catomic_read(&self->datasize) >= len);
 
 	/* add block read position. */
-	block_addread(self->head, len);
+	block_add_read(self->head, len);
 
 	catomic_fetch_add(&self->datasize, (-len));
 
