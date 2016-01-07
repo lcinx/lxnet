@@ -220,7 +220,7 @@ static void th_pro_func(cthread *th) {
 		return;
 
 	cinfo_id = (int)cthread_info_get_id(cinfo);
-	(void )cinfo_id;
+	(void)cinfo_id;
 
 	cthread_info_state_to_activity(cinfo);
 	catomic_inc(&mgr->resume_num);

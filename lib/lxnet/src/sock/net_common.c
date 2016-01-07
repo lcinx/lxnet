@@ -69,11 +69,6 @@ bool socket_setopt_for_connect(net_socket sockfd) {
 		ling.l_linger = 0;
 		setsockopt(sockfd, SOL_SOCKET, SO_LINGER, (char *)&ling, sizeof(ling));
 	}
-	/*int bDontLinger = true;
-
-	setsockopt(sockfd, SOL_SOCKET, SO_DONTLINGER, (char *)&bDontLinger, sizeof(int) );
-	int iSize = sizeof(int);
-	int iRet = getsockopt(sockfd,SOL_SOCKET,SO_DONTLINGER,(char *)&bDontLinger, &iSize);*/
 
 	{
 		int bKeepAlive = 1;

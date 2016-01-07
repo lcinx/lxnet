@@ -601,7 +601,7 @@ static bool nodepool_isin(struct poolmgr *mgr, struct nodepool *np, char *begin_
 static bool nodepool_isbad_point(struct nodepool *np, char *begin_bk) {
 	char *begin = np->end - (np->block_size * np->nodenum);
 	begin_bk -= (size_t)begin;
-	if ((size_t )begin_bk % np->block_size != 0)
+	if ((size_t)begin_bk % np->block_size != 0)
 		return true;
 	else
 		return false;
