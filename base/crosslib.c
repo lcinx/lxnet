@@ -41,6 +41,15 @@ int64 high_microsecond_() {
 	return (int64)(tmp * 1000000);
 }
 
+/* get current nanosecond time */
+int64 high_nanosecond_() {
+	double tmp;
+	LARGE_INTEGER liCurrent;
+	QueryPerformanceCounter(&liCurrent);
+	tmp = (double)liCurrent.QuadPart / (double)__GetSecondCount__();
+	return (int64)(tmp * 1000000000);
+}
+
 void delay_delay(unsigned int millisecond) {
 	Sleep(millisecond);
 }
@@ -105,6 +114,15 @@ int64 high_microsecond_() {
 	int64 res;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	res = (int64)(ts.tv_sec * 1000000) + (int64)(ts.tv_nsec / 1000);
+	return res;
+}
+
+/* get current nanosecond time */
+int64 high_nanosecond_() {
+	struct timespec ts;
+	int64 res;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	res = (int64)(ts.tv_sec * 1000000000) + (int64)ts.tv_nsec;
 	return res;
 }
 

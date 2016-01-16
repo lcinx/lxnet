@@ -15,12 +15,16 @@ extern "C" {
 
 int64 high_millisecond_();
 int64 high_microsecond_();
+int64 high_nanosecond_();
 
 /* get current millisecond time */
 #define get_millisecond() high_millisecond_()
 
 /* get current microsecond time */
 #define get_microsecond() high_microsecond_()
+
+/* get current nanosecond time */
+#define get_nanosecond() high_nanosecond_()
 
 /* sleep some millisecond */
 void delay_delay(unsigned int millisecond);

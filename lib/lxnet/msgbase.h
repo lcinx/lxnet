@@ -8,37 +8,53 @@
 #pragma pack(push,1)
 
 struct MsgHeader {
-	int msglength;
+	int32 length;
 };
 
 struct Msg {
 	MsgHeader header;
-	short msgtype;
+	int16 msgtype;
+
 	Msg() {
 		SetLength(sizeof(header) + sizeof(msgtype));
 	}
 
-	int GetLength() { return header.msglength; }
-	void SetLength(int len) { header.msglength = len; }
-	short GetType() { return msgtype; }
-	void SetType(short type) { msgtype = type; }
+	void SetLength(int32 length) { header.length = length; }
+	int32 GetLength() { return header.length; }
+	void SetType(int16 type) { msgtype = type; }
+	int16 GetType() { return msgtype; }
 };
 
 struct MessagePack:public Msg {
 	enum {
-		//此消息最大长度
-		e_thismessage_max_size = 1024*128 - sizeof(Msg)
+		//消息最大长度
+		e_thismessage_max_size = 1024 * 128 - sizeof(Msg)
 	};
 
 	char m_buf[e_thismessage_max_size];
-	size_t m_index;		//位置
+	size_t m_index;		//当前索引
 	int m_maxindex;		//最大索引值	主要是用于读时
 
 	MessagePack() {
-		header.msglength = sizeof(Msg);
+		header.length = sizeof(Msg);
 		memset(m_buf, 0, sizeof(m_buf));
 		m_index = 0;
 		m_maxindex = 0;
+	}
+
+	void SetIndex(size_t idx) {
+		if (idx >= e_thismessage_max_size)
+			idx = e_thismessage_max_size - 1;
+
+		if ((int)idx < 0)
+			idx = 0;
+
+		m_index = idx;
+		m_maxindex = GetLength() - (int)sizeof(Msg);
+	}
+
+	int GetIndex() {
+		return m_index;
 	}
 
 	//切记在从包中取出时。调用此函数，重置缓冲索引
@@ -47,21 +63,166 @@ struct MessagePack:public Msg {
 		m_maxindex = GetLength() - (int)sizeof(Msg);
 	}
 
-	//设置当前位置索引
-	void SetIndex(size_t idx) {
-		if (idx >= e_thismessage_max_size)
-			idx = e_thismessage_max_size - 1;
-		if ((int)idx < 0)
-			idx = 0;
-		m_index = idx;
-		m_maxindex = GetLength() - (int)sizeof(Msg);
+	void Reset() {
+		m_index = 0;
+		m_maxindex = 0;
+		header.length = sizeof(Msg);
 	}
 
-	//重置包大小以及索引
-	void ResetMsgLength() {
-		Begin();
-		header.msglength = sizeof(Msg);
-		m_maxindex = 0;
+	bool CanPush(size_t size) {
+		if (m_index + size <= e_thismessage_max_size)
+			return true;
+		return false;
+	}
+
+	bool CanGet(size_t size) {
+		if ((int)(m_index + size) <= m_maxindex)
+			return true;
+		return false;
+	}
+
+
+
+	/*
+	 * ================================================================================
+	 * writer interface.
+	 * ================================================================================
+	 */
+	void PushBoolean(bool value) {
+		PushInt8((int8)value);
+	}
+
+	void PushInt8(int8 data) {
+		if (CanPush(sizeof(data))) {
+			__write_data(&data, sizeof(data));
+		} else {
+			assert(false && "error!");
+		}
+	}
+
+	void PushInt16(int16 data) {
+		if (CanPush(sizeof(data))) {
+			__write_data(&data, sizeof(data));
+		} else {
+			assert(false && "error!");
+		}
+	}
+
+	void PushInt32(int32 data) {
+		if (CanPush(sizeof(data))) {
+			__write_data(&data, sizeof(data));
+		} else {
+			assert(false && "error!");
+		}
+	}
+
+	void PushInt64(int64 data) {
+		if (CanPush(sizeof(data))) {
+			__write_data(&data, sizeof(data));
+		} else {
+			assert(false && "error!");
+		}
+	}
+
+	void PushFloat(float data) {
+		if (CanPush(sizeof(data))) {
+			__write_data(&data, sizeof(data));
+		} else {
+			assert(false && "error!");
+		}
+	}
+
+	void PushDouble(double data) {
+		if (CanPush(sizeof(data))) {
+			__write_data(&data, sizeof(data));
+		} else {
+			assert(false && "error!");
+		}
+	}
+
+	bool PushBlock(const void *data, size_t size) {
+		if (!data)
+			return false;
+
+		if (CanPush(size)) {
+			__write_data(data, size);
+			return true;
+		}
+
+		assert(false && "error!");
+		return false;
+	}
+
+	bool PushLBlock(const void *data, size_t size) {
+		if (!data)
+			return false;
+
+		if (CanPush(sizeof(int32) + size)) {
+			PushInt32(size);
+			__write_data(data, size);
+			return true;
+		}
+
+		assert(false && "error!");
+		return false;
+	}
+
+	bool PushLString(const char *str, size_t str_size, int16 max_push = SHRT_MAX - 3) {
+		assert(str);
+		assert(str_size < SHRT_MAX - 3);
+		int16 size = (int16)str_size;
+		if (size > max_push)
+			size = max_push;
+
+		assert(size >= 0);
+		if (!str || size < 0)
+			return false;
+
+		if (CanPush(sizeof(int16) + (size_t)size)) {
+			PushInt16(size);
+			__write_data(str, (size_t)size);
+			return true;
+		}
+
+		assert(false && "error!");
+		return false;
+	}
+
+	bool PushString(const char *str, int16 max_push = SHRT_MAX - 3) {
+		if (!str)
+			return false;
+
+		size_t str_size = strlen(str);
+		return PushLString(str, str_size, max_push);
+	}
+
+	bool PushLBigString(const char *str, size_t str_size, int32 max_push = INT_MAX - 3) {
+		assert(str);
+		assert(str_size < INT_MAX - 3);
+		int32 size = (int32)str_size;
+		if (size > max_push)
+			size = max_push;
+
+		assert(size >= 0);
+		if (!str || size < 0)
+			return false;
+
+		if (CanPush(sizeof(int32) + (size_t)size)) {
+			PushInt32(size);
+			__write_data(str, (size_t)size);
+			return true;
+		}
+
+		assert(false && "error!");
+		return false;
+	}
+
+	bool PushBigString(const char *str, int32 max_push = INT_MAX - 3) {
+		if (!str)
+			return false;
+
+		size_t str_size = strlen(str);
+		return PushLBigString(str, str_size, max_push);
 	}
 
 	//用于覆盖数据。不做包长度的累加
@@ -79,216 +240,105 @@ struct MessagePack:public Msg {
 		memcpy(&m_buf[index], data, size);
 	}
 
-	bool CanPush(size_t size) {
-		if ((m_index + size) > e_thismessage_max_size)
-			return false;
-		return true;
+
+
+	/*
+	 * ================================================================================
+	 * reader interface.
+	 * ================================================================================
+	 */
+	bool GetBoolean() {
+		return (bool)GetInt8();
 	}
 
-	bool PushBlock(const void *data, size_t size) {
-		if (!data)
-			return false;
-
-		if ((m_index + size) > e_thismessage_max_size) {
+	int8 GetInt8() {
+		int8 temp = 0;
+		if (CanGet(sizeof(temp))) {
+			__read_data(&temp, sizeof(temp));
+		} else {
 			assert(false && "error!");
-			return false;
 		}
-
-		memcpy(&m_buf[m_index], data, size);
-		m_index += size;
-		header.msglength += size;
-		return true;
+		return temp;
 	}
 
-	bool PushLBlock(const void *data, size_t size) {
-		if (!data)
-			return false;
-
-		if ((m_index + size + sizeof(int32)) > e_thismessage_max_size) {
+	int16 GetInt16() {
+		int16 temp = 0;
+		if (CanGet(sizeof(temp))) {
+			__read_data(&temp, sizeof(temp));
+		} else {
 			assert(false && "error!");
-			return false;
 		}
-
-		PushInt32(size);
-
-		memcpy(&m_buf[m_index], data, size);
-		m_index += size;
-		header.msglength += size;
-		return true;
+		return temp;
 	}
 
-	bool PushLString(const char *str, size_t strsize, int16 maxpush = SHRT_MAX - 3) {
-		assert(strsize < SHRT_MAX - 3);
-		int16 size = (int16)strsize;
-		if (size > maxpush)
-			size = maxpush;
-
-		assert(size >= 0);
-		if (size < 0)
-			return false;
-
-		if (!CanPush(sizeof(int16) + (size_t)size)) {
+	int32 GetInt32() {
+		int32 temp = 0;
+		if (CanGet(sizeof(temp))) {
+			__read_data(&temp, sizeof(temp));
+		} else {
 			assert(false && "error!");
-			return false;
 		}
+		return temp;
+	}
 
-		PushInt16(size);
-		if (0 == size)
+	int64 GetInt64() {
+		int64 temp = 0;
+		if (CanGet(sizeof(temp))) {
+			__read_data(&temp, sizeof(temp));
+		} else {
+			assert(false && "error!");
+		}
+		return temp;
+	}
+
+	float GetFloat() {
+		float temp = 0;
+		if (CanGet(sizeof(temp))) {
+			__read_data(&temp, sizeof(temp));
+		} else {
+			assert(false && "error!");
+		}
+		return temp;
+	}
+
+	double GetDouble() {
+		double temp = 0;
+		if (CanGet(sizeof(temp))) {
+			__read_data(&temp, sizeof(temp));
+		} else {
+			assert(false && "error!");
+		}
+		return temp;
+	}
+
+	bool GetBlock(void *buf, size_t size) {
+		if (!buf || 0 == size)
+			return false;
+
+		if (CanGet(size)) {
+			__read_data(buf, size);
 			return true;
-
-		return PushBlock(str, size);
-	}
-
-	bool PushString(const char *str, int16 maxpush = SHRT_MAX - 3) {
-		size_t strsize = strlen(str);
-		assert(strsize < SHRT_MAX - 3);
-		int16 size = (int16)strsize;
-		if (size > maxpush)
-			size = maxpush;
-
-		assert(size >= 0);
-		if (size < 0)
-			return false;
-
-		if (!CanPush(sizeof(int16) + (size_t)size)) {
-			assert(false && "error!");
-			return false;
 		}
 
-		PushInt16(size);
+		assert(false && "error!");
+		return false;
+	}
+
+	const char *GetBlockRef(size_t size, size_t *datalen) {
+		*datalen = 0;
+		size_t get_size = m_maxindex - m_index;
+		size = get_size > size ? size : get_size;
+
 		if (0 == size)
-			return true;
+			return NULL;
 
-		return PushBlock(str, size);
-	}
-
-	bool PushLBigString(const char *str, size_t strsize, int32 maxpush = INT_MAX - 3) {
-		assert(strsize < INT_MAX - 3);
-		int32 size = (int32)strsize;
-		if (size > maxpush)
-			size = maxpush;
-
-		assert(size >= 0);
-		if (size < 0)
-			return false;
-
-		if (!CanPush(sizeof(int32) + (size_t)size)) {
-			assert(false && "error!");
-			return false;
+		if (CanGet(size)) {
+			*datalen = size;
+			return __read_data_ref(size);
 		}
 
-		PushInt32(size);
-		if (0 == size)
-			return true;
-
-		return PushBlock(str, size);
-	}
-
-	bool PushBigString(const char *str, int32 maxpush = INT_MAX - 3) {
-		size_t strsize = strlen(str);
-		assert(strsize < INT_MAX - 3);
-		int32 size = (int32)strsize;
-		if (size > maxpush)
-			size = maxpush;
-
-		assert(size >= 0);
-		if (size < 0)
-			return false;
-
-		if (!CanPush(sizeof(int32) + (size_t)size)) {
-			assert(false && "error!");
-			return false;
-		}
-
-		PushInt32(size);
-		if (0 == size)
-			return true;
-
-		return PushBlock(str, size);
-	}
-
-	void PushInt64(int64 data) {
-		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
-			assert(false && "error!");
-			return;
-		}
-
-		memcpy(&m_buf[m_index], &data, sizeof(data));
-		m_index += sizeof(data);
-		header.msglength += sizeof(data);
-	}
-
-	void PushInt32(int32 data) {
-		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
-			assert(false && "error!");
-			return;
-		}
-
-		memcpy(&m_buf[m_index], &data, sizeof(data));
-		m_index += sizeof(data);
-		header.msglength += sizeof(data);
-	}
-
-	void PushInt16(int16 data) {
-		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
-			assert(false && "error!");
-			return;
-		}
-
-		memcpy (&m_buf[m_index], &data, sizeof(data));
-		m_index += sizeof(data);
-		header.msglength += sizeof(data);
-	}
-
-	void PushInt8(int8 data) {
-		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
-			assert(false && "error!");
-			return;
-		}
-
-		memcpy(&m_buf[m_index], &data, sizeof(data));
-		m_index += sizeof(data);
-		header.msglength += sizeof(data);
-	}
-
-	void PushBoolean(bool value) {
-		PushInt8((int8)value);
-	}
-
-	void PushFloat(float data) {
-		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
-			assert(false && "error!");
-			return;
-		}
-
-		memcpy(&m_buf[m_index], &data, sizeof(data));
-		m_index += sizeof(data);
-		header.msglength += sizeof(data);
-	}
-
-	void PushDouble(double data) {
-		if ((m_index + sizeof(data)) > e_thismessage_max_size) {
-			assert(false && "error!");
-			return;
-		}
-
-		memcpy(&m_buf[m_index], &data, sizeof(data));
-		m_index += sizeof(data);
-		header.msglength += sizeof(data);
-	}
-
-	bool GetBlock(void *data, size_t size) {
-		if (size == 0)
-			return false;
-
-		if ((int)(m_index + size) > m_maxindex) {
-			assert(false && "error!");
-			return false;
-		}
-
-		memcpy(data, &m_buf[m_index], size);
-		m_index += size;
-		return true;
+		assert(false && "error!");
+		return NULL;
 	}
 
 	const char *GetLBlock(size_t *datalen) {
@@ -301,15 +351,13 @@ struct MessagePack:public Msg {
 		if (0 == size)
 			return "";
 
-		if ((int)(m_index + size) > m_maxindex) {
-			assert(false && "error!");
-			return NULL;
+		if (CanGet((size_t)size)) {
+			*datalen = (size_t)size;
+			return __read_data_ref((size_t)size);
 		}
 
-		const char *data = &m_buf[m_index];
-		*datalen = (size_t)size;
-		m_index += size;
-		return data;
+		assert(false && "error!");
+		return NULL;
 	}
 
 	const char *GetLString(size_t *datalen) {
@@ -322,15 +370,13 @@ struct MessagePack:public Msg {
 		if (0 == size)
 			return "";
 
-		if ((int)(m_index + size) > m_maxindex) {
-			assert(false && "error!");
-			return NULL;
+		if (CanGet((size_t)size)) {
+			*datalen = (size_t)size;
+			return __read_data_ref((size_t)size);
 		}
 
-		const char *data = &m_buf[m_index];
-		*datalen = (size_t)size;
-		m_index += size;
-		return data;
+		assert(false && "error!");
+		return NULL;
 	}
 
 	bool GetString(char *buf, size_t buflen) {
@@ -365,15 +411,13 @@ struct MessagePack:public Msg {
 		if (0 == size)
 			return "";
 
-		if ((int)(m_index + size) > m_maxindex) {
-			assert(false && "error!");
-			return NULL;
+		if (CanGet((size_t)size)) {
+			*datalen = (size_t)size;
+			return __read_data_ref((size_t)size);
 		}
 
-		const char *data = &m_buf[m_index];
-		*datalen = size;
-		m_index += size;
-		return data;
+		assert(false && "error!");
+		return NULL;
 	}
 
 	bool GetBigString(char *buf, size_t buflen) {
@@ -398,81 +442,27 @@ struct MessagePack:public Msg {
 		return GetBlock(buf, (size_t)(buflen > (size_t)size ? size : (buflen - 1)));
 	}
 
-	int64 GetInt64() {
-		int64 temp = 0;
-		if(m_index + sizeof(temp) > (size_t)m_maxindex) {
-			assert(false && "error!");
-			return temp;
-		}
 
-		memcpy(&temp, &m_buf[m_index], sizeof(temp));
-		m_index += sizeof(temp);
-		return temp;
+
+private:
+
+	inline void __write_data(const void *data, size_t size) {
+		memcpy(&m_buf[m_index], data, size);
+		m_index += size;
+		header.length += size;
 	}
 
-	int32 GetInt32() {
-		int32 temp = 0;
-		if (m_index + sizeof(temp) > (size_t)m_maxindex) {
-			assert(false && "error!");
-			return temp;
-		}
-
-		memcpy(&temp, &m_buf[m_index], sizeof(temp));
-		m_index += sizeof(temp);
-		return temp;
+	inline void __read_data(void *buf, size_t size) {
+		memcpy(buf, &m_buf[m_index], size);
+		m_index += size;
 	}
 
-	int16 GetInt16() {
-		int16 temp = 0;
-		if (m_index + sizeof(temp) > (size_t)m_maxindex) {
-			assert(false && "error!");
-			return temp;
-		}
-
-		memcpy(&temp, &m_buf[m_index], sizeof(temp));
-		m_index += sizeof(temp);
-		return temp;
+	inline const char *__read_data_ref(size_t size) {
+		const char *data = &m_buf[m_index];
+		m_index += size;
+		return data;
 	}
 
-	int8 GetInt8() {
-		int8 temp = 0;
-		if (m_index + sizeof(temp) > (size_t)m_maxindex) {
-			assert(false && "error!");
-			return temp;
-		}
-
-		temp = *((int8*)&m_buf[m_index]);
-		m_index += sizeof(temp);
-		return temp;
-	}
-
-	bool GetBoolean() {
-		return (bool)GetInt8();
-	}
-
-	float GetFloat() {
-		float temp = 0;
-		if (m_index + sizeof(temp) > (size_t)m_maxindex) {
-			assert(false && "error!");
-			return temp;
-		}
-
-		memcpy(&temp, &m_buf[m_index], sizeof(temp));
-		m_index += sizeof(temp);
-		return temp;
-	}
-
-	double GetDouble() {
-		double temp = 0;
-		if (m_index + sizeof(temp) > (size_t)m_maxindex) {
-			assert(false && "error!");
-			return temp;
-		}
-
-		memcpy(&temp, &m_buf[m_index], sizeof(temp));
-		m_index += sizeof(temp);
-		return temp;
-	}
 };
 
 #pragma pack(pop)
