@@ -68,7 +68,7 @@ static struct socketer *socketmgr_pop_front() {
 		cspin_unlock(&s_mgr.mgr_lock);
 		return NULL;
 	}
-	
+
 	s_mgr.head = so->next;
 	so->next = NULL;
 	if (s_mgr.tail == so) {
@@ -203,7 +203,7 @@ void socketer_release(struct socketer *self) {
 	self->deleted = true;
 
 	socketer_close(self);
-	
+
 	socketmgr_add_to_waite(self);
 }
 
@@ -235,7 +235,7 @@ bool socketer_connect(struct socketer *self, const char *ip, short port) {
 		status = getaddrinfo(ip, port_buf, &hints, &ai_list);
 		if (status != 0)
 			return false;
-	
+
 		cur = ai_list;
 		do {
 			self->sockfd = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
@@ -250,7 +250,7 @@ bool socketer_connect(struct socketer *self, const char *ip, short port) {
 			lasterror = NET_GetLastError();
 			if (SOCKET_ERR_CONNECT_RETRIABLE(lasterror) || SOCKET_ERR_CONNECT_ALREADY(lasterror))
 				break;
-			
+
 			socket_close(&self->sockfd);
 		} while ((cur = cur->ai_next) != NULL);
 
@@ -269,7 +269,7 @@ bool socketer_connect(struct socketer *self, const char *ip, short port) {
 		socklen_t len = sizeof(error);
 		int code;
 
-		bool is_connect = false;	
+		bool is_connect = false;
 		if (socket_can_write(self->sockfd) == 1)
 			is_connect = true;
 
@@ -384,7 +384,7 @@ bool socketer_gethostbyname(const char *name, char *buf, size_t len, bool ipv6) 
 	if (status != 0) {
 		goto failed_do;
 	}
-	
+
 	cur = ai_list;
 	do {
 		if (getnameinfo(cur->ai_addr, cur->ai_addrlen, buf, len, 0, 0, NI_NUMERICHOST) == 0)
@@ -717,7 +717,7 @@ void socketer_on_recv(struct socketer *self, int len) {
 			/* return. !!! */
 			return;
 		}
-		
+
 	}
 }
 
@@ -736,7 +736,7 @@ void socketer_on_send(struct socketer *self, int len) {
 		debuglog("send :%d size\n", len);
 	}
 #endif
-	
+
 	/* do something before real send. */
 	buf_send_before_do(self->sendbuf);
 
@@ -774,7 +774,7 @@ void socketer_on_send(struct socketer *self, int len) {
 			if (!SOCKET_ERR_RW_RETRIABLE(lasterror)) {
 				/* error, close socket. */
 				socketer_close(self);
-				
+
 				if (catomic_dec(&self->ref) < 1) {
 					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
 							self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 

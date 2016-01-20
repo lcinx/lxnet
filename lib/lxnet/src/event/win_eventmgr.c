@@ -51,7 +51,7 @@ void socket_setup_recvevent(struct socketer *self) {
 	self->recv_event.m_event = e_socket_io_event_read_complete;
 	if (!PostQueuedCompletionStatus(s_iocp.completeport, 0, (ULONG_PTR)self, &self->recv_event.m_overlap)) {
 		socketer_close(self);
-			
+
 		if (catomic_dec(&self->ref) < 1) {
 			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
 					self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
@@ -84,7 +84,7 @@ void socket_recvdata(struct socketer *self, char *data, int len) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 			debuglog("socket_setup_recvevent error!, error:%d\n", WSAGetLastError());
 			socketer_close(self);
-			
+
 			if (catomic_dec(&self->ref) < 1) {
 				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
 						self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
@@ -99,7 +99,7 @@ void socket_setup_sendevent(struct socketer *self) {
 	self->send_event.m_event = e_socket_io_event_write_end;
 	if (!PostQueuedCompletionStatus(s_iocp.completeport, 0, (ULONG_PTR)self, &self->send_event.m_overlap)) {
 		socketer_close(self);
-			
+
 		if (catomic_dec(&self->ref) < 1) {
 			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
 					self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
@@ -115,7 +115,7 @@ void socket_senddata(struct socketer *self, char *data, int len) {
 	WSABUF buf;
 	buf.len = len;
 	buf.buf = data;
-	
+
 	assert(self != NULL);
 	assert(catomic_read(&self->sendlock) == 1);
 
@@ -132,7 +132,7 @@ void socket_senddata(struct socketer *self, char *data, int len) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 			debuglog("socket_senddata error!, error:%d\n", WSAGetLastError());
 			socketer_close(self);
-			
+
 			if (catomic_dec(&self->ref) < 1) {
 				log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
 						self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 

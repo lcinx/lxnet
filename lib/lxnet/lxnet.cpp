@@ -230,6 +230,7 @@ void Socketer::Release(Socketer *self) {
 		self->m_self = NULL;
 	}
 
+	self->m_infomgr = NULL;
 	self->m_encrypt = NULL;
 	self->m_decrypt = NULL;
 
@@ -389,8 +390,11 @@ bool Socketer::SendPolicyData() {
 		return false;
 	}
 
-	on_sendmsg(m_infomgr, 0, datasize + 1);
-	return socketer_sendmsg(m_self, buf, datasize + 1);
+	bool res = socketer_sendmsg(m_self, buf, datasize + 1);
+	if (res) {
+		on_sendmsg(m_infomgr, 0, datasize + 1);
+	}
+	return res;
 }
 
 /* 发送TGW信息头 */
@@ -406,8 +410,11 @@ bool Socketer::SendTGWInfo(const char *domain, int port) {
 	}
 
 	socketer_set_raw_datasize(m_self, datasize);
-	on_sendmsg(m_infomgr, 0, datasize);
-	return socketer_sendmsg(m_self, buf, datasize);
+	bool res = socketer_sendmsg(m_self, buf, datasize);
+	if (res) {
+		on_sendmsg(m_infomgr, 0, datasize);
+	}
+	return res;
 }
 
 /*
@@ -442,35 +449,42 @@ bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 		return false;
 	}
 
-	on_sendmsg(m_infomgr, 1, pMsg->GetLength() + addsize);
-
+	bool res = false;
 	if (adddata && addsize != 0) {
 		bool res1, res2;
 		int onesend = pMsg->GetLength();
 		pMsg->SetLength(onesend + addsize);
 		res1 = socketer_sendmsg(m_self, pMsg, onesend);
 
-		//这里切记要修改回去。 例：对于同一个包遍历发送给一个列表，然后每次都附带不同尾巴。。。这种情景，那么必须如此恢复。
+		/*
+		 * 这里切记要修改回去。
+		 * 例：对于同一个包遍历发送给一个列表，然后每次都附带不同尾巴。。。这种情景，那么必须如此恢复。
+		 */
 		pMsg->SetLength(onesend);
 		res2 = socketer_sendmsg(m_self, adddata, addsize);
-		return (res1 && res2);
+		res = (res1 && res2);
 	} else {
-		return socketer_sendmsg(m_self, pMsg, pMsg->GetLength());
+		res = socketer_sendmsg(m_self, pMsg, pMsg->GetLength());
 	}
+
+	if (res) {
+		on_sendmsg(m_infomgr, 1, pMsg->GetLength() + addsize);
+	}
+	return res;
 }
 
 /* 接收数据 */
 Msg *Socketer::GetMsg(char *buf, size_t bufsize) {
-	Msg *obj = (Msg *)socketer_getmsg(m_self, buf, bufsize);
-	if (obj) {
-		if (obj->GetLength() < (int)sizeof(Msg)) {
+	Msg *pMsg = (Msg *)socketer_getmsg(m_self, buf, bufsize);
+	if (pMsg) {
+		if (pMsg->GetLength() < (int)sizeof(Msg)) {
 			Close();
 			return NULL;
 		}
 
-		on_recvmsg(m_infomgr, 1, obj->GetLength());
+		on_recvmsg(m_infomgr, 1, pMsg->GetLength());
 	}
-	return obj;
+	return pMsg;
 }
 
 /* 发送数据 */
@@ -483,9 +497,11 @@ bool Socketer::SendData(const char *data, size_t datasize) {
 		return false;
 	}
 
-	on_sendmsg(m_infomgr, 0, datasize);
-
-	return socketer_sendmsg(m_self, (void *)data, datasize);
+	bool res = socketer_sendmsg(m_self, (void *)data, datasize);
+	if (res) {
+		on_sendmsg(m_infomgr, 0, datasize);
+	}
+	return res;
 }
 
 /* 接收数据 */
@@ -494,7 +510,6 @@ const char *Socketer::GetData(char *buf, size_t bufsize, int *datalen) {
 	if (data) {
 		on_recvmsg(m_infomgr, 0, *datalen);
 	}
-
 	return data;
 }
 

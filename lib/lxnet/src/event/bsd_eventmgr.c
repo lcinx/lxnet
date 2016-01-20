@@ -67,7 +67,7 @@ void socket_removefrom_eventmgr(struct socketer *self) {
 	kevent(s_mgr->kqueue_fd, &ev, 1, NULL, 0, NULL);
 	EV_SET(&ev, self->sockfd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 	kevent(s_mgr->kqueue_fd, &ev, 1, NULL, 0, NULL);
-	
+
 	debuglog("remove all event from eventmgr.");
 }
 
@@ -83,7 +83,7 @@ void socket_setup_recvevent(struct socketer *self) {
 				self->sockfd, (int)catomic_read(&self->ref), cthread_self_id());
 	}
 
-	
+
 	EV_SET(&ev, self->sockfd, EVFILT_READ, EV_ENABLE, 0, 0, self);
 	if (kevent(s_mgr->kqueue_fd, &ev, 1, NULL, 0, NULL) == -1) {
 		/*log_error("kqueue, setup recv event to kqueue set on fd %d error!, errno:%d", self->sockfd, NET_GetLastError());*/

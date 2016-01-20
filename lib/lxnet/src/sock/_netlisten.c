@@ -101,7 +101,7 @@ bool listener_listen(struct listener *self, unsigned short port, int backlog) {
 			socket_close(&self->sockfd);
 			continue;
 		}
-		
+
 		if (bind(self->sockfd, cur->ai_addr, cur->ai_addrlen) == 0)
 			break;
 

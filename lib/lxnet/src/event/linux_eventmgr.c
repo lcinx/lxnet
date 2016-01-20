@@ -63,7 +63,7 @@ void socket_removefrom_eventmgr(struct socketer *self) {
 	if (epoll_ctl(s_mgr->epoll_fd, EPOLL_CTL_DEL, self->sockfd, &ev) == -1) {
 		/*log_error("epoll, not remove fd %d from epoll set, error!, errno:%d", ev.data.fd, NET_GetLastError());*/
 	}
-	
+
 	debuglog("remove all event from eventmgr.");
 }
 

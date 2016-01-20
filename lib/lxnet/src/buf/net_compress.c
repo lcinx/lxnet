@@ -29,7 +29,7 @@ struct buf_info compressmgr_uncompressdata(char *uncompressbuf, int uncompressle
 	struct buf_info resbuf;
 	resbuf.buf= NULL;
 	resbuf.len = 0;
-	
+
 	print_debug("un compress before, msg len:%d\n", *(int *)data);
 
 	assert(data != NULL);

@@ -26,7 +26,7 @@ int main()
 	lxnet::Socketer *newclient = lxnet::Socketer::Create();
 	//newclient->UseUncompress();
 	//newclient->UseCompress();
-	
+
 	while (!newclient->Connect("127.0.0.1", 30012))
 	{
 #ifdef WIN32
