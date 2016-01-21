@@ -88,56 +88,48 @@ struct MessagePack:public Msg {
 	 * writer interface.
 	 * ================================================================================
 	 */
-	void PushBoolean(bool value) {
-		PushInt8((int8)value);
+	void PushBoolean(bool data) {
+		PushBlock(&data, sizeof(data));
 	}
 
 	void PushInt8(int8 data) {
-		if (CanPush(sizeof(data))) {
-			__write_data(&data, sizeof(data));
-		} else {
-			assert(false && "error!");
-		}
+		PushBlock(&data, sizeof(data));
+	}
+
+	void PushUInt8(uint8 data) {
+		PushBlock(&data, sizeof(data));
 	}
 
 	void PushInt16(int16 data) {
-		if (CanPush(sizeof(data))) {
-			__write_data(&data, sizeof(data));
-		} else {
-			assert(false && "error!");
-		}
+		PushBlock(&data, sizeof(data));
+	}
+
+	void PushUInt16(uint16 data) {
+		PushBlock(&data, sizeof(data));
 	}
 
 	void PushInt32(int32 data) {
-		if (CanPush(sizeof(data))) {
-			__write_data(&data, sizeof(data));
-		} else {
-			assert(false && "error!");
-		}
+		PushBlock(&data, sizeof(data));
+	}
+
+	void PushUInt32(uint32 data) {
+		PushBlock(&data, sizeof(data));
 	}
 
 	void PushInt64(int64 data) {
-		if (CanPush(sizeof(data))) {
-			__write_data(&data, sizeof(data));
-		} else {
-			assert(false && "error!");
-		}
+		PushBlock(&data, sizeof(data));
+	}
+
+	void PushUInt64(uint64 data) {
+		PushBlock(&data, sizeof(data));
 	}
 
 	void PushFloat(float data) {
-		if (CanPush(sizeof(data))) {
-			__write_data(&data, sizeof(data));
-		} else {
-			assert(false && "error!");
-		}
+		PushBlock(&data, sizeof(data));
 	}
 
 	void PushDouble(double data) {
-		if (CanPush(sizeof(data))) {
-			__write_data(&data, sizeof(data));
-		} else {
-			assert(false && "error!");
-		}
+		PushBlock(&data, sizeof(data));
 	}
 
 	bool PushBlock(const void *data, size_t size) {
@@ -248,66 +240,68 @@ struct MessagePack:public Msg {
 	 * ================================================================================
 	 */
 	bool GetBoolean() {
-		return (bool)GetInt8();
+		bool temp = false;
+		GetBlock(&temp, sizeof(temp));
+		return temp;
 	}
 
 	int8 GetInt8() {
 		int8 temp = 0;
-		if (CanGet(sizeof(temp))) {
-			__read_data(&temp, sizeof(temp));
-		} else {
-			assert(false && "error!");
-		}
+		GetBlock(&temp, sizeof(temp));
+		return temp;
+	}
+
+	uint8 GetUInt8() {
+		uint8 temp = 0;
+		GetBlock(&temp, sizeof(temp));
 		return temp;
 	}
 
 	int16 GetInt16() {
 		int16 temp = 0;
-		if (CanGet(sizeof(temp))) {
-			__read_data(&temp, sizeof(temp));
-		} else {
-			assert(false && "error!");
-		}
+		GetBlock(&temp, sizeof(temp));
+		return temp;
+	}
+
+	uint16 GetUInt16() {
+		uint16 temp = 0;
+		GetBlock(&temp, sizeof(temp));
 		return temp;
 	}
 
 	int32 GetInt32() {
 		int32 temp = 0;
-		if (CanGet(sizeof(temp))) {
-			__read_data(&temp, sizeof(temp));
-		} else {
-			assert(false && "error!");
-		}
+		GetBlock(&temp, sizeof(temp));
+		return temp;
+	}
+
+	uint32 GetUInt32() {
+		uint32 temp = 0;
+		GetBlock(&temp, sizeof(temp));
 		return temp;
 	}
 
 	int64 GetInt64() {
 		int64 temp = 0;
-		if (CanGet(sizeof(temp))) {
-			__read_data(&temp, sizeof(temp));
-		} else {
-			assert(false && "error!");
-		}
+		GetBlock(&temp, sizeof(temp));
+		return temp;
+	}
+
+	uint64 GetUInt64() {
+		uint64 temp = 0;
+		GetBlock(&temp, sizeof(temp));
 		return temp;
 	}
 
 	float GetFloat() {
 		float temp = 0;
-		if (CanGet(sizeof(temp))) {
-			__read_data(&temp, sizeof(temp));
-		} else {
-			assert(false && "error!");
-		}
+		GetBlock(&temp, sizeof(temp));
 		return temp;
 	}
 
 	double GetDouble() {
 		double temp = 0;
-		if (CanGet(sizeof(temp))) {
-			__read_data(&temp, sizeof(temp));
-		} else {
-			assert(false && "error!");
-		}
+		GetBlock(&temp, sizeof(temp));
 		return temp;
 	}
 

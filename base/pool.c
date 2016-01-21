@@ -303,7 +303,7 @@ static inline struct nodepool *poolmgr_create_nodepool(struct poolmgr *self) {
 	mem = malloc(total_mem_size);
 	if (!mem) {
 		assert(false && "poolmgr_create_nodepool malloc memory failed!");
-		log_error("malloc "_FORMAT_64U_NUM" byte memory error!", (uint64)total_mem_size);
+		log_error("malloc " _FORMAT_64U_NUM " byte memory error!", (uint64)total_mem_size);
 		return NULL;
 	}
 
@@ -462,9 +462,9 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 		assert(false && "poolmgr_create malloc memory failed!");
 
 #ifndef NOTUSE_POOL
-		log_error("malloc "_FORMAT_64U_NUM" byte memory error!", (uint64)total_mem_size);
+		log_error("malloc " _FORMAT_64U_NUM " byte memory error!", (uint64)total_mem_size);
 #else
-		log_error("malloc "_FORMAT_64U_NUM" byte memory error!", (uint64)sizeof(struct poolmgr));
+		log_error("malloc " _FORMAT_64U_NUM " byte memory error!", (uint64)sizeof(struct poolmgr));
 #endif
 
 		return NULL;
@@ -669,14 +669,14 @@ void poolmgr_free_object(struct poolmgr *self, void *bk) {
 }
 
 #define _STR_HEAD "\n%s:\n<<<<<<<<<<<<<<<<<< poolmgr info begin <<<<<<<<<<<<<<<<<\n\
-pools have pool num:"_FORMAT_64U_NUM"\n\
-pools max pool num:"_FORMAT_64U_NUM"\ttime:%s\n\
-base alignment:"_FORMAT_64U_NUM"\n\
-base object size:"_FORMAT_64U_NUM"\tobject size:"_FORMAT_64U_NUM"\n\
-object total num: ["_FORMAT_64U_NUM"]\tobject current num: ["_FORMAT_64U_NUM"]\n\
-base num:"_FORMAT_64U_NUM"\tcurrent max num:"_FORMAT_64U_NUM"\tnext_multiple:"_FORMAT_64U_NUM"\n\
-memory total: "_FORMAT_64U_NUM"(byte), "_FORMAT_64U_NUM"(kb), "_FORMAT_64U_NUM"(mb)\n\
-shrink arg: free pool num:"_FORMAT_64U_NUM", free node ratio:%.3f\n\
+pools have pool num:" _FORMAT_64U_NUM "\n\
+pools max pool num:" _FORMAT_64U_NUM "\ttime:%s\n\
+base alignment:" _FORMAT_64U_NUM "\n\
+base object size:" _FORMAT_64U_NUM "\tobject size:" _FORMAT_64U_NUM "\n\
+object total num: [" _FORMAT_64U_NUM "]\tobject current num: [" _FORMAT_64U_NUM "]\n\
+base num:" _FORMAT_64U_NUM "\tcurrent max num:" _FORMAT_64U_NUM "\tnext_multiple:" _FORMAT_64U_NUM "\n\
+memory total: " _FORMAT_64U_NUM "(byte), " _FORMAT_64U_NUM "(kb), " _FORMAT_64U_NUM "(mb)\n\
+shrink arg: free pool num:" _FORMAT_64U_NUM ", free node ratio:%.3f\n\
 >>>>>>>>>>>>>>>>>> poolmgr info end >>>>>>>>>>>>>>>>>>\n"
 void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize) {
 
