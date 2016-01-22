@@ -28,18 +28,36 @@ struct Msg {
 struct MessagePack:public Msg {
 	enum {
 		//消息最大长度
-		e_thismessage_max_size = 1024 * 128 - sizeof(Msg)
+		e_thismessage_max_size = 1024 * 128 - sizeof(Msg),
+
+		//字符串最大长度(用无符号16位记录长度)
+		e_string_max_length = USHRT_MAX - 2,
+
+		//大字符串最大长度(用无符号32位记录长度)
+		e_bigstring_max_length = e_thismessage_max_size - 4,
 	};
 
 	char m_buf[e_thismessage_max_size];
-	size_t m_index;		//当前索引
-	int m_maxindex;		//最大索引值	主要是用于读时
+	size_t m_index;			//当前索引
+	int m_maxindex;			//最大索引值	主要是用于读时
+	int m_error_num;		//出错次数
+	bool m_enable_assert;	//是否开启assert
 
 	MessagePack() {
 		header.length = sizeof(Msg);
 		memset(m_buf, 0, sizeof(m_buf));
 		m_index = 0;
 		m_maxindex = 0;
+		m_error_num = 0;
+		m_enable_assert = true;
+	}
+
+	bool HasError() {
+		return m_error_num != 0;
+	}
+
+	int GetErrorNum() {
+		return m_error_num;
 	}
 
 	void SetIndex(size_t idx) {
@@ -63,10 +81,13 @@ struct MessagePack:public Msg {
 		m_maxindex = GetLength() - (int)sizeof(Msg);
 	}
 
-	void Reset() {
+	void Reset(bool enable_assert = true) {
 		m_index = 0;
 		m_maxindex = 0;
 		header.length = sizeof(Msg);
+
+		m_error_num = 0;
+		m_enable_assert = enable_assert;
 	}
 
 	bool CanPush(size_t size) {
@@ -133,103 +154,105 @@ struct MessagePack:public Msg {
 	}
 
 	bool PushBlock(const void *data, size_t size) {
-		if (!data)
-			return false;
-
-		if (CanPush(size)) {
-			__write_data(data, size);
-			return true;
+		if (data) {
+			if (CanPush(size)) {
+				__write_data(data, size);
+				return true;
+			}
 		}
 
-		assert(false && "error!");
+		__on_error();
 		return false;
 	}
 
 	bool PushLBlock(const void *data, size_t size) {
-		if (!data)
-			return false;
-
-		if (CanPush(sizeof(int32) + size)) {
-			PushInt32(size);
-			__write_data(data, size);
-			return true;
+		if (data) {
+			uint32 tmpsize = (uint32)size;
+			if (CanPush(sizeof(tmpsize) + size)) {
+				__write_data(&tmpsize, sizeof(tmpsize));
+				__write_data(data, size);
+				return true;
+			}
 		}
 
-		assert(false && "error!");
+		__on_error();
 		return false;
 	}
 
-	bool PushLString(const char *str, size_t str_size, int16 max_push = SHRT_MAX - 3) {
-		assert(str);
-		assert(str_size < SHRT_MAX - 3);
-		int16 size = (int16)str_size;
-		if (size > max_push)
-			size = max_push;
-
-		assert(size >= 0);
-		if (!str || size < 0)
+	bool PushLString(const char *str, size_t str_size, size_t max_push = e_string_max_length) {
+		if (!str || str_size > e_string_max_length || max_push > e_string_max_length) {
+			__on_error();
 			return false;
+		}
 
-		if (CanPush(sizeof(int16) + (size_t)size)) {
-			PushInt16(size);
-			__write_data(str, (size_t)size);
+		if (str_size > max_push)
+			str_size = max_push;
+
+		uint16 tmpsize = (uint16)str_size;
+		if (CanPush(sizeof(tmpsize) + str_size)) {
+			__write_data(&tmpsize, sizeof(tmpsize));
+			__write_data(str, str_size);
 			return true;
 		}
 
-		assert(false && "error!");
+		__on_error();
 		return false;
 	}
 
-	bool PushString(const char *str, int16 max_push = SHRT_MAX - 3) {
-		if (!str)
+	bool PushString(const char *str, size_t max_push = e_string_max_length) {
+		if (!str) {
+			__on_error();
 			return false;
+		}
 
 		size_t str_size = strlen(str);
 		return PushLString(str, str_size, max_push);
 	}
 
-	bool PushLBigString(const char *str, size_t str_size, int32 max_push = INT_MAX - 3) {
-		assert(str);
-		assert(str_size < INT_MAX - 3);
-		int32 size = (int32)str_size;
-		if (size > max_push)
-			size = max_push;
-
-		assert(size >= 0);
-		if (!str || size < 0)
+	bool PushLBigString(const char *str, size_t str_size, size_t max_push = e_bigstring_max_length) {
+		if (!str || str_size > e_bigstring_max_length || max_push > e_bigstring_max_length) {
+			__on_error();
 			return false;
+		}
 
-		if (CanPush(sizeof(int32) + (size_t)size)) {
-			PushInt32(size);
-			__write_data(str, (size_t)size);
+		if (str_size > max_push)
+			str_size = max_push;
+
+		uint32 tmpsize = (uint32)str_size;
+		if (CanPush(sizeof(tmpsize) + str_size)) {
+			__write_data(&tmpsize, sizeof(tmpsize));
+			__write_data(str, str_size);
 			return true;
 		}
 
-		assert(false && "error!");
+		__on_error();
 		return false;
 	}
 
-	bool PushBigString(const char *str, int32 max_push = INT_MAX - 3) {
-		if (!str)
+	bool PushBigString(const char *str, size_t max_push = e_bigstring_max_length) {
+		if (!str) {
+			__on_error();
 			return false;
+		}
 
 		size_t str_size = strlen(str);
 		return PushLBigString(str, str_size, max_push);
 	}
 
 	//用于覆盖数据。不做包长度的累加
-	void PutDataNotAddLength(size_t index, const void *data, size_t size) {
+	bool PutDataNotAddLength(size_t index, const void *data, size_t size) {
 		if (!data) {
-			assert(false && "data is NULL !!");
-			return;
+			__on_error();
+			return false;
 		}
 
 		if ((index + size) > e_thismessage_max_size) {
-			assert(false && "is overflow!!! error!");
-			return;
+			__on_error();
+			return false;
 		}
 
 		memcpy(&m_buf[index], data, size);
+		return true;
 	}
 
 
@@ -306,15 +329,17 @@ struct MessagePack:public Msg {
 	}
 
 	bool GetBlock(void *buf, size_t size) {
-		if (!buf || 0 == size)
+		if (!buf || 0 == size) {
+			__on_error();
 			return false;
+		}
 
 		if (CanGet(size)) {
 			__read_data(buf, size);
 			return true;
 		}
 
-		assert(false && "error!");
+		__on_error();
 		return false;
 	}
 
@@ -331,109 +356,130 @@ struct MessagePack:public Msg {
 			return __read_data_ref(size);
 		}
 
-		assert(false && "error!");
+		__on_error();
 		return NULL;
 	}
 
 	const char *GetLBlock(size_t *datalen) {
 		*datalen = 0;
-		int32 size = GetInt32();
-		assert(size >= 0);
-		if (size < 0)
-			return NULL;
+		uint32 size = 0;
+		if (CanGet(sizeof(size))) {
+			__read_data(&size, sizeof(size));
+			if (0 == size)
+				return "";
 
-		if (0 == size)
-			return "";
-
-		if (CanGet((size_t)size)) {
-			*datalen = (size_t)size;
-			return __read_data_ref((size_t)size);
+			if (CanGet((size_t)size)) {
+				*datalen = (size_t)size;
+				return __read_data_ref((size_t)size);
+			}
 		}
 
-		assert(false && "error!");
+		__on_error();
 		return NULL;
 	}
 
 	const char *GetLString(size_t *datalen) {
 		*datalen = 0;
-		int16 size = GetInt16();
-		assert(size >= 0);
-		if (size < 0)
-			return NULL;
+		uint16 size = 0;
+		if (CanGet(sizeof(size))) {
+			__read_data(&size, sizeof(size));
+			if (size > e_string_max_length) {
+				__on_error();
+				return NULL;
+			}
 
-		if (0 == size)
-			return "";
+			if (0 == size)
+				return "";
 
-		if (CanGet((size_t)size)) {
-			*datalen = (size_t)size;
-			return __read_data_ref((size_t)size);
+			if (CanGet((size_t)size)) {
+				*datalen = (size_t)size;
+				return __read_data_ref((size_t)size);
+			}
 		}
 
-		assert(false && "error!");
+		__on_error();
 		return NULL;
 	}
 
 	bool GetString(char *buf, size_t buflen) {
-		assert(buflen >= 1);
-		if (buflen < 1)
+		if (buflen < 1) {
+			__on_error();
 			return false;
+		}
 
 		buf[buflen - 1] = '\0';
-		int16 size = GetInt16();
-		assert(size >= 0);
-		if (size < 0) {
-			buf[0] = '\0';
-			return false;
+		uint16 size = 0;
+		if (CanGet(sizeof(size))) {
+			__read_data(&size, sizeof(size));
+			if (size > e_string_max_length) {
+				buf[0] = '\0';
+				__on_error();
+				return false;
+			}
+
+			if (0 == size) {
+				buf[0] = '\0';
+				return true;
+			}
+
+			buf[(size_t)(buflen > (size_t)size ? size : (buflen - 1))] = '\0';
+			return GetBlock(buf, (size_t)(buflen > (size_t)size ? size : (buflen - 1)));
 		}
 
-		if (0 == size) {
-			buf[0] = '\0';
-			return true;
-		}
-
-		buf[(size_t)(buflen > (size_t)size ? size : (buflen - 1))] = '\0';
-		return GetBlock(buf, (size_t)(buflen > (size_t)size ? size : (buflen - 1)));
+		__on_error();
+		return false;
 	}
 
 	const char *GetLBigString(size_t *datalen) {
 		*datalen = 0;
-		int32 size = GetInt32();
-		assert(size >= 0);
-		if (size < 0)
-			return NULL;
+		uint32 size = 0;
+		if (CanGet(sizeof(size))) {
+			__read_data(&size, sizeof(size));
+			if (size > e_bigstring_max_length) {
+				__on_error();
+				return NULL;
+			}
 
-		if (0 == size)
-			return "";
+			if (0 == size)
+				return "";
 
-		if (CanGet((size_t)size)) {
-			*datalen = (size_t)size;
-			return __read_data_ref((size_t)size);
+			if (CanGet((size_t)size)) {
+				*datalen = (size_t)size;
+				return __read_data_ref((size_t)size);
+			}
 		}
 
-		assert(false && "error!");
+		__on_error();
 		return NULL;
 	}
 
 	bool GetBigString(char *buf, size_t buflen) {
-		assert(buflen >= 1);
-		if (buflen < 1)
+		if (buflen < 1) {
+			__on_error();
 			return false;
+		}
 
 		buf[buflen - 1] = '\0';
-		int32 size = GetInt32();
-		assert(size >= 0);
-		if (size < 0) {
-			buf[0] = '\0';
-			return false;
+		uint32 size = 0;
+		if (CanGet(sizeof(size))) {
+			__read_data(&size, sizeof(size));
+			if (size > e_bigstring_max_length) {
+				buf[0] = '\0';
+				__on_error();
+				return false;
+			}
+
+			if (0 == size) {
+				buf[0] = '\0';
+				return true;
+			}
+
+			buf[(size_t)(buflen > (size_t)size ? size : (buflen - 1))] = '\0';
+			return GetBlock(buf, (size_t)(buflen > (size_t)size ? size : (buflen - 1)));
 		}
 
-		if (0 == size) {
-			buf[0] = '\0';
-			return true;
-		}
-
-		buf[(size_t)(buflen > (size_t)size ? size : (buflen - 1))] = '\0';
-		return GetBlock(buf, (size_t)(buflen > (size_t)size ? size : (buflen - 1)));
+		__on_error();
+		return false;
 	}
 
 
@@ -455,6 +501,14 @@ private:
 		const char *data = &m_buf[m_index];
 		m_index += size;
 		return data;
+	}
+
+	inline void __on_error() {
+		m_error_num++;
+
+		if (m_enable_assert) {
+			assert(false && "error!");
+		}
 	}
 
 };
