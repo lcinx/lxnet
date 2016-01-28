@@ -76,9 +76,12 @@ struct MessagePack:public Msg {
 	}
 
 	//切记在从包中取出时。调用此函数，重置缓冲索引
-	void Begin() {
+	void Begin(bool enable_assert = true) {
 		m_index = 0;
 		m_maxindex = GetLength() - (int)sizeof(Msg);
+
+		m_error_num = 0;
+		m_enable_assert = enable_assert;
 	}
 
 	void Reset(bool enable_assert = true) {
