@@ -417,7 +417,8 @@ static inline struct node *poolmgr_nodepool_alloc_node(struct poolmgr *self) {
  * size is block size,
  * alignment is align number,
  * num is initialize block num,
- * next_multiple is next num, the next num is num * next_multiple, if next_multiple is zero, then only has one sub pool. 
+ * next_multiple is next num,
+ *		the next num is num * next_multiple, if next_multiple is zero, then only has one sub pool. 
  * name is poolmgr name.
  */
 struct poolmgr *poolmgr_create(size_t size, size_t alignment, 
@@ -668,7 +669,8 @@ void poolmgr_free_object(struct poolmgr *self, void *bk) {
 
 }
 
-#define _STR_HEAD "\n%s:\n<<<<<<<<<<<<<<<<<< poolmgr info begin <<<<<<<<<<<<<<<<<\n\
+#define _STR_HEAD "\n%s:\n\
+<<<<<<<<<<<<<<<<<< poolmgr info begin <<<<<<<<<<<<<<<<<\n\
 pools have pool num:" _FORMAT_64U_NUM "\n\
 pools max pool num:" _FORMAT_64U_NUM "\ttime:%s\n\
 base alignment:" _FORMAT_64U_NUM "\n\
@@ -677,7 +679,7 @@ object total num: [" _FORMAT_64U_NUM "]\tobject current num: [" _FORMAT_64U_NUM 
 base num:" _FORMAT_64U_NUM "\tcurrent max num:" _FORMAT_64U_NUM "\tnext_multiple:" _FORMAT_64U_NUM "\n\
 memory total: " _FORMAT_64U_NUM "(byte), " _FORMAT_64U_NUM "(kb), " _FORMAT_64U_NUM "(mb)\n\
 shrink arg: free pool num:" _FORMAT_64U_NUM ", free node ratio:%.3f\n\
->>>>>>>>>>>>>>>>>> poolmgr info end >>>>>>>>>>>>>>>>>>\n"
+>>>>>>>>>>>>>>>>>> poolmgr info end >>>>>>>>>>>>>>>>>>>\n"
 void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize) {
 
 #ifndef NOTUSE_POOL

@@ -20,7 +20,8 @@ struct poolmgr;
  * size is block size,
  * alignment is align number,
  * num is initialize block num,
- * next_multiple is next num, the next num is num * next_multiple, if next_multiple is zero, then only has one sub pool. 
+ * next_multiple is next num,
+ *		the next num is num * next_multiple, if next_multiple is zero, then only has one sub pool. 
  * name is poolmgr name.
  */
 struct poolmgr *poolmgr_create(size_t size, size_t alignment, 
