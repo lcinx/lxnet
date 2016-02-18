@@ -165,7 +165,7 @@ int mymkdir_r(const char *directory) {
 		if (access(tmp, F_OK) != 0)
 #endif
 		{
-			if (my_mkdir(tmp) < 0)
+			if (my_mkdir(tmp) != 0)
 				return -3;
 		}
 		tmp[i] = '/';
@@ -307,16 +307,27 @@ void _filelog_write_(struct filelog *self, int type, const char *filename,
 		}
 
 		snprintf(path_dir, sizeof(path_dir) - 1, path_dir_format, directory, subdir);
-		mymkdir_r(path_dir);
 		snprintf(szFile, sizeof(szFile) - 1, "%s/%s.log", path_dir, save_name);
-	}
 
-	if (strcmp(info->last_filename, szFile) != 0) {
-		strncpy(info->last_filename, szFile, sizeof(info->last_filename) - 1);
-		info->last_filename[sizeof(info->last_filename) - 1] = '\0';
-		if (info->fp) {
-			fclose(info->fp);
-			info->fp = NULL;
+		if (strcmp(info->last_filename, szFile) != 0) {
+			strncpy(info->last_filename, szFile, sizeof(info->last_filename) - 1);
+			info->last_filename[sizeof(info->last_filename) - 1] = '\0';
+			if (info->fp) {
+				fclose(info->fp);
+				info->fp = NULL;
+			}
+
+			{
+				/* Most try 8 times. */
+				const int max_times = 8;
+				int i = 0;
+				int res = 1;
+				while (res != 0 && i < max_times) {
+					res = mymkdir_r(path_dir);
+					++i;
+				}
+				assert(res == 0 && "mymkdir_r failed!");
+			}
 		}
 	}
 
