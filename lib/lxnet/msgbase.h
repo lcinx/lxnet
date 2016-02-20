@@ -5,7 +5,7 @@
 #include <limits.h>
 #include "platform_config.h"
 
-#pragma pack(push,1)
+#pragma pack(push, 1)
 
 struct MsgHeader {
 	int32 length;

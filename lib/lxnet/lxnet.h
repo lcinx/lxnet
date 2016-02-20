@@ -6,7 +6,6 @@
 
 #ifndef _H_LXNET_H_
 #define _H_LXNET_H_
-
 #include <stddef.h>
 
 struct Msg;

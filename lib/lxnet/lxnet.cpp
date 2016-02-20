@@ -109,9 +109,8 @@ static void encrypt_info_release(void *info) {
 }
 
 
+
 namespace lxnet {
-
-
 
 /* 创建一个用于监听的对象 */
 Listener *Listener::Create() {
