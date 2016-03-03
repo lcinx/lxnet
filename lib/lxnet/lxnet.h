@@ -49,7 +49,7 @@ public:
 	bool IsClose();
 
 	/* 在指定的监听socket上接受连接 */
-	Socketer *Accept(bool bigbuf=false);
+	Socketer *Accept(bool bigbuf = false);
 
 	/* 检测是否有新的连接 */
 	bool CanAccept();

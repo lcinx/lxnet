@@ -732,8 +732,8 @@ const char *GetNetDataAllInfo(char *buf, size_t buflen, struct datainfomgr *info
 	struct datainfo *maxinfo = &infomgr->datatable[enum_netdata_max];
 	struct datainfo *nowinfo = &infomgr->datatable[enum_netdata_now];
 
-	double numunit = 1000*1000;
-	double bytesunit = 1024*1024;
+	double numunit = 1000 * 1000;
+	double bytesunit = 1024 * 1024;
 	double totalsendmsgnum = double(totalinfo->sendmsgnum / numunit);
 	double totalsendbytes = double(totalinfo->sendbytes / bytesunit);
 	double totalrecvmsgnum = double(totalinfo->recvmsgnum / numunit);
