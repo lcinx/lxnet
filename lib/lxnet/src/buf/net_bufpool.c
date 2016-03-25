@@ -182,6 +182,6 @@ void bufpool_meminfo(char *buf, size_t bufsize) {
 	poolmgr_getinfo(s_pool.buf_pool, &buf[index], bufsize - 1 - index);
 	cspin_unlock(&s_pool.buf_lock);
 
-	buf[bufsize-1] = 0;
+	buf[bufsize - 1] = 0;
 }
 

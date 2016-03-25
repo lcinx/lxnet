@@ -18,7 +18,7 @@ struct cthread_pool;
  * create a thread pool, that has thread_num threads.
  * @param {int} thread_num			thread num.
  * @param {void *} udata			user data pointer.
- * @param {function} func_leader	leader function, need the one param. 
+ * @param {function} func_leader	leader function, need the one param.
  *										return need to resume threads num, if less than 0, then exit.
  * @param {function} func_task		task function, need the one param.
  *										return 0 then not task to do. or else is to exit.

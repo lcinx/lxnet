@@ -418,7 +418,7 @@ static inline struct node *poolmgr_nodepool_alloc_node(struct poolmgr *self) {
  * alignment is align number,
  * num is initialize block num,
  * next_multiple is next num,
- *		the next num is num * next_multiple, if next_multiple is zero, then only has one sub pool. 
+ *		the next num is num * next_multiple, if next_multiple is zero, then only has one sub pool.
  * name is poolmgr name.
  */
 struct poolmgr *poolmgr_create(size_t size, size_t alignment, 
@@ -593,7 +593,7 @@ static bool nodepool_isin(struct poolmgr *mgr, struct nodepool *np, char *begin_
 		return false;
 
 	begin = np->end - (np->block_size * np->nodenum);
-	if ((begin_bk >= begin) &&  begin_bk < np->end)
+	if ((begin_bk >= begin) && begin_bk < np->end)
 		return true;
 	else
 		return false;

@@ -48,9 +48,9 @@ void netrun() {
 /* get network memory info. */
 void netmemory_info(char *buf, size_t bufsize) {
 	size_t index = 0;
-	bufmgr_meminfo(buf, bufsize-1);
+	bufmgr_meminfo(buf, bufsize - 1);
 	index = strlen(buf);
-	netpool_meminfo(&buf[index], bufsize-1-index);
-	buf[bufsize-1] = 0;
+	netpool_meminfo(&buf[index], bufsize - 1 - index);
+	buf[bufsize - 1] = 0;
 }
 

@@ -65,7 +65,7 @@ struct cthread_pool {
 
 /*
  * ================================================================================
- * cthread_info method. 
+ * cthread_info method.
  * ================================================================================
  */
 static struct cthread_info *cthread_info_create(struct cthread_pool *mgr, void (*func)(cthread *)) {
@@ -238,8 +238,8 @@ static void th_pro_func(cthread *th) {
 	while (catomic_read(&mgr->run) != 0) {
 		if (cthread_info_is_header(cinfo)) {
 			/*
-			 * do leader function, 
-			 * if return value less than 0, then exit. 
+			 * do leader function,
+			 * if return value less than 0, then exit.
 			 * if return value greater than 0, then is need resume thread num.
 			 */
 			int resume_num = mgr->func_leader(mgr->udata);
@@ -331,7 +331,7 @@ static void th_pro_func(cthread *th) {
  * create a thread pool, that has thread_num threads.
  * @param {int} thread_num			thread num.
  * @param {void *} udata			user data pointer.
- * @param {function} func_leader	leader function, need the one param. 
+ * @param {function} func_leader	leader function, need the one param.
  *										return need to resume threads num, if less than 0, then exit.
  * @param {function} func_task		task function, need the one param.
  *										return 0 then not task to do. or else is to exit.
