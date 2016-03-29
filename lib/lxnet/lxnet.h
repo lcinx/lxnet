@@ -148,10 +148,10 @@ public:
 	Msg *GetMsg(char *buf = 0, size_t bufsize = 0);
 
 	/* 发送数据 */
-	bool SendData(const char *data, size_t datasize);
+	bool SendData(const void *data, size_t datasize);
 
 	/* 接收数据 */
-	const char *GetData(char *buf, size_t bufsize, int *datalen);
+	const void *GetData(char *buf, size_t bufsize, int *datalen);
 
 	/* 触发真正的发送数据 */
 	void CheckSend();

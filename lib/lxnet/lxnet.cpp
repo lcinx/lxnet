@@ -487,7 +487,7 @@ Msg *Socketer::GetMsg(char *buf, size_t bufsize) {
 }
 
 /* 发送数据 */
-bool Socketer::SendData(const char *data, size_t datasize) {
+bool Socketer::SendData(const void *data, size_t datasize) {
 	if (!data)
 		return false;
 
@@ -504,8 +504,8 @@ bool Socketer::SendData(const char *data, size_t datasize) {
 }
 
 /* 接收数据 */
-const char *Socketer::GetData(char *buf, size_t bufsize, int *datalen) {
-	char *data = (char *)socketer_getdata(m_self, buf, bufsize, datalen);
+const void *Socketer::GetData(char *buf, size_t bufsize, int *datalen) {
+	const void *data = socketer_getdata(m_self, buf, bufsize, datalen);
 	if (data) {
 		on_recvmsg(m_infomgr, 0, *datalen);
 	}
@@ -607,6 +607,12 @@ const char *net_memory_info(char *buf, size_t buflen) {
 	netmemory_info(&buf[index], buflen - 1 - index);
 
 	index = strlen(buf);
+
+	if (buf[index - 1] != '\n') {
+		buf[index] = '\n';
+		index++;
+	}
+
 	snprintf(&buf[index], buflen - 1 - index, "%s", "<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
 
 	buf[buflen - 1] = '\0';
