@@ -29,7 +29,7 @@ SRC_INCS = -I"./../../base/" -I"./src/buf/" -I"./src/event/" -I"./src/sock/" -I"
 SRC_LIBS = 
 
 
-C_SRC_ALL = $(wildcard  ./*.c ./../../base/crosslib.c ./../../base/log.c ./../../base/pool.c ./../../base/catomic.c ./../../base/cthread.c ./../../base/cthread_pool.c ./../../base/buf/*.c ./src/buf/*.c ./src/event/net_module.c ./src/event/net_eventmgr.c ./src/sock/*.c ./../../3rd/quicklz/*.c)
+C_SRC_ALL = $(wildcard ./*.c ./../../base/crosslib.c ./../../base/log.c ./../../base/pool.c ./../../base/catomic.c ./../../base/cthread.c ./../../base/cthread_pool.c ./../../base/buf/*.c ./src/buf/*.c ./src/event/net_module.c ./src/event/net_eventmgr.c ./src/sock/*.c ./../../3rd/quicklz/*.c)
 
 CXX_SRC_ALL = $(wildcard ./*.cpp)
 

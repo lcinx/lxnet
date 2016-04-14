@@ -50,10 +50,6 @@ int64 high_nanosecond_() {
 	return (int64)(tmp * 1000000000);
 }
 
-void delay_delay(unsigned int millisecond) {
-	Sleep(millisecond);
-}
-
 int get_cpu_num() {
 	SYSTEM_INFO si;
 	GetSystemInfo(&si);
@@ -124,10 +120,6 @@ int64 high_nanosecond_() {
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	res = (int64)(ts.tv_sec * 1000000000) + (int64)ts.tv_nsec;
 	return res;
-}
-
-void delay_delay(unsigned int millisecond) {
-	usleep(millisecond * 1000);
 }
 
 int get_cpu_num() {

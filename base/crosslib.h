@@ -26,9 +26,6 @@ int64 high_nanosecond_();
 /* get current nanosecond time */
 #define get_nanosecond() high_nanosecond_()
 
-/* sleep some millisecond */
-void delay_delay(unsigned int millisecond);
-
 /* get cpu num */
 int get_cpu_num();
 

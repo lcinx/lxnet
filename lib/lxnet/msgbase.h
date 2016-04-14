@@ -31,7 +31,7 @@ struct MessagePack:public Msg {
 		e_thismessage_max_size = 1024 * 128 - sizeof(Msg),
 
 		//字符串最大长度(用无符号16位记录长度)
-		e_string_max_length = USHRT_MAX - 2,
+		e_string_max_length = USHRT_MAX,
 
 		//大字符串最大长度(用无符号32位记录长度)
 		e_bigstring_max_length = e_thismessage_max_size - 4,
