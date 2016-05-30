@@ -434,7 +434,7 @@ bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 		return false;
 	}
 
-	if (pMsg->GetLength() <= (int)sizeof(int))
+	if (pMsg->GetLength() < (int)sizeof(Msg))
 		return false;
 
 	if (pMsg->GetLength() + addsize >= _MAX_MSG_LEN) {
