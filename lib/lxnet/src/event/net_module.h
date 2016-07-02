@@ -17,26 +17,27 @@ extern "C" {
 
 /*
  * initialize network. 
- * bigbufsize --- big block size. 
- * bigbufnum --- big block num.
+ * big_buf_size --- big block size. 
+ * big_buf_num --- big block num.
  *
- * smallbufsize --- small block size. 
- * smallbufnum --- small block num.
- * listen num --- listener object num. 
- * socket num --- socketer object num.
- * threadnum --- network thread num, if less than 0, then start by the number of cpu threads .
+ * small_buf_size --- small block size. 
+ * small_buf_num --- small block num.
+ * listener_num --- listener object num. 
+ * socketer_num --- socketer object num.
+ * thread_num --- network thread num, if less than 0, then start by the number of cpu threads .
  */
-bool netinit(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t smallbufnum,
-		size_t listenernum, size_t socketnum, int threadnum);
+bool net_module_init(size_t big_buf_size, size_t big_buf_num, 
+					size_t small_buf_size, size_t small_buf_num, 
+					size_t listener_num, size_t socketer_num, int thread_num);
 
 /* release network. */
-void netrelease();
+void net_module_release();
 
 /* network run. */
-void netrun();
+void net_module_run();
 
 /* get network memory info. */
-void netmemory_info(char *buf, size_t bufsize);
+void net_module_get_memory_info(char *buf, size_t bufsize);
 
 #ifdef __cplusplus
 }

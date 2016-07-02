@@ -35,8 +35,8 @@ struct logobj {
 };
 
 struct filelog {
-	bool isinit;
-	struct logobj loggroup[enum_log_type_max];
+	bool is_init;
+	struct logobj log_group[enum_log_type_max];
 };
 
 static struct filelog g_logobj = {false};
@@ -220,12 +220,12 @@ void _log_printf_set_show(int type, bool flag) {
 static void filelog_init(struct filelog *self) {
 	int i;
 	for (i = 0; i < enum_log_type_max; ++i) {
-		logobj_init(&self->loggroup[i]);
+		logobj_init(&self->log_group[i]);
 	}
 
-	logobj_set_save_type(&self->loggroup[enum_log_type_error], st_no_split_dir_and_not_split_file);
-	logobj_set_single_filename(&self->loggroup[enum_log_type_error], "_error_log_");
-	self->isinit = true;
+	logobj_set_save_type(&self->log_group[enum_log_type_error], st_no_split_dir_and_not_split_file);
+	logobj_set_single_filename(&self->log_group[enum_log_type_error], "_error_log_");
+	self->is_init = true;
 }
 
 #define LOG_CHECK_TYPE(type)											\
@@ -233,7 +233,7 @@ static void filelog_init(struct filelog *self) {
 
 #define FILELOG_CHECK_INIT(obj)											\
 	do {																\
-		if (!obj->isinit) {												\
+		if (!obj->is_init) {											\
 			if (obj == g_filelog_obj_) {								\
 				filelog_init(obj);										\
 			}															\
@@ -266,7 +266,7 @@ void _filelog_write_(struct filelog *self, int type, const char *filename,
 		return;
 
 	FILELOG_CHECK_INIT(self);
-	info = &self->loggroup[type];
+	info = &self->log_group[type];
 	directory = info->directory;
 
 
@@ -387,7 +387,7 @@ void filelog_release(struct filelog *self) {
 		return;
 
 	for (i = 0; i < enum_log_type_max; ++i) {
-		logobj_close(&self->loggroup[i]);
+		logobj_close(&self->log_group[i]);
 	}
 
 	free(self);
@@ -399,7 +399,7 @@ void _filelog_set_directory_(struct filelog *self, int type, const char *directo
 		return;
 
 	FILELOG_CHECK_INIT(self);
-	logobj_set_directory(&self->loggroup[type], directory);
+	logobj_set_directory(&self->log_group[type], directory);
 }
 
 const char *_filelog_get_directory_(struct filelog *self, int type) {
@@ -408,7 +408,7 @@ const char *_filelog_get_directory_(struct filelog *self, int type) {
 		return NULL;
 
 	FILELOG_CHECK_INIT(self);
-	return logobj_get_directory(&self->loggroup[type]);
+	return logobj_get_directory(&self->log_group[type]);
 }
 
 bool _filelog_set_save_type_(struct filelog *self, int type, int save_type) {
@@ -417,7 +417,7 @@ bool _filelog_set_save_type_(struct filelog *self, int type, int save_type) {
 		return false;
 
 	FILELOG_CHECK_INIT(self);
-	return logobj_set_save_type(&self->loggroup[type], save_type);
+	return logobj_set_save_type(&self->log_group[type], save_type);
 }
 
 bool _filelog_append_time_(struct filelog *self, int type, bool flag) {
@@ -426,7 +426,7 @@ bool _filelog_append_time_(struct filelog *self, int type, bool flag) {
 		return true;
 
 	FILELOG_CHECK_INIT(self);
-	return logobj_append_time(&self->loggroup[type], flag);
+	return logobj_append_time(&self->log_group[type], flag);
 }
 
 bool _filelog_every_flush_(struct filelog *self, int type, bool flag) {
@@ -435,7 +435,7 @@ bool _filelog_every_flush_(struct filelog *self, int type, bool flag) {
 		return true;
 
 	FILELOG_CHECK_INIT(self);
-	return logobj_every_flush(&self->loggroup[type], flag);
+	return logobj_every_flush(&self->log_group[type], flag);
 }
 
 void _filelog_flush_(struct filelog *self, int type) {
@@ -444,6 +444,6 @@ void _filelog_flush_(struct filelog *self, int type) {
 		return;
 
 	FILELOG_CHECK_INIT(self);
-	logobj_flush(&self->loggroup[type]);
+	logobj_flush(&self->log_group[type]);
 }
 

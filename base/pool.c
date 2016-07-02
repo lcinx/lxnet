@@ -26,8 +26,8 @@ enum {
 	enum_free,
 };
 
-struct nodeflag {
-	void *pooladdr;
+struct node_flag {
+	void *pool_addr;
 
 #ifndef NDEBUG
 	void *debug_addr;
@@ -38,17 +38,17 @@ struct nodeflag {
 /* set in memory block tail. */
 struct node {
 	struct node *next;
-	struct nodeflag flag;
+	struct node_flag flag;
 };
 
-struct nodepool {
+struct node_pool {
 	/* raw addres for free. */
 	void *raw;
-	struct nodepool *next;
-	struct nodepool *prev;
+	struct node_pool *next;
+	struct node_pool *prev;
 	size_t block_size;
-	size_t nodenum;
-	size_t freenum;
+	size_t node_num;
+	size_t free_num;
 
 	char *current_pos;
 	char *end;
@@ -60,7 +60,7 @@ struct nodepool {
 
 struct listobj {
 	size_t num;
-	struct nodepool *head;
+	struct node_pool *head;
 	short type;
 };
 
@@ -77,9 +77,9 @@ struct poolmgr {
 	size_t next_multiple;
 
 	/* node pool info. */
-	size_t nodepool_num;
-	size_t max_nodepool_num;
-	time_t max_nodepool_time;
+	size_t node_pool_num;
+	size_t max_node_pool_num;
+	time_t max_node_pool_time;
 
 	/* all node info. */
 	size_t node_total;
@@ -98,8 +98,8 @@ struct poolmgr {
 	/* free node pool list. */
 	struct listobj free_list;
 
-	/* on alloc, first from this nodepool. */
-	struct nodepool *first;
+	/* on alloc, first from this node_pool. */
+	struct node_pool *first;
 };
 
 #define F_MAKE_ALIGNMENT(num, align)	(((num) + ((align) - 1)) & (~((align) - 1)))
@@ -126,19 +126,19 @@ static inline void listobj_init(struct listobj *self, short type) {
 }
 
 #ifndef NOTUSE_POOL
-static inline bool nodepool_isfull(struct nodepool *self) {
-	return self->freenum == 0;
+static inline bool node_pool_is_full(struct node_pool *self) {
+	return self->free_num == 0;
 }
 
-static inline bool nodepool_isportion(struct nodepool *self) {
-	return (self->freenum != 0) && (self->freenum != self->nodenum);
+static inline bool node_pool_is_portion(struct node_pool *self) {
+	return (self->free_num != 0) && (self->free_num != self->node_num);
 }
 
-static inline bool nodepool_isfree(struct nodepool *self) {
-	return self->freenum == self->nodenum;
+static inline bool node_pool_is_free(struct node_pool *self) {
+	return self->free_num == self->node_num;
 }
 
-static inline struct node *nodepool_pop_node(struct poolmgr *mgr, struct nodepool *self) {
+static inline struct node *node_pool_pop_node(struct poolmgr *mgr, struct node_pool *self) {
 	struct node *nd = self->head;
 	if (nd) {
 		self->head = nd->next;
@@ -157,8 +157,8 @@ static inline struct node *nodepool_pop_node(struct poolmgr *mgr, struct nodepoo
 ret:
 	mgr->node_free_total--;
 
-	self->freenum--;
-	nd->flag.pooladdr = self;
+	self->free_num--;
+	nd->flag.pool_addr = self;
 
 #ifndef NDEBUG
 	nd->flag.debug_addr = NODE_IS_USED_VALUE(mgr);
@@ -167,8 +167,8 @@ ret:
 	return nd;
 }
 
-static inline void nodepool_push_node(struct poolmgr *mgr, struct nodepool *self, struct node *nd) {
-	assert(self == nd->flag.pooladdr);
+static inline void node_pool_push_node(struct poolmgr *mgr, struct node_pool *self, struct node *nd) {
+	assert(self == nd->flag.pool_addr);
 
 #ifndef NDEBUG
 	assert(nd->flag.debug_addr == NODE_IS_USED_VALUE(mgr));
@@ -179,30 +179,30 @@ static inline void nodepool_push_node(struct poolmgr *mgr, struct nodepool *self
 
 	nd->next = self->head;
 	self->head = nd;
-	self->freenum++;
+	self->free_num++;
 }
 
-static inline struct nodepool *nodepool_create(void *mem, size_t mem_size, 
-		size_t block_size, size_t nodenum) {
+static inline struct node_pool *node_pool_create(void *mem, size_t mem_size, 
+		size_t block_size, size_t node_num) {
 
-	struct nodepool *self;
+	struct node_pool *self;
 	assert(mem != NULL);
 	assert(block_size > 0);
-	assert(nodenum > 0);
+	assert(node_num > 0);
 	assert(mem_size == (F_THIS_POOL_ALIGNMENT_SIZE + 
-						F_THIS_POOL_ALIGNMENT(sizeof(struct nodepool)) + 
-						block_size * nodenum));
+						F_THIS_POOL_ALIGNMENT(sizeof(struct node_pool)) + 
+						block_size * node_num));
 
-	self = (struct nodepool *)F_THIS_POOL_ALIGNMENT((uintptr_t)mem);
+	self = (struct node_pool *)F_THIS_POOL_ALIGNMENT((uintptr_t)mem);
 
 	self->raw = mem;
 	self->next = NULL;
 	self->prev = NULL;
 	self->block_size = block_size;
-	self->nodenum = nodenum;
-	self->freenum = nodenum;
-	self->current_pos = (char *)self + F_THIS_POOL_ALIGNMENT(sizeof(struct nodepool));
-	self->end = self->current_pos + (block_size * nodenum);
+	self->node_num = node_num;
+	self->free_num = node_num;
+	self->current_pos = (char *)self + F_THIS_POOL_ALIGNMENT(sizeof(struct node_pool));
+	self->end = self->current_pos + (block_size * node_num);
 
 	self->head = NULL;
 	self->type = enum_unknow;
@@ -210,17 +210,17 @@ static inline struct nodepool *nodepool_create(void *mem, size_t mem_size,
 
 	assert(self->end <= (char *)mem + mem_size);
 	assert(self->current_pos <= self->end && 
-			"nodepool_create need check next_multiple, or check block_size * nodenum is overflow");
+			"node_pool_create need check next_multiple, or check block_size * node_num is overflow");
 	return self;
 }
 
-static inline void nodepool_release(struct nodepool *self) {
+static inline void node_pool_release(struct node_pool *self) {
 	if (self->need_free)
 		free(self->raw);
 }
 
 static inline void poolmgr_push_to_list(struct poolmgr *mgr, 
-		struct listobj *lt, struct nodepool *self) {
+		struct listobj *lt, struct node_pool *self) {
 
 	assert(self->type == enum_unknow);
 
@@ -236,18 +236,18 @@ static inline void poolmgr_push_to_list(struct poolmgr *mgr,
 
 	lt->num++;
 
-	mgr->nodepool_num++;
-	mgr->node_total += self->nodenum;
-	mgr->node_free_total += self->freenum;
+	mgr->node_pool_num++;
+	mgr->node_total += self->node_num;
+	mgr->node_free_total += self->free_num;
 
-	if (mgr->nodepool_num > mgr->max_nodepool_num) {
-		mgr->max_nodepool_num = mgr->nodepool_num;
-		mgr->max_nodepool_time = time(NULL);
+	if (mgr->node_pool_num > mgr->max_node_pool_num) {
+		mgr->max_node_pool_num = mgr->node_pool_num;
+		mgr->max_node_pool_time = time(NULL);
 	}
 }
 
 static inline void poolmgr_remove_from_list(struct poolmgr *mgr, 
-		struct listobj *lt, struct nodepool *self) {
+		struct listobj *lt, struct node_pool *self) {
 
 	assert(self->type == lt->type);
 
@@ -263,27 +263,27 @@ static inline void poolmgr_remove_from_list(struct poolmgr *mgr,
 
 	lt->num--;
 
-	mgr->nodepool_num--;
-	mgr->node_total -= self->nodenum;
-	mgr->node_free_total -= self->freenum;
+	mgr->node_pool_num--;
+	mgr->node_total -= self->node_num;
+	mgr->node_free_total -= self->free_num;
 
 	self->next = NULL;
 	self->prev = NULL;
 }
 
-static inline void poolmgr_release_nodepool_fromlist(struct poolmgr *mgr, struct listobj *lt) {
-	struct nodepool *np, *next;
+static inline void poolmgr_release_node_pool_from_list(struct poolmgr *mgr, struct listobj *lt) {
+	struct node_pool *np, *next;
 	for (np = lt->head; np; np = next) {
 		next = np->next;
 		if (np->need_free) {
 			poolmgr_remove_from_list(mgr, lt, np);
-			nodepool_release(np);
+			node_pool_release(np);
 		}
 	}
 }
 
-static inline struct nodepool *poolmgr_create_nodepool(struct poolmgr *self) {
-	struct nodepool *np;
+static inline struct node_pool *poolmgr_create_node_pool(struct poolmgr *self) {
+	struct node_pool *np;
 	size_t current_maxnum, total_mem_size;
 	void *mem;
 
@@ -294,39 +294,39 @@ static inline struct nodepool *poolmgr_create_nodepool(struct poolmgr *self) {
 	current_maxnum = self->current_maxnum * self->next_multiple;
 
 	assert(((self->block_size * current_maxnum) / self->block_size) == current_maxnum && 
-			"poolmgr_create_nodepool exist overflow!");
+			"poolmgr_create_node_pool exist overflow!");
 
 	total_mem_size = F_THIS_POOL_ALIGNMENT_SIZE + 
-					 F_THIS_POOL_ALIGNMENT(sizeof(struct nodepool)) + 
+					 F_THIS_POOL_ALIGNMENT(sizeof(struct node_pool)) + 
 					 self->block_size * current_maxnum;
 
 	mem = malloc(total_mem_size);
 	if (!mem) {
-		assert(false && "poolmgr_create_nodepool malloc memory failed!");
+		assert(false && "poolmgr_create_node_pool malloc memory failed!");
 		log_error("malloc " _FORMAT_64U_NUM " byte memory error!", (uint64)total_mem_size);
 		return NULL;
 	}
 
 	self->current_maxnum = current_maxnum;
 
-	np = nodepool_create(mem, total_mem_size, self->block_size, current_maxnum);
+	np = node_pool_create(mem, total_mem_size, self->block_size, current_maxnum);
 	poolmgr_push_to_list(self, &self->free_list, np);
 	return np;
 }
 
-static inline struct nodepool *poolmgr_get_nodepool_for_alloc_node(struct poolmgr *self) {
+static inline struct node_pool *poolmgr_get_node_pool_for_alloc_node(struct poolmgr *self) {
 	if (self->portion_use_list.num > 0)
 		return self->portion_use_list.head;
 
 	if (self->free_list.num > 0)
 		return self->free_list.head;
 
-	return poolmgr_create_nodepool(self);
+	return poolmgr_create_node_pool(self);
 }
 
-static inline bool poolmgr_check_release_nodepool(struct poolmgr *self, struct nodepool *np) {
+static inline bool poolmgr_check_release_node_pool(struct poolmgr *self, struct node_pool *np) {
 	if (np->need_free) {
-		if (self->nodepool_num > 1) {
+		if (self->node_pool_num > 1) {
 			double now_free_ratio = (double)self->node_free_total / (double)self->node_total;
 			if (self->free_list.num > self->free_pool_num_for_shrink ||
 				now_free_ratio > self->free_node_ratio_for_shrink) {
@@ -334,7 +334,7 @@ static inline bool poolmgr_check_release_nodepool(struct poolmgr *self, struct n
 				if (self->first == np)
 					self->first = NULL;
 
-				nodepool_release(np);
+				node_pool_release(np);
 				return true;
 			}
 		}
@@ -343,35 +343,35 @@ static inline bool poolmgr_check_release_nodepool(struct poolmgr *self, struct n
 	return false;
 }
 
-static inline void poolmgr_check_list_state(struct poolmgr *self, struct nodepool *np) {
+static inline void poolmgr_check_list_state(struct poolmgr *self, struct node_pool *np) {
 	switch (np->type) {
 	case enum_full_use:
-		if (nodepool_isportion(np)) {
+		if (node_pool_is_portion(np)) {
 			poolmgr_remove_from_list(self, &self->full_use_list, np);
 			poolmgr_push_to_list(self, &self->portion_use_list, np);
-		} else if (nodepool_isfree(np)) {
+		} else if (node_pool_is_free(np)) {
 			poolmgr_remove_from_list(self, &self->full_use_list, np);
-			if (!poolmgr_check_release_nodepool(self, np))
+			if (!poolmgr_check_release_node_pool(self, np))
 				poolmgr_push_to_list(self, &self->free_list, np);
 		} else {
 			assert(false);
 		}
 		break;
 	case enum_portion_use:
-		if (nodepool_isfull(np)) {
+		if (node_pool_is_full(np)) {
 			poolmgr_remove_from_list(self, &self->portion_use_list, np);
 			poolmgr_push_to_list(self, &self->full_use_list, np);
-		} else if (nodepool_isfree(np)) {
+		} else if (node_pool_is_free(np)) {
 			poolmgr_remove_from_list(self, &self->portion_use_list, np);
-			if (!poolmgr_check_release_nodepool(self, np))
+			if (!poolmgr_check_release_node_pool(self, np))
 				poolmgr_push_to_list(self, &self->free_list, np);
 		}
 		break;
 	case enum_free:
-		if (nodepool_isportion(np)) {
+		if (node_pool_is_portion(np)) {
 			poolmgr_remove_from_list(self, &self->free_list, np);
 			poolmgr_push_to_list(self, &self->portion_use_list, np);
-		} else if (nodepool_isfull(np)) {
+		} else if (node_pool_is_full(np)) {
 			poolmgr_remove_from_list(self, &self->free_list, np);
 			poolmgr_push_to_list(self, &self->full_use_list, np);
 		} else {
@@ -379,29 +379,29 @@ static inline void poolmgr_check_list_state(struct poolmgr *self, struct nodepoo
 		}
 		break;
 	default:
-		assert(false && "nodepool error in list type.");
-		log_error("nodepool error in list type. type:%d", (int)np->type);
+		assert(false && "node_pool error in list type.");
+		log_error("node_pool error in list type. type:%d", (int)np->type);
 		break;
 	}
 }
 
-static inline struct node *poolmgr_nodepool_alloc_node(struct poolmgr *self) {
+static inline struct node *poolmgr_node_pool_alloc_node(struct poolmgr *self) {
 	struct node *nd;
-	struct nodepool *np = self->first;
+	struct node_pool *np = self->first;
 	if (np) {
-		nd = nodepool_pop_node(self, np);
+		nd = node_pool_pop_node(self, np);
 		if (nd) {
 			poolmgr_check_list_state(self, np);
 			return nd;
 		}
 	}
 
-	np = poolmgr_get_nodepool_for_alloc_node(self);
+	np = poolmgr_get_node_pool_for_alloc_node(self);
 
 	self->first = np;
 
 	if (np) {
-		nd = nodepool_pop_node(self, np);
+		nd = node_pool_pop_node(self, np);
 		if (nd) {
 			poolmgr_check_list_state(self, np);
 			return nd;
@@ -428,8 +428,8 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 	char *mem;
 	struct poolmgr *self;
 #ifndef NOTUSE_POOL
-	struct nodepool *np;
-	size_t poolmgr_mem_size, nodepool_mem_size, total_mem_size;
+	struct node_pool *np;
+	size_t poolmgr_mem_size, node_pool_mem_size, total_mem_size;
 #endif
 	assert(size != 0);
 	assert(alignment_check(alignment) && "poolmgr_create alignment is error!");
@@ -440,7 +440,7 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 
 	oldsize = size;
 
-	size += sizeof(struct nodeflag);
+	size += sizeof(struct node_flag);
 
 	size = F_MAKE_ALIGNMENT(size, alignment);
 	if (size < sizeof(struct node))
@@ -451,9 +451,9 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 #ifndef NOTUSE_POOL
 	/* for memory address alignment. (in risc cpu memory address must alignment.) */
 	poolmgr_mem_size = F_THIS_POOL_ALIGNMENT_SIZE + F_THIS_POOL_ALIGNMENT(sizeof(struct poolmgr));
-	nodepool_mem_size = F_THIS_POOL_ALIGNMENT_SIZE + 
-						F_THIS_POOL_ALIGNMENT(sizeof(struct nodepool)) + size * num;
-	total_mem_size = poolmgr_mem_size + nodepool_mem_size;
+	node_pool_mem_size = F_THIS_POOL_ALIGNMENT_SIZE + 
+						F_THIS_POOL_ALIGNMENT(sizeof(struct node_pool)) + size * num;
+	total_mem_size = poolmgr_mem_size + node_pool_mem_size;
 	mem = (char *)malloc(total_mem_size);
 #else
 	mem = (char *)malloc(sizeof(struct poolmgr));
@@ -487,9 +487,9 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 	self->current_maxnum = num;
 	self->next_multiple = next_multiple;
 
-	self->nodepool_num = 0;
-	self->max_nodepool_num = 0;
-	self->max_nodepool_time = 0;
+	self->node_pool_num = 0;
+	self->max_node_pool_num = 0;
+	self->max_node_pool_time = 0;
 
 	self->node_total = 0;
 	self->node_free_total = 0;
@@ -504,10 +504,10 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 	self->first = NULL;
 
 #ifndef NOTUSE_POOL
-	/* create nodepool and push it. */
+	/* create node_pool and push it. */
 	mem = (char *)self;
 	mem += F_THIS_POOL_ALIGNMENT(sizeof(struct poolmgr));
-	np = nodepool_create(mem, nodepool_mem_size, size, num);
+	np = node_pool_create(mem, node_pool_mem_size, size, num);
 
 	/* set free flag. */
 	np->need_free = false;
@@ -524,9 +524,9 @@ void poolmgr_release(struct poolmgr *self) {
 
 #ifndef NOTUSE_POOL
 
-	poolmgr_release_nodepool_fromlist(self, &self->full_use_list);
-	poolmgr_release_nodepool_fromlist(self, &self->portion_use_list);
-	poolmgr_release_nodepool_fromlist(self, &self->free_list);
+	poolmgr_release_node_pool_from_list(self, &self->full_use_list);
+	poolmgr_release_node_pool_from_list(self, &self->portion_use_list);
+	poolmgr_release_node_pool_from_list(self, &self->free_list);
 
 	/* check memory leak. */
 	assert(self->node_total == self->node_free_total && "poolmgr_release has memory not free!");
@@ -552,7 +552,7 @@ void *poolmgr_alloc_object(struct poolmgr *self) {
 		return NULL;
 
 #ifndef NOTUSE_POOL
-	nd = poolmgr_nodepool_alloc_node(self);
+	nd = poolmgr_node_pool_alloc_node(self);
 	if (nd) {
 		return ((char *)nd) - (self->block_size - sizeof(struct node));
 	}
@@ -567,10 +567,10 @@ void *poolmgr_alloc_object(struct poolmgr *self) {
 
 #ifndef NOTUSE_POOL
 #ifndef NDEBUG
-static inline bool nodepool_check_in(struct poolmgr *mgr, 
-		struct listobj *lt, struct nodepool *self) {
+static inline bool node_pool_check_in(struct poolmgr *mgr, 
+		struct listobj *lt, struct node_pool *self) {
 
-	struct nodepool *np, *next;
+	struct node_pool *np, *next;
 	for (np = lt->head; np; np = next) {
 		next = np->next;
 		if (np == self)
@@ -580,27 +580,27 @@ static inline bool nodepool_check_in(struct poolmgr *mgr,
 	return false;
 }
 
-static bool nodepool_isin(struct poolmgr *mgr, struct nodepool *np, char *begin_bk) {
+static bool node_pool_is_in(struct poolmgr *mgr, struct node_pool *np, char *begin_bk) {
 	char *begin;
 	bool has = false;
-	if (nodepool_check_in(mgr, &mgr->full_use_list, np) ||
-		nodepool_check_in(mgr, &mgr->portion_use_list, np) ||
-		nodepool_check_in(mgr, &mgr->free_list, np)) {
+	if (node_pool_check_in(mgr, &mgr->full_use_list, np) ||
+		node_pool_check_in(mgr, &mgr->portion_use_list, np) ||
+		node_pool_check_in(mgr, &mgr->free_list, np)) {
 		has = true;
 	}
 
 	if (!has)
 		return false;
 
-	begin = np->end - (np->block_size * np->nodenum);
+	begin = np->end - (np->block_size * np->node_num);
 	if ((begin_bk >= begin) && begin_bk < np->end)
 		return true;
 	else
 		return false;
 }
 
-static bool nodepool_isbad_point(struct nodepool *np, char *begin_bk) {
-	char *begin = np->end - (np->block_size * np->nodenum);
+static bool node_pool_isbad_point(struct node_pool *np, char *begin_bk) {
+	char *begin = np->end - (np->block_size * np->node_num);
 	begin_bk -= (size_t)begin;
 	if ((size_t)begin_bk % np->block_size != 0)
 		return true;
@@ -608,7 +608,7 @@ static bool nodepool_isbad_point(struct nodepool *np, char *begin_bk) {
 		return false;
 }
 
-static bool nodepool_is_not_alloc(struct nodepool *np, char *begin_bk) {
+static bool node_pool_is_not_alloc(struct node_pool *np, char *begin_bk) {
 	if (np->current_pos <= begin_bk)
 		return true;
 	else
@@ -616,14 +616,14 @@ static bool nodepool_is_not_alloc(struct nodepool *np, char *begin_bk) {
 }
 
 static bool poolmgr_check_is_using(struct poolmgr *mgr, 
-		struct nodepool *np, char *begin_bk, struct node *nd) {
+		struct node_pool *np, char *begin_bk, struct node *nd) {
 
-	if (nodepool_isin(mgr, np, begin_bk)) {
-		if (nodepool_isbad_point(np, begin_bk)) {
+	if (node_pool_is_in(mgr, np, begin_bk)) {
+		if (node_pool_isbad_point(np, begin_bk)) {
 			assert(false && "poolmgr_free_object block is in pool, but is bad pointer!");
 			return false;
 		} else {
-			if (nodepool_is_not_alloc(np, begin_bk)) {
+			if (node_pool_is_not_alloc(np, begin_bk)) {
 				assert(false && "poolmgr_free_object free the undistributed of block!");
 				return false;
 			} else {
@@ -650,17 +650,17 @@ void poolmgr_free_object(struct poolmgr *self, void *bk) {
 #ifndef NOTUSE_POOL
 
 	struct node *nd;
-	struct nodepool *np;
+	struct node_pool *np;
 	if (!self || !bk)
 		return;
 
 	nd = (struct node *)((char *)bk + self->block_size - sizeof(struct node));
-	np = (struct nodepool *)nd->flag.pooladdr;
+	np = (struct node_pool *)nd->flag.pool_addr;
 
 	/* check bk is in this free list ? */
 	assert(np != NULL && poolmgr_check_is_using(self, np, (char *)bk, nd));
 
-	nodepool_push_node(self, np, nd);
+	node_pool_push_node(self, np, nd);
 	poolmgr_check_list_state(self, np);
 
 #else
@@ -680,7 +680,7 @@ base num:" _FORMAT_64U_NUM "\tcurrent max num:" _FORMAT_64U_NUM "\tnext_multiple
 memory total: " _FORMAT_64U_NUM "(byte), " _FORMAT_64U_NUM "(kb), " _FORMAT_64U_NUM "(mb)\n\
 shrink arg: free pool num:" _FORMAT_64U_NUM ", free node ratio:%.3f\n\
 >>>>>>>>>>>>>>>>>> poolmgr info end >>>>>>>>>>>>>>>>>>>\n"
-void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize) {
+void poolmgr_get_info(struct poolmgr *self, char *buf, size_t bufsize) {
 
 #ifndef NOTUSE_POOL
 	size_t totalsize;
@@ -690,7 +690,7 @@ void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize) {
 	if (!self || !buf || bufsize == 0)
 		return;
 
-	currTM = safe_localtime(&self->max_nodepool_time, &tm_result);
+	currTM = safe_localtime(&self->max_node_pool_time, &tm_result);
 	snprintf(time_buf, sizeof(time_buf) - 1, "%d-%02d-%02d %02d:%02d:%02d", 
 			currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, 
 			currTM->tm_hour, currTM->tm_min, currTM->tm_sec);
@@ -698,7 +698,7 @@ void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize) {
 
 	totalsize = self->block_size * self->node_total;
 	snprintf(buf, bufsize, _STR_HEAD, self->name, \
-	(uint64)self->nodepool_num, (uint64)self->max_nodepool_num, time_buf, \
+	(uint64)self->node_pool_num, (uint64)self->max_node_pool_num, time_buf, \
 	(uint64)self->alignment, 
 	(uint64)self->base_block_size, (uint64)self->block_size, \
 	(uint64)self->node_total, (uint64)self->node_free_total, \

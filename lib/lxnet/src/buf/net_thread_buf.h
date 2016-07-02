@@ -26,10 +26,10 @@ void *threadbuf_get_quicklz_buf();
 /*
  * Initialize thread private buffer set, for getmsg and compress, uncompress etc temp buf.
  *
- * msgmaxsize --- max packet size.
- * compressmaxsize --- max compress/uncompress buffer size.
+ * msg_maxsize --- max packet size.
+ * compress_maxsize --- max compress/uncompress buffer size.
  */
-bool threadbuf_init(size_t msgmaxsize, size_t compressmaxsize);
+bool threadbuf_init(size_t msg_maxsize, size_t compress_maxsize);
 
 /* release thread private buffer set. */
 void threadbuf_release();

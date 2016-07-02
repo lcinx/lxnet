@@ -11,20 +11,20 @@
 #include "net_bufpool.h"
 
 struct bufpool {
-	bool isinit;
+	bool is_init;
 
-	size_t bigpoolnum;
-	size_t bigpoolsize;
-	struct poolmgr *bigblockpool;
+	size_t big_pool_num;
+	size_t big_pool_size;
+	struct poolmgr *big_block_pool;
 	cspin big_lock;
 
-	size_t smallpoolnum;
-	size_t smallpoolsize;
-	struct poolmgr *smallblockpool;
+	size_t small_pool_num;
+	size_t small_pool_size;
+	struct poolmgr *small_block_pool;
 	cspin small_lock;
 
-	size_t bufnum;
-	size_t bufsize;
+	size_t buf_num;
+	size_t buf_size;
 	struct poolmgr *buf_pool;
 	cspin buf_lock;
 };
@@ -32,30 +32,35 @@ static struct bufpool s_pool = {false};
 
 /*
  * create and init buf pool.
- * bigblocknum --- is big block num.
- * bigblocksize --- is big block size.
+ * big_block_num --- is big block num.
+ * big_block_size --- is big block size.
  *
- * smallblocknum --- is small block num.
- * smallblocksize --- is small block size.
+ * small_block_num --- is small block num.
+ * small_block_size --- is small block size.
  * 
- * bufnum --- is buf num.
- * bufsize --- is buf size.
+ * buf_num --- is buf num.
+ * buf_size --- is buf size.
  */
-bool bufpool_init(size_t bigblocknum, size_t bigblocksize, size_t smallblocknum, size_t smallblocksize, size_t bufnum, size_t bufsize) {
-	if (s_pool.isinit)
+bool bufpool_init(size_t big_block_num, size_t big_block_size, 
+		size_t small_block_num, size_t small_block_size, size_t buf_num, size_t buf_size) {
+
+	if (s_pool.is_init)
 		return false;
 
-	if ((bigblocknum == 0) || (bigblocksize == 0) ||
-		(smallblocknum == 0) || (smallblocksize == 0) ||
-		(bufnum == 0) || (bufsize == 0))
+	if ((big_block_num == 0) || (big_block_size == 0) ||
+		(small_block_num == 0) || (small_block_size == 0) ||
+		(buf_num == 0) || (buf_size == 0))
 		return false;
 
-	s_pool.bigblockpool = poolmgr_create(bigblocksize, 8, bigblocknum, 1, "big_block_pools");
-	s_pool.smallblockpool = poolmgr_create(smallblocksize, 8, smallblocknum, 1, "small_block_pools");
-	s_pool.buf_pool = poolmgr_create(bufsize, 8, bufnum, 1, "bufpools");
-	if (!s_pool.bigblockpool || !s_pool.smallblockpool || !s_pool.buf_pool) {
-		poolmgr_release(s_pool.bigblockpool);
-		poolmgr_release(s_pool.smallblockpool);
+	s_pool.big_block_pool = poolmgr_create(big_block_size, 8, big_block_num, 1, 
+																"big_block_pools");
+	s_pool.small_block_pool = poolmgr_create(small_block_size, 8, small_block_num, 1, 
+																"small_block_pools");
+
+	s_pool.buf_pool = poolmgr_create(buf_size, 8, buf_num, 1, "bufpools");
+	if (!s_pool.big_block_pool || !s_pool.small_block_pool || !s_pool.buf_pool) {
+		poolmgr_release(s_pool.big_block_pool);
+		poolmgr_release(s_pool.small_block_pool);
 		poolmgr_release(s_pool.buf_pool);
 		return false;
 	}
@@ -64,33 +69,33 @@ bool bufpool_init(size_t bigblocknum, size_t bigblocksize, size_t smallblocknum,
 	cspin_init(&s_pool.small_lock);
 	cspin_init(&s_pool.buf_lock);
 
-	s_pool.bigpoolnum = bigblocknum;
-	s_pool.bigpoolsize = bigblocksize;
+	s_pool.big_pool_num = big_block_num;
+	s_pool.big_pool_size = big_block_size;
 
-	s_pool.smallpoolnum = smallblocknum;
-	s_pool.smallpoolsize = smallblocksize;
+	s_pool.small_pool_num = small_block_num;
+	s_pool.small_pool_size = small_block_size;
 
-	s_pool.bufnum = bufnum;
-	s_pool.bufsize = bufsize;
+	s_pool.buf_num = buf_num;
+	s_pool.buf_size = buf_size;
 
-	s_pool.isinit = true;
+	s_pool.is_init = true;
 	return true;
 }
 
 /* release buf pool. */
 void bufpool_release() {
-	if (!s_pool.isinit)
+	if (!s_pool.is_init)
 		return;
 
 	cspin_lock(&s_pool.big_lock);
-	poolmgr_release(s_pool.bigblockpool);
-	s_pool.bigblockpool = NULL;
+	poolmgr_release(s_pool.big_block_pool);
+	s_pool.big_block_pool = NULL;
 	cspin_unlock(&s_pool.big_lock);
 	cspin_destroy(&s_pool.big_lock);
 
 	cspin_lock(&s_pool.small_lock);
-	poolmgr_release(s_pool.smallblockpool);
-	s_pool.smallblockpool = NULL;
+	poolmgr_release(s_pool.small_block_pool);
+	s_pool.small_block_pool = NULL;
 	cspin_unlock(&s_pool.small_lock);
 	cspin_destroy(&s_pool.small_lock);
 
@@ -100,52 +105,52 @@ void bufpool_release() {
 	cspin_unlock(&s_pool.buf_lock);
 	cspin_destroy(&s_pool.buf_lock);
 
-	s_pool.isinit = false;
+	s_pool.is_init = false;
 }
 
-void *bufpool_createbigblock() {
+void *bufpool_create_big_block() {
 	void *self = NULL;
-	if (!s_pool.isinit)
+	if (!s_pool.is_init)
 		return NULL;
 
 	cspin_lock(&s_pool.big_lock);
-	self = poolmgr_alloc_object(s_pool.bigblockpool);
+	self = poolmgr_alloc_object(s_pool.big_block_pool);
 	cspin_unlock(&s_pool.big_lock);
 	return self;
 }
 
-void bufpool_releasebigblock(void *self) {
+void bufpool_release_big_block(void *self) {
 	if (!self)
 		return;
 
 	cspin_lock(&s_pool.big_lock);
-	poolmgr_free_object(s_pool.bigblockpool, self);
+	poolmgr_free_object(s_pool.big_block_pool, self);
 	cspin_unlock(&s_pool.big_lock);
 }
 
-void *bufpool_createsmallblock() {
+void *bufpool_create_small_block() {
 	void *self = NULL;
-	if (!s_pool.isinit)
+	if (!s_pool.is_init)
 		return NULL;
 
 	cspin_lock(&s_pool.small_lock);
-	self = poolmgr_alloc_object(s_pool.smallblockpool);
+	self = poolmgr_alloc_object(s_pool.small_block_pool);
 	cspin_unlock(&s_pool.small_lock);
 	return self;
 }
 
-void bufpool_releasesmallblock(void *self) {
+void bufpool_release_small_block(void *self) {
 	if (!self)
 		return;
 
 	cspin_lock(&s_pool.small_lock);
-	poolmgr_free_object(s_pool.smallblockpool, self);
+	poolmgr_free_object(s_pool.small_block_pool, self);
 	cspin_unlock(&s_pool.small_lock);
 }
 
-void *bufpool_createbuf() {
+void *bufpool_create_net_buf() {
 	void *self = NULL;
-	if (!s_pool.isinit)
+	if (!s_pool.is_init)
 		return NULL;
 
 	cspin_lock(&s_pool.buf_lock);
@@ -154,7 +159,7 @@ void *bufpool_createbuf() {
 	return self;
 }
 
-void bufpool_releasebuf(void *self) {
+void bufpool_release_net_buf(void *self) {
 	if (!self)
 		return;
 
@@ -164,24 +169,24 @@ void bufpool_releasebuf(void *self) {
 }
 
 /* get buf pool memory info. */
-void bufpool_meminfo(char *buf, size_t bufsize) {
+void bufpool_get_memory_info(char *buf, size_t buf_size) {
 	size_t index = 0;
 	cspin_lock(&s_pool.big_lock);
-	poolmgr_getinfo(s_pool.bigblockpool, buf, bufsize - 1);
+	poolmgr_get_info(s_pool.big_block_pool, buf, buf_size - 1);
 	cspin_unlock(&s_pool.big_lock);
 
 	index = strlen(buf);
 
 	cspin_lock(&s_pool.small_lock);
-	poolmgr_getinfo(s_pool.smallblockpool, &buf[index], bufsize - 1 - index);
+	poolmgr_get_info(s_pool.small_block_pool, &buf[index], buf_size - 1 - index);
 	cspin_unlock(&s_pool.small_lock);
 
 	index = strlen(buf);
 
 	cspin_lock(&s_pool.buf_lock);
-	poolmgr_getinfo(s_pool.buf_pool, &buf[index], bufsize - 1 - index);
+	poolmgr_get_info(s_pool.buf_pool, &buf[index], buf_size - 1 - index);
 	cspin_unlock(&s_pool.buf_lock);
 
-	buf[bufsize - 1] = 0;
+	buf[buf_size - 1] = 0;
 }
 

@@ -15,27 +15,27 @@ extern "C" {
 
 /*
  * create and init net some pool.
- * socketnum --- socket object num.
- * socketsize --- socket object size.
+ * socketer_num --- socketer object num.
+ * socketer_size --- socketer object size.
  *
- * listennum --- listen object num.
- * listensize --- listen object size.
+ * listener_num --- listener object num.
+ * listener_size --- listener object size.
  */
-bool netpool_init(size_t socketnum, size_t socketsize, size_t listennum, size_t listensize);
+bool netpool_init(size_t socketer_num, size_t socketer_size, size_t listener_num, size_t listener_size);
 
 /* release net some pool. */
 void netpool_release();
 
-void *netpool_createsocket();
+void *netpool_create_socketer();
 
-void netpool_releasesocket(void *self);
+void netpool_release_socketer(void *self);
 
-void *netpool_createlisten();
+void *netpool_create_listener();
 
-void netpool_releaselisten(void *self);
+void netpool_release_listener(void *self);
 
 /* get net some pool info. */
-void netpool_meminfo(char *buf, size_t bufsize);
+void netpool_get_memory_info(char *buf, size_t bufsize);
 
 #ifdef __cplusplus
 }

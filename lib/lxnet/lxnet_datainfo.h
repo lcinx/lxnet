@@ -11,19 +11,19 @@ enum {
 };
 
 struct datainfo {
-	int64 sendmsgnum;
-	int64 recvmsgnum;
-	int64 sendbytes;
-	int64 recvbytes;
-	time_t tm_sendmsgnum;
-	time_t tm_recvmsgnum;
-	time_t tm_sendbytes;
-	time_t tm_recvbytes;
+	int64 send_msg_num;
+	int64 recv_msg_num;
+	int64 send_bytes;
+	int64 recv_bytes;
+	time_t tm_send_msg_num;
+	time_t tm_recv_msg_num;
+	time_t tm_send_bytes;
+	time_t tm_recv_bytes;
 };
 
 struct datainfomgr {
-	int64 lasttime;
-	struct datainfo datatable[enum_netdata_end];
+	int64 last_time;
+	struct datainfo data_table[enum_netdata_end];
 };
 
 #endif

@@ -10,15 +10,15 @@
 #include <windows.h>
 
 struct _tp_integer {
-	int isinit;
+	int is_init;
 	LARGE_INTEGER liCounter;
 };
 
 static struct _tp_integer s_larget_int = {0};
 static __inline int64 __GetSecondCount__() {
-	if (0 == s_larget_int.isinit) {
+	if (0 == s_larget_int.is_init) {
 		QueryPerformanceFrequency(&s_larget_int.liCounter);
-		s_larget_int.isinit = 1;
+		s_larget_int.is_init = 1;
 	}
 	return s_larget_int.liCounter.QuadPart;
 }
@@ -68,17 +68,17 @@ int get_cpu_num() {
 #define CLOCK_MONOTONIC 0
 
 struct _base_time_info {
-	int isinit;
+	int is_init;
 	mach_timebase_info_data_t timebase;
 	double ratio_v;
 };
 
 static struct _base_time_info s_basetime = {0};
 static inline double get_timebase_ratio_v() {
-	if (0 == s_basetime.isinit) {
+	if (0 == s_basetime.is_init) {
 		mach_timebase_info(&s_basetime.timebase);
 		s_basetime.ratio_v = (double)s_basetime.timebase.numer / (double)s_basetime.timebase.denom;
-		s_basetime.isinit = 1;
+		s_basetime.is_init = 1;
 	}
 	return s_basetime.ratio_v;
 }

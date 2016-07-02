@@ -13,7 +13,7 @@ struct socketer;
 struct listener;
 struct datainfo;
 struct datainfomgr;
-struct encryptinfo;
+struct encrypt_info;
 
 namespace lxnet {
 
@@ -161,8 +161,8 @@ public:
 
 public:
 	struct datainfomgr *m_infomgr;
-	struct encryptinfo *m_encrypt;
-	struct encryptinfo *m_decrypt;
+	struct encrypt_info *m_encrypt;
+	struct encrypt_info *m_decrypt;
 	struct socketer *m_self;
 };
 
@@ -170,14 +170,14 @@ public:
 
 /*
  * 初始化网络
- * bigbufsize 指定大块的大小，bigbufnum指定大块的数目，
- * smallbufsize 指定小块的大小，smallbufnum指定小块的数目
- * listen num 指定用于监听的套接字的数目，socket num用于连接的总数目
- * threadnum 指定网络线程数目，若设置为小于等于0，则会开启cpu个数的线程数目
+ * big_buf_size 指定大块的大小，big_buf_num 指定大块的数目，
+ * small_buf_size 指定小块的大小，small_buf_num 指定小块的数目
+ * listener_num 指定用于监听的对象的数目，socketer_num 指定用于连接的对象的数目
+ * thread_num 指定网络线程数目，若设置为小于等于0，则会开启cpu个数的线程数目
  * infomgr 默认的网络数据统计管理器，一般为NULL
  */
-bool net_init(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t smallbufnum, 
-		size_t listenernum, size_t socketnum, int threadnum, struct datainfomgr *infomgr = NULL);
+bool net_init(size_t big_buf_size, size_t big_buf_num, size_t small_buf_size, size_t small_buf_num, 
+		size_t listener_num, size_t socketer_num, int thread_num, struct datainfomgr *infomgr = NULL);
 
 /* 释放网络相关 */
 void net_release();
@@ -186,7 +186,7 @@ void net_release();
 void net_run();
 
 /* 获取socket对象池，listen对象池，大块池，小块池的使用情况 */
-const char *net_memory_info(char *buf, size_t buflen);
+const char *net_get_memory_info(char *buf, size_t buflen);
 
 
 /* 启用/禁用接受的连接导致的错误日志，并返回之前的值 */

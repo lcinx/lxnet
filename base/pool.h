@@ -35,7 +35,7 @@ void *poolmgr_alloc_object(struct poolmgr *self);
 
 void poolmgr_free_object(struct poolmgr *self, void *bk);
 
-void poolmgr_getinfo(struct poolmgr *self, char *buf, size_t bufsize);
+void poolmgr_get_info(struct poolmgr *self, char *buf, size_t bufsize);
 
 #ifdef __cplusplus
 }

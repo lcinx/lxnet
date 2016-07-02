@@ -17,7 +17,7 @@ extern "C" {
 struct socketer;
 
 /* get socket object size. */
-size_t socketer_getsize();
+size_t socketer_get_size();
 
 /*
  * create socketer. 
@@ -34,35 +34,37 @@ bool socketer_connect(struct socketer *self, const char *ip, short port);
 
 void socketer_close(struct socketer *self);
 
-bool socketer_isclose(struct socketer *self);
+bool socketer_is_close(struct socketer *self);
 
-void socketer_getip(struct socketer *self, char *ip, size_t len);
+void socketer_get_ip(struct socketer *self, char *ip, size_t len);
 
 int socketer_get_send_buffer_byte_size(struct socketer *self);
 
 int socketer_get_recv_buffer_byte_size(struct socketer *self);
 
-bool socketer_gethostname(char *buf, size_t len);
+bool socketer_get_hostname(char *buf, size_t len);
 
-bool socketer_gethostbyname(const char *name, char *buf, size_t len, bool ipv6);
+bool socketer_get_host_ip_by_name(const char *name, char *buf, size_t len, bool ipv6);
 
-bool socketer_sendmsg(struct socketer *self, void *data, int len);
+bool socketer_send_msg(struct socketer *self, void *data, int len);
+
+bool socketer_send_data(struct socketer *self, void *data, int len);
 
 /*
  * when sending data. test send limit as len.
  * if return true, close this connect.
  */
-bool socketer_send_islimit(struct socketer *self, size_t len);
+bool socketer_send_is_limit(struct socketer *self, size_t len);
 
 /* set send event. */
-void socketer_checksend(struct socketer *self);
+void socketer_check_send(struct socketer *self);
 
-void *socketer_getmsg(struct socketer *self, char *buf, size_t bufsize);
+void *socketer_get_msg(struct socketer *self, char *buf, size_t bufsize);
 
-void *socketer_getdata(struct socketer *self, char *buf, size_t bufsize, int *datalen);
+void *socketer_get_data(struct socketer *self, char *buf, size_t bufsize, int *datalen);
 
 /* set recv event. */
-void socketer_checkrecv(struct socketer *self);
+void socketer_check_recv(struct socketer *self);
 
 
 

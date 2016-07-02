@@ -26,8 +26,8 @@
 /* max events from epoll_wait function. */
 #define THREAD_EVENT_SIZE (4096)
 struct epollmgr {
-	int threadnum;
-	struct cthread_pool *threadpool;				/* thread pool. */
+	int thread_num;
+	struct cthread_pool *thread_pool;				/* thread pool. */
 	volatile char need_exit;						/* exit flag. */
 
 	catomic event_num;								/* current event number. */
@@ -38,7 +38,7 @@ struct epollmgr {
 static struct epollmgr *s_mgr = NULL;
 
 /* add socket to event manager. */
-void socket_addto_eventmgr(struct socketer *self) {
+void eventmgr_add_socket(struct socketer *self) {
 	struct epoll_event ev;
 
 	/* add evnet ---EPOLLHUP event. */
@@ -55,7 +55,7 @@ void socket_addto_eventmgr(struct socketer *self) {
 }
 
 /* remove socket from event manager. */
-void socket_removefrom_eventmgr(struct socketer *self) {
+void eventmgr_remove_socket(struct socketer *self) {
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
 	catomic_set(&self->events, 0);
@@ -68,7 +68,7 @@ void socket_removefrom_eventmgr(struct socketer *self) {
 }
 
 /* set recv event. */
-void socket_setup_recvevent(struct socketer *self) {
+void eventmgr_setup_socket_recv_event(struct socketer *self) {
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
 
@@ -95,7 +95,7 @@ void socket_setup_recvevent(struct socketer *self) {
 }
 
 /* remove recv event. */
-void socket_remove_recvevent(struct socketer *self) {
+void eventmgr_remove_socket_recv_event(struct socketer *self) {
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
 
@@ -117,7 +117,7 @@ void socket_remove_recvevent(struct socketer *self) {
 }
 
 /* set send event. */
-void socket_setup_sendevent(struct socketer *self) {
+void eventmgr_setup_socket_send_event(struct socketer *self) {
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
 
@@ -143,7 +143,7 @@ void socket_setup_sendevent(struct socketer *self) {
 }
 
 /* remove send event. */
-void socket_remove_sendevent(struct socketer *self) {
+void eventmgr_remove_socket_send_event(struct socketer *self) {
 	struct epoll_event ev;
 	memset(&ev, 0, sizeof(ev));
 
@@ -234,15 +234,15 @@ static int leader_func(void *argv) {
 
 /*
  * initialize event manager. 
- * socketnum --- socket total number. must greater than 1.
- * threadnum --- thread number, if less than 0, then start by the number of cpu threads 
+ * socketer_num --- socket total number. must greater than 1.
+ * thread_num --- thread number, if less than 0, then start by the number of cpu threads 
  */
-bool eventmgr_init(int socketnum, int threadnum) {
-	if (s_mgr || socketnum < 1)
+bool eventmgr_init(int socketer_num, int thread_num) {
+	if (s_mgr || socketer_num < 1)
 		return false;
 
-	if (threadnum <= 0) {
-		threadnum = get_cpu_num();
+	if (thread_num <= 0) {
+		thread_num = get_cpu_num();
 	}
 
 	{
@@ -267,12 +267,12 @@ bool eventmgr_init(int socketnum, int threadnum) {
 		return false;
 	}
 
-	s_mgr->threadnum = threadnum;
+	s_mgr->thread_num = thread_num;
 	s_mgr->need_exit = false;
 
 	/* first building epoll module, and then create thread pool. */
-	s_mgr->threadpool = cthread_pool_create(threadnum, s_mgr, leader_func, task_func);
-	if (!s_mgr->threadpool) {
+	s_mgr->thread_pool = cthread_pool_create(thread_num, s_mgr, leader_func, task_func);
+	if (!s_mgr->thread_pool) {
 		close(s_mgr->epoll_fd);
 		free(s_mgr);
 		s_mgr = NULL;
@@ -292,7 +292,7 @@ void eventmgr_release() {
 	s_mgr->need_exit = true;
 
 	/* release thread pool. */
-	cthread_pool_release(s_mgr->threadpool);
+	cthread_pool_release(s_mgr->thread_pool);
 
 	/* close epoll some. */
 	close(s_mgr->epoll_fd);

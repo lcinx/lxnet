@@ -15,34 +15,35 @@ extern "C" {
 
 /*
  * create and init buf pool.
- * bigblocknum --- is big block num.
- * bigblocksize --- is big block size.
+ * big_block_num --- is big block num.
+ * big_block_size --- is big block size.
  *
- * smallblocknum --- is small block num.
- * smallblocksize --- is small block size.
+ * small_block_num --- is small block num.
+ * small_block_size --- is small block size.
  * 
- * bufnum --- is buf num.
- * bufsize --- is buf size.
+ * buf_num --- is buf num.
+ * buf_size --- is buf size.
  */
-bool bufpool_init(size_t bigblocknum, size_t bigblocksize, size_t smallblocknum, size_t smallblocksize, size_t bufnum, size_t bufsize);
+bool bufpool_init(size_t big_block_num, size_t big_block_size, 
+		size_t small_block_num, size_t small_block_size, size_t buf_num, size_t buf_size);
 
 /* release buf pool. */
 void bufpool_release();
 
-void *bufpool_createbigblock();
+void *bufpool_create_big_block();
 
-void bufpool_releasebigblock(void *self);
+void bufpool_release_big_block(void *self);
 
-void *bufpool_createsmallblock();
+void *bufpool_create_small_block();
 
-void bufpool_releasesmallblock(void *self);
+void bufpool_release_small_block(void *self);
 
-void *bufpool_createbuf();
+void *bufpool_create_net_buf();
 
-void bufpool_releasebuf(void *self);
+void bufpool_release_net_buf(void *self);
 
 /* get buf pool memory info. */
-void bufpool_meminfo(char *buf, size_t bufsize);
+void bufpool_get_memory_info(char *buf, size_t buf_size);
 
 #ifdef __cplusplus
 }

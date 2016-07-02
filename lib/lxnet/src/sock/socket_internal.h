@@ -32,7 +32,7 @@ struct socketer {
 
 	net_socket sockfd;					/* socket fd. */
 	int64 try_connect_time;				/* the one fd try connect 1000 ms, after close it. */
-	int64 closetime;					/* close time. */
+	int64 close_time;					/* close time. */
 	struct socketer *next;
 	struct net_buf *recvbuf;
 	struct net_buf *sendbuf;

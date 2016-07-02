@@ -22,23 +22,23 @@
 
 struct listener {
 	net_socket sockfd;
-	bool isfree;
+	bool is_free;
 };
 
 /* get listen object size. */
-size_t listener_getsize() {
+size_t listener_get_size() {
 	return (sizeof(struct listener));
 }
 
 static void listener_init(struct listener *self) {
 	self->sockfd = NET_INVALID_SOCKET;
-	self->isfree = false;
+	self->is_free = false;
 }
 
 struct listener *listener_create() {
-	struct listener *self = (struct listener *)netpool_createlisten();
+	struct listener *self = (struct listener *)netpool_create_listener();
 	if (!self) {
-		log_error("	struct listener *self = (struct listener *)netpool_createlisten();");
+		log_error("	struct listener *self = (struct listener *)netpool_create_listener();");
 		return NULL;
 	}
 	listener_init(self);
@@ -47,12 +47,12 @@ struct listener *listener_create() {
 
 void listener_release(struct listener *self) {
 	assert(self != NULL);
-	assert(!self->isfree);
+	assert(!self->is_free);
 	if (!self)
 		return;
 	socket_close(&self->sockfd);
-	self->isfree = true;
-	netpool_releaselisten(self);
+	self->is_free = true;
+	netpool_release_listener(self);
 }
 
 /*
@@ -65,7 +65,7 @@ bool listener_listen(struct listener *self, unsigned short port, int backlog) {
 	int status;
 	char port_buf[16];
 	assert(self != NULL);
-	assert(!self->isfree);
+	assert(!self->is_free);
 	if (!self)
 		return false;
 
@@ -126,7 +126,7 @@ bool listener_listen(struct listener *self, unsigned short port, int backlog) {
 
 bool listener_isclose(struct listener *self) {
 	assert(self != NULL);
-	assert(!self->isfree);
+	assert(!self->is_free);
 	if (!self)
 		return true;
 	return (self->sockfd == NET_INVALID_SOCKET);
@@ -134,7 +134,7 @@ bool listener_isclose(struct listener *self) {
 
 void listener_close(struct listener *self) {
 	assert(self != NULL);
-	assert(!self->isfree);
+	assert(!self->is_free);
 	if (!self)
 		return;
 	socket_close(&self->sockfd);
@@ -142,7 +142,7 @@ void listener_close(struct listener *self) {
 
 bool listener_can_accept(struct listener *self) {
 	assert(self != NULL);
-	assert(!self->isfree);
+	assert(!self->is_free);
 	if (!self)
 		return false;
 	if (self->sockfd != NET_INVALID_SOCKET) {
@@ -159,7 +159,7 @@ bool listener_can_accept(struct listener *self) {
 struct socketer *listener_accept(struct listener *self, bool bigbuf) {
 	int e;
 	assert(self != NULL);
-	assert(!self->isfree);
+	assert(!self->is_free);
 	if (!self)
 		return NULL;
 	if (self->sockfd == NET_INVALID_SOCKET)

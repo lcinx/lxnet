@@ -20,7 +20,7 @@
 
 
 struct infomgr {
-	bool isinit;
+	bool is_init;
 	struct poolmgr *encrypt_pool;
 	cspin encrypt_lock;
 
@@ -35,7 +35,7 @@ static struct infomgr s_infomgr = {false};
 static struct datainfomgr *s_datainfomgr = NULL;
 static bool s_datainfo_need_release = false;
 
-struct encryptinfo {
+struct encrypt_info {
 	enum {
 		enum_encrypt_len = 32,
 	};
@@ -45,33 +45,36 @@ struct encryptinfo {
 	char buf[enum_encrypt_len];
 };
 
-static inline void on_sendmsg(struct datainfomgr *infomgr, size_t msgnum, size_t len) {
+static inline void on_send_msg(struct datainfomgr *infomgr, size_t msg_num, size_t len) {
 	if (infomgr) {
-		infomgr->datatable[enum_netdata_total].sendmsgnum += (int64)msgnum;
-		infomgr->datatable[enum_netdata_total].sendbytes += (int64)len;
+		infomgr->data_table[enum_netdata_total].send_msg_num += (int64)msg_num;
+		infomgr->data_table[enum_netdata_total].send_bytes += (int64)len;
 
-		infomgr->datatable[enum_netdata_now].sendmsgnum += (int64)msgnum;
-		infomgr->datatable[enum_netdata_now].sendbytes += (int64)len;
+		infomgr->data_table[enum_netdata_now].send_msg_num += (int64)msg_num;
+		infomgr->data_table[enum_netdata_now].send_bytes += (int64)len;
 	}
 }
 
-static inline void on_recvmsg(struct datainfomgr *infomgr, size_t msgnum, size_t len) {
+static inline void on_recv_msg(struct datainfomgr *infomgr, size_t msg_num, size_t len) {
 	if (infomgr) {
-		infomgr->datatable[enum_netdata_total].recvmsgnum += (int64)msgnum;
-		infomgr->datatable[enum_netdata_total].recvbytes += (int64)len;
+		infomgr->data_table[enum_netdata_total].recv_msg_num += (int64)msg_num;
+		infomgr->data_table[enum_netdata_total].recv_bytes += (int64)len;
 
-		infomgr->datatable[enum_netdata_now].recvmsgnum += (int64)msgnum;
-		infomgr->datatable[enum_netdata_now].recvbytes += (int64)len;
+		infomgr->data_table[enum_netdata_now].recv_msg_num += (int64)msg_num;
+		infomgr->data_table[enum_netdata_now].recv_bytes += (int64)len;
 	}
 }
 
-static bool infomgr_init(size_t socketnum, size_t listennum) {
-	if (s_infomgr.isinit)
+static bool infomgr_init(size_t socketer_num, size_t listener_num) {
+	if (s_infomgr.is_init)
 		return false;
 
-	s_infomgr.encrypt_pool = poolmgr_create(sizeof(struct encryptinfo), 8, socketnum * 2, 1, "encrypt buffer pool");
-	s_infomgr.socket_pool = poolmgr_create(sizeof(lxnet::Socketer), 8, socketnum, 1, "Socketer obj pool");
-	s_infomgr.listen_pool = poolmgr_create(sizeof(lxnet::Listener), 8, listennum, 1, "Listen obj pool");
+	s_infomgr.encrypt_pool = poolmgr_create(sizeof(struct encrypt_info), 8, socketer_num * 2, 1, 
+																		"encrypt buffer pool");
+	s_infomgr.socket_pool = poolmgr_create(sizeof(lxnet::Socketer), 8, socketer_num, 1, 
+																	"Socketer obj pool");
+	s_infomgr.listen_pool = poolmgr_create(sizeof(lxnet::Listener), 8, listener_num, 1, 
+																	"Listen obj pool");
 	if (!s_infomgr.socket_pool || !s_infomgr.encrypt_pool || !s_infomgr.listen_pool) {
 		poolmgr_release(s_infomgr.socket_pool);
 		poolmgr_release(s_infomgr.encrypt_pool);
@@ -82,15 +85,15 @@ static bool infomgr_init(size_t socketnum, size_t listennum) {
 	cspin_init(&s_infomgr.encrypt_lock);
 	cspin_init(&s_infomgr.socket_lock);
 	cspin_init(&s_infomgr.listen_lock);
-	s_infomgr.isinit = true;
+	s_infomgr.is_init = true;
 	return true;
 }
 
 static void infomgr_release() {
-	if (!s_infomgr.isinit)
+	if (!s_infomgr.is_init)
 		return;
 
-	s_infomgr.isinit = false;
+	s_infomgr.is_init = false;
 	poolmgr_release(s_infomgr.socket_pool);
 	poolmgr_release(s_infomgr.encrypt_pool);
 	poolmgr_release(s_infomgr.listen_pool);
@@ -100,7 +103,7 @@ static void infomgr_release() {
 }
 
 static void encrypt_info_release(void *info) {
-	if (!s_infomgr.isinit)
+	if (!s_infomgr.is_init)
 		return;
 
 	cspin_lock(&s_infomgr.encrypt_lock);
@@ -114,7 +117,7 @@ namespace lxnet {
 
 /* 创建一个用于监听的对象 */
 Listener *Listener::Create() {
-	if (!s_infomgr.isinit) {
+	if (!s_infomgr.is_init) {
 		assert(false && "Listener Create not init!");
 		return NULL;
 	}
@@ -195,7 +198,7 @@ bool Listener::CanAccept() {
 
 /* 创建一个Socketer对象 */
 Socketer *Socketer::Create(bool bigbuf) {
-	if (!s_infomgr.isinit) {
+	if (!s_infomgr.is_init) {
 		assert(false && "Socketer Create not init!");
 		return NULL;
 	}
@@ -274,7 +277,7 @@ void Socketer::SetEncryptDecryptFunction(void (*encryptfunc)(void *logicdata, ch
 }
 
 static void encrypt_decrypt_as_key_do_func(void *logicdata, char *buf, int len) {
-	struct encryptinfo *o = (struct encryptinfo *)logicdata;
+	struct encrypt_info *o = (struct encrypt_info *)logicdata;
 
 	int i;
 	for (i = 0; i < len; i++) {
@@ -293,7 +296,7 @@ void Socketer::SetEncryptKey(const char *key, int key_len) {
 
 	if (!m_encrypt) {
 		cspin_lock(&s_infomgr.encrypt_lock);
-		m_encrypt = (struct encryptinfo *)poolmgr_alloc_object(s_infomgr.encrypt_pool);
+		m_encrypt = (struct encrypt_info *)poolmgr_alloc_object(s_infomgr.encrypt_pool);
 		cspin_unlock(&s_infomgr.encrypt_lock);
 
 		if (m_encrypt) {
@@ -305,7 +308,7 @@ void Socketer::SetEncryptKey(const char *key, int key_len) {
 	}
 
 	if (m_encrypt) {
-		m_encrypt->maxidx = key_len > encryptinfo::enum_encrypt_len ? encryptinfo::enum_encrypt_len : key_len;
+		m_encrypt->maxidx = key_len > encrypt_info::enum_encrypt_len ? encrypt_info::enum_encrypt_len : key_len;
 		memcpy(&m_encrypt->buf, key, m_encrypt->maxidx);
 	}
 }
@@ -317,7 +320,7 @@ void Socketer::SetDecryptKey(const char *key, int key_len) {
 
 	if (!m_decrypt) {
 		cspin_lock(&s_infomgr.encrypt_lock);
-		m_decrypt = (struct encryptinfo *)poolmgr_alloc_object(s_infomgr.encrypt_pool);
+		m_decrypt = (struct encrypt_info *)poolmgr_alloc_object(s_infomgr.encrypt_pool);
 		cspin_unlock(&s_infomgr.encrypt_lock);
 
 		if (m_decrypt) {
@@ -329,7 +332,7 @@ void Socketer::SetDecryptKey(const char *key, int key_len) {
 	}
 
 	if (m_decrypt) {
-		m_decrypt->maxidx = key_len > encryptinfo::enum_encrypt_len ? encryptinfo::enum_encrypt_len : key_len;
+		m_decrypt->maxidx = key_len > encrypt_info::enum_encrypt_len ? encrypt_info::enum_encrypt_len : key_len;
 		memcpy(&m_decrypt->buf, key, m_decrypt->maxidx);
 	}
 }
@@ -361,12 +364,12 @@ void Socketer::Close() {
 
 /* 测试socket套接字是否已关闭 */
 bool Socketer::IsClose() {
-	return socketer_isclose(m_self);
+	return socketer_is_close(m_self);
 }
 
 /* 获取此客户端ip地址 */
 void Socketer::GetIP(char *ip, size_t len) {
-	socketer_getip(m_self, ip, len);
+	socketer_get_ip(m_self, ip, len);
 }
 
 /* 获取发送缓冲待发送字节数(若为0表示不存在待发送数据或数据已写入系统缓冲) */
@@ -384,14 +387,14 @@ bool Socketer::SendPolicyData() {
 	//as3套接字策略文件
 	char buf[512] = "<cross-domain-policy> <allow-access-from domain=\"*\" secure=\"false\" to-ports=\"*\"/> </cross-domain-policy> ";
 	size_t datasize = strlen(buf);
-	if (socketer_send_islimit(m_self, datasize)) {
+	if (socketer_send_is_limit(m_self, datasize)) {
 		Close();
 		return false;
 	}
 
-	bool res = socketer_sendmsg(m_self, buf, datasize + 1);
+	bool res = socketer_send_msg(m_self, buf, datasize + 1);
 	if (res) {
-		on_sendmsg(m_infomgr, 0, datasize + 1);
+		on_send_msg(m_infomgr, 0, datasize + 1);
 	}
 	return res;
 }
@@ -403,15 +406,15 @@ bool Socketer::SendTGWInfo(const char *domain, int port) {
 	snprintf(buf, sizeof(buf) - 1, "tgw_l7_forward\r\nHost: %s:%d\r\n\r\n", domain, port);
 	buf[sizeof(buf) - 1] = '\0';
 	datasize = strlen(buf);
-	if (socketer_send_islimit(m_self, datasize)) {
+	if (socketer_send_is_limit(m_self, datasize)) {
 		Close();
 		return false;
 	}
 
 	socketer_set_raw_datasize(m_self, datasize);
-	bool res = socketer_sendmsg(m_self, buf, datasize);
+	bool res = socketer_send_msg(m_self, buf, datasize);
 	if (res) {
-		on_sendmsg(m_infomgr, 0, datasize);
+		on_send_msg(m_infomgr, 0, datasize);
 	}
 	return res;
 }
@@ -443,7 +446,7 @@ bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 		return false;
 	}
 
-	if (socketer_send_islimit(m_self, pMsg->GetLength() + addsize)) {
+	if (socketer_send_is_limit(m_self, pMsg->GetLength() + addsize)) {
 		Close();
 		return false;
 	}
@@ -453,35 +456,35 @@ bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 		bool res1, res2;
 		int onesend = pMsg->GetLength();
 		pMsg->SetLength(onesend + addsize);
-		res1 = socketer_sendmsg(m_self, pMsg, onesend);
+		res1 = socketer_send_msg(m_self, pMsg, onesend);
 
 		/*
 		 * 这里切记要修改回去。
 		 * 例：对于同一个包遍历发送给一个列表，然后每次都附带不同尾巴。。。这种情景，那么必须如此恢复。
 		 */
 		pMsg->SetLength(onesend);
-		res2 = socketer_sendmsg(m_self, adddata, addsize);
+		res2 = socketer_send_msg(m_self, adddata, addsize);
 		res = (res1 && res2);
 	} else {
-		res = socketer_sendmsg(m_self, pMsg, pMsg->GetLength());
+		res = socketer_send_msg(m_self, pMsg, pMsg->GetLength());
 	}
 
 	if (res) {
-		on_sendmsg(m_infomgr, 1, pMsg->GetLength() + addsize);
+		on_send_msg(m_infomgr, 1, pMsg->GetLength() + addsize);
 	}
 	return res;
 }
 
 /* 接收数据 */
 Msg *Socketer::GetMsg(char *buf, size_t bufsize) {
-	Msg *pMsg = (Msg *)socketer_getmsg(m_self, buf, bufsize);
+	Msg *pMsg = (Msg *)socketer_get_msg(m_self, buf, bufsize);
 	if (pMsg) {
 		if (pMsg->GetLength() < (int)sizeof(Msg)) {
 			Close();
 			return NULL;
 		}
 
-		on_recvmsg(m_infomgr, 1, pMsg->GetLength());
+		on_recv_msg(m_infomgr, 1, pMsg->GetLength());
 	}
 	return pMsg;
 }
@@ -491,55 +494,55 @@ bool Socketer::SendData(const void *data, size_t datasize) {
 	if (!data)
 		return false;
 
-	if (socketer_send_islimit(m_self, datasize)) {
+	if (socketer_send_is_limit(m_self, datasize)) {
 		Close();
 		return false;
 	}
 
-	bool res = socketer_sendmsg(m_self, (void *)data, datasize);
+	bool res = socketer_send_data(m_self, (void *)data, datasize);
 	if (res) {
-		on_sendmsg(m_infomgr, 0, datasize);
+		on_send_msg(m_infomgr, 0, datasize);
 	}
 	return res;
 }
 
 /* 接收数据 */
 const void *Socketer::GetData(char *buf, size_t bufsize, int *datalen) {
-	const void *data = socketer_getdata(m_self, buf, bufsize, datalen);
+	const void *data = socketer_get_data(m_self, buf, bufsize, datalen);
 	if (data) {
-		on_recvmsg(m_infomgr, 0, *datalen);
+		on_recv_msg(m_infomgr, 0, *datalen);
 	}
 	return data;
 }
 
 /* 触发真正的发送数据 */
 void Socketer::CheckSend() {
-	socketer_checksend(m_self);
+	socketer_check_send(m_self);
 }
 
 /* 尝试投递接收操作 */
 void Socketer::CheckRecv() {
-	socketer_checkrecv(m_self);
+	socketer_check_recv(m_self);
 }
 
 
 
 /*
  * 初始化网络
- * bigbufsize 指定大块的大小，bigbufnum指定大块的数目，
- * smallbufsize 指定小块的大小，smallbufnum指定小块的数目
- * listen num 指定用于监听的套接字的数目，socket num用于连接的总数目
- * threadnum 指定网络线程数目，若设置为小于等于0，则会开启cpu个数的线程数目
+ * big_buf_size 指定大块的大小，big_buf_num 指定大块的数目，
+ * small_buf_size 指定小块的大小，small_buf_num 指定小块的数目
+ * listener_num 指定用于监听的对象的数目，socketer_num 指定用于连接的对象的数目
+ * thread_num 指定网络线程数目，若设置为小于等于0，则会开启cpu个数的线程数目
  * infomgr 默认的网络数据统计管理器，一般为NULL
  */
-bool net_init(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t smallbufnum, 
-		size_t listenernum, size_t socketnum, int threadnum, struct datainfomgr *infomgr) {
+bool net_init(size_t big_buf_size, size_t big_buf_num, size_t small_buf_size, size_t small_buf_num, 
+		size_t listener_num, size_t socketer_num, int thread_num, struct datainfomgr *infomgr) {
 
-	if (!infomgr_init(socketnum, listenernum))
+	if (!infomgr_init(socketer_num, listener_num))
 		return false;
 
-	if (!netinit(bigbufsize, bigbufnum, smallbufsize, smallbufnum,
-			listenernum, socketnum, threadnum)) {
+	if (!net_module_init(big_buf_size, big_buf_num, small_buf_size, small_buf_num, 
+				listener_num, socketer_num, thread_num)) {
 		infomgr_release();
 		return false;
 	}
@@ -562,7 +565,7 @@ bool net_init(size_t bigbufsize, size_t bigbufnum, size_t smallbufsize, size_t s
 /* 释放网络相关 */
 void net_release() {
 	infomgr_release();
-	netrelease();
+	net_module_release();
 
 	if (s_datainfo_need_release)
 		DataInfoMgr_ReleaseObj(s_datainfomgr);
@@ -573,38 +576,39 @@ void net_release() {
 
 /* 执行相关操作，需要在主逻辑中调用此函数 */
 void net_run() {
-	netrun();
+	net_module_run();
 	DataInfoMgr_Run(s_datainfomgr);
 }
 
 /* 获取socket对象池，listen对象池，大块池，小块池的使用情况 */
-const char *net_memory_info(char *buf, size_t buflen) {
+const char *net_get_memory_info(char *buf, size_t buflen) {
 	if (!buf || buflen < 8000)
 		return NULL;
 
 	size_t index = 0;
 
-	snprintf(&buf[index], buflen - 1 - index, "%s", "lxnet lib memory pool info:\n<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
+	snprintf(&buf[index], buflen - 1 - index, "%s", 
+			"lxnet lib memory pool info:\n<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
 	index = strlen(buf);
 
 	cspin_lock(&s_infomgr.encrypt_lock);
-	poolmgr_getinfo(s_infomgr.encrypt_pool, &buf[index], buflen - 1 - index);
+	poolmgr_get_info(s_infomgr.encrypt_pool, &buf[index], buflen - 1 - index);
 	cspin_unlock(&s_infomgr.encrypt_lock);
 
 	index = strlen(buf);
 
 	cspin_lock(&s_infomgr.socket_lock);
-	poolmgr_getinfo(s_infomgr.socket_pool, &buf[index], buflen - 1 - index);
+	poolmgr_get_info(s_infomgr.socket_pool, &buf[index], buflen - 1 - index);
 	cspin_unlock(&s_infomgr.socket_lock);
 
 	index = strlen(buf);
 
 	cspin_lock(&s_infomgr.listen_lock);
-	poolmgr_getinfo(s_infomgr.listen_pool, &buf[index], buflen - 1 - index);
+	poolmgr_get_info(s_infomgr.listen_pool, &buf[index], buflen - 1 - index);
 	cspin_unlock(&s_infomgr.listen_lock);
 
 	index = strlen(buf);
-	netmemory_info(&buf[index], buflen - 1 - index);
+	net_module_get_memory_info(&buf[index], buflen - 1 - index);
 
 	index = strlen(buf);
 
@@ -613,7 +617,8 @@ const char *net_memory_info(char *buf, size_t buflen) {
 		index++;
 	}
 
-	snprintf(&buf[index], buflen - 1 - index, "%s", "<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
+	snprintf(&buf[index], buflen - 1 - index, "%s", 
+			"<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
 
 	buf[buflen - 1] = '\0';
 	return buf;
@@ -633,12 +638,12 @@ bool GetEnableErrorLog() {
 
 /* 获取此进程所在的机器名 */
 bool GetHostName(char *buf, size_t buflen) {
-	return socketer_gethostname(buf, buflen);
+	return socketer_get_hostname(buf, buflen);
 }
 
 /* 根据域名获取ip地址 */
 bool GetHostIPByName(const char *hostname, char *buf, size_t buflen, bool ipv6) {
-	return socketer_gethostbyname(hostname, buf, buflen, ipv6);
+	return socketer_get_host_ip_by_name(hostname, buf, buflen, ipv6);
 }
 
 
@@ -653,10 +658,10 @@ struct datainfomgr *DataInfoMgr_CreateObj() {
 
 	time_t curtm = time(NULL);
 	for (int i = 0; i < enum_netdata_end; ++i) {
-		infomgr->datatable[i].tm_sendmsgnum = curtm;
-		infomgr->datatable[i].tm_recvmsgnum = curtm;
-		infomgr->datatable[i].tm_sendbytes = curtm;
-		infomgr->datatable[i].tm_recvbytes = curtm;
+		infomgr->data_table[i].tm_send_msg_num = curtm;
+		infomgr->data_table[i].tm_recv_msg_num = curtm;
+		infomgr->data_table[i].tm_send_bytes = curtm;
+		infomgr->data_table[i].tm_recv_bytes = curtm;
 	}
 
 	return infomgr;
@@ -676,39 +681,39 @@ void DataInfoMgr_Run(struct datainfomgr *infomgr) {
 		return;
 
 	int64 currenttime = get_millisecond();
-	if (currenttime - infomgr->lasttime < 1000)
+	if (currenttime - infomgr->last_time < 1000)
 		return;
 
-	infomgr->lasttime = currenttime;
+	infomgr->last_time = currenttime;
 
 	time_t curtm = time(NULL);
-	struct datainfo *maxinfo = &infomgr->datatable[enum_netdata_max];
-	struct datainfo *nowinfo = &infomgr->datatable[enum_netdata_now];
+	struct datainfo *max_info = &infomgr->data_table[enum_netdata_max];
+	struct datainfo *now_info = &infomgr->data_table[enum_netdata_now];
 
-	if (maxinfo->sendmsgnum < nowinfo->sendmsgnum) {
-		maxinfo->sendmsgnum = nowinfo->sendmsgnum;
-		maxinfo->tm_sendmsgnum = curtm;
+	if (max_info->send_msg_num < now_info->send_msg_num) {
+		max_info->send_msg_num = now_info->send_msg_num;
+		max_info->tm_send_msg_num = curtm;
 	}
 
-	if (maxinfo->recvmsgnum < nowinfo->recvmsgnum) {
-		maxinfo->recvmsgnum = nowinfo->recvmsgnum;
-		maxinfo->tm_recvmsgnum = curtm;
+	if (max_info->recv_msg_num < now_info->recv_msg_num) {
+		max_info->recv_msg_num = now_info->recv_msg_num;
+		max_info->tm_recv_msg_num = curtm;
 	}
 
-	if (maxinfo->sendbytes < nowinfo->sendbytes) {
-		maxinfo->sendbytes = nowinfo->sendbytes;
-		maxinfo->tm_sendbytes = curtm;
+	if (max_info->send_bytes < now_info->send_bytes) {
+		max_info->send_bytes = now_info->send_bytes;
+		max_info->tm_send_bytes = curtm;
 	}
 
-	if (maxinfo->recvbytes < nowinfo->recvbytes) {
-		maxinfo->recvbytes = nowinfo->recvbytes;
-		maxinfo->tm_recvbytes = curtm;
+	if (max_info->recv_bytes < now_info->recv_bytes) {
+		max_info->recv_bytes = now_info->recv_bytes;
+		max_info->tm_recv_bytes = curtm;
 	}
 
-	nowinfo->sendmsgnum = 0;
-	nowinfo->recvmsgnum = 0;
-	nowinfo->sendbytes = 0;
-	nowinfo->recvbytes = 0;
+	now_info->send_msg_num = 0;
+	now_info->recv_msg_num = 0;
+	now_info->send_bytes = 0;
+	now_info->recv_bytes = 0;
 }
 
 //获取当前时间。格式为"2010-09-16 23:20:20"
@@ -717,8 +722,10 @@ static const char *get_current_time_str(time_t tval, char *buf, size_t buflen) {
 		return "null";
 
 	struct tm tm_result;
-	struct tm *currTM = safe_localtime(&tval, &tm_result);
-	snprintf(buf, buflen - 1, "%d-%02d-%02d %02d:%02d:%02d", currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, currTM->tm_hour, currTM->tm_min, currTM->tm_sec);
+	struct tm *now = safe_localtime(&tval, &tm_result);
+	snprintf(buf, buflen - 1, "%d-%02d-%02d %02d:%02d:%02d", 
+				now->tm_year + 1900, now->tm_mon + 1, now->tm_mday, 
+				now->tm_hour, now->tm_min, now->tm_sec);
 	buf[buflen - 1] = '\0';
 	return buf;
 }
@@ -734,37 +741,50 @@ const char *GetNetDataAllInfo(char *buf, size_t buflen, struct datainfomgr *info
 	if (!infomgr)
 		return NULL;
 
-	struct datainfo *totalinfo = &infomgr->datatable[enum_netdata_total];
-	struct datainfo *maxinfo = &infomgr->datatable[enum_netdata_max];
-	struct datainfo *nowinfo = &infomgr->datatable[enum_netdata_now];
+	struct datainfo *totalinfo = &infomgr->data_table[enum_netdata_total];
+	struct datainfo *max_info = &infomgr->data_table[enum_netdata_max];
+	struct datainfo *now_info = &infomgr->data_table[enum_netdata_now];
 
-	double numunit = 1000 * 1000;
-	double bytesunit = 1024 * 1024;
-	double totalsendmsgnum = double(totalinfo->sendmsgnum / numunit);
-	double totalsendbytes = double(totalinfo->sendbytes / bytesunit);
-	double totalrecvmsgnum = double(totalinfo->recvmsgnum / numunit);
-	double totalrecvbytes = double(totalinfo->recvbytes / bytesunit);
+	double num_unit = 1000 * 1000;
+	double bytes_unit = 1024 * 1024;
+	double total_send_msg_num = double(totalinfo->send_msg_num / num_unit);
+	double total_send_bytes = double(totalinfo->send_bytes / bytes_unit);
+	double total_recv_msg_num = double(totalinfo->recv_msg_num / num_unit);
+	double total_recv_bytes = double(totalinfo->recv_bytes / bytes_unit);
 
-	double maxsendmsgnum = (double)maxinfo->sendmsgnum;
-	double maxsendbytes = (double)maxinfo->sendbytes / bytesunit;
-	double maxrecvmsgnum = (double)maxinfo->recvmsgnum;
-	double maxrecvbytes = (double)maxinfo->recvbytes / bytesunit;
+	double max_send_msg_num = (double)max_info->send_msg_num;
+	double max_send_bytes = (double)max_info->send_bytes / bytes_unit;
+	double max_recv_msg_num = (double)max_info->recv_msg_num;
+	double max_recv_bytes = (double)max_info->recv_bytes / bytes_unit;
 
-	double nowsendmsgnum = (double)nowinfo->sendmsgnum;
-	double nowsendbytes = (double)nowinfo->sendbytes / bytesunit;
-	double nowrecvmsgnum = (double)nowinfo->recvmsgnum;
-	double nowrecvbytes = (double)nowinfo->recvbytes / bytesunit;
+	double now_send_msg_num = (double)now_info->send_msg_num;
+	double now_send_bytes = (double)now_info->send_bytes / bytes_unit;
+	double now_recv_msg_num = (double)now_info->recv_msg_num;
+	double now_recv_bytes = (double)now_info->recv_bytes / bytes_unit;
 
-	char buf_sendmsgnum[128] = {0};
-	char buf_sendbytes[128] = {0};
-	char buf_recvmsgnum[128] = {0};
-	char buf_recvbytes[128] = {0};
-	get_current_time_str(maxinfo->tm_sendmsgnum, buf_sendmsgnum, sizeof(buf_sendmsgnum));
-	get_current_time_str(maxinfo->tm_sendbytes, buf_sendbytes, sizeof(buf_sendbytes));
-	get_current_time_str(maxinfo->tm_recvmsgnum, buf_recvmsgnum, sizeof(buf_recvmsgnum));
-	get_current_time_str(maxinfo->tm_recvbytes, buf_recvbytes, sizeof(buf_recvbytes));
+	char buf_send_msg_num[128] = {0};
+	char buf_send_bytes[128] = {0};
+	char buf_recv_msg_num[128] = {0};
+	char buf_recv_bytes[128] = {0};
+	get_current_time_str(max_info->tm_send_msg_num, buf_send_msg_num, sizeof(buf_send_msg_num));
+	get_current_time_str(max_info->tm_send_bytes, buf_send_bytes, sizeof(buf_send_bytes));
+	get_current_time_str(max_info->tm_recv_msg_num, buf_recv_msg_num, sizeof(buf_recv_msg_num));
+	get_current_time_str(max_info->tm_recv_bytes, buf_recv_bytes, sizeof(buf_recv_bytes));
 
-	snprintf(buf, buflen - 1, "total:\n\tsend msg num:%.6fM, send bytes:%.6fMB\n\trecv msg num:%.6fM, recv bytes:%.6fMB\nmax:\n\tsend msg num:%.0f, time:%s\n\tsend bytes:%.6fMB, time:%s\n\trecv msg num:%.0f, time:%s\n\trecv bytes:%.6fMB, time:%s\nnow:\n\tsend msg num:%.0f, send bytes:%.6fMB\n\trecv msg num:%.0f, recv bytes:%.6fMB\n", totalsendmsgnum, totalsendbytes, totalrecvmsgnum, totalrecvbytes, maxsendmsgnum, buf_sendmsgnum, maxsendbytes, buf_sendbytes, maxrecvmsgnum, buf_recvmsgnum, maxrecvbytes, buf_recvbytes, nowsendmsgnum, nowsendbytes, nowrecvmsgnum, nowrecvbytes);
+	snprintf(buf, buflen - 1, 
+			"total:\n"
+				"\tsend msg num:%.6fM, send bytes:%.6fMB\n"
+				"\trecv msg num:%.6fM, recv bytes:%.6fMB\n"
+			"max:\n"
+				"\tsend msg num:%.0f, time:%s\n\tsend bytes:%.6fMB, time:%s\n"
+				"\trecv msg num:%.0f, time:%s\n\trecv bytes:%.6fMB, time:%s\n"
+			"now:\n"
+				"\tsend msg num:%.0f, send bytes:%.6fMB\n"
+				"\trecv msg num:%.0f, recv bytes:%.6fMB\n", 
+			total_send_msg_num, total_send_bytes, total_recv_msg_num, total_recv_bytes, 
+			max_send_msg_num, buf_send_msg_num, max_send_bytes, buf_send_bytes, 
+			max_recv_msg_num, buf_recv_msg_num, max_recv_bytes, buf_recv_bytes, 
+			now_send_msg_num, now_send_bytes, now_recv_msg_num, now_recv_bytes);
 
 	buf[buflen - 1] = '\0';
 	return buf;

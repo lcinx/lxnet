@@ -17,7 +17,7 @@ struct listener;
 struct socketer;
 
 /* get listen object size. */
-size_t listener_getsize();
+size_t listener_get_size();
 
 struct listener *listener_create();
 

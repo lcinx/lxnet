@@ -27,27 +27,27 @@ enum e_socket_ioevent {
 };
 
 struct iocpmgr {
-	bool isinit;
-	bool isrun;
-	int threadnum;
+	bool is_init;
+	bool is_run;
+	int thread_num;
 	HANDLE completeport;
 };
 
 static struct iocpmgr s_iocp = {false};
 
 /* add socket to event manager. */
-void socket_addto_eventmgr(struct socketer *self) {
+void eventmgr_add_socket(struct socketer *self) {
 	/* socket object point into iocp. */
 	CreateIoCompletionPort((HANDLE)self->sockfd, s_iocp.completeport, (ULONG_PTR)self, 0);
 }
 
 /* remove socket from event manager. */
-void socket_removefrom_eventmgr(struct socketer *self) {
+void eventmgr_remove_socket(struct socketer *self) {
 
 }
 
 /* set recv event. */
-void socket_setup_recvevent(struct socketer *self) {
+void eventmgr_setup_socket_recv_event(struct socketer *self) {
 	self->recv_event.m_event = e_socket_io_event_read_complete;
 	if (!PostQueuedCompletionStatus(s_iocp.completeport, 0, (ULONG_PTR)self, &self->recv_event.m_overlap)) {
 		socketer_close(self);
@@ -61,7 +61,7 @@ void socket_setup_recvevent(struct socketer *self) {
 }
 
 /* set recv data. */
-void socket_recvdata(struct socketer *self, char *data, int len) {
+void eventmgr_setup_socket_recv_data_event(struct socketer *self, char *data, int len) {
 	DWORD flags = 0;
 	DWORD w_length = len;
 	WSABUF buf;
@@ -82,7 +82,7 @@ void socket_recvdata(struct socketer *self, char *data, int len) {
 	if (WSARecv(self->sockfd, &buf, 1, &w_length, &flags, &self->recv_event.m_overlap, 0) == SOCKET_ERROR) {
 		/* overlapped operation failed to start. */
 		if (WSAGetLastError() != WSA_IO_PENDING) {
-			debuglog("socket_setup_recvevent error!, error:%d\n", WSAGetLastError());
+			debuglog("eventmgr_setup_socket_recv_data_event error!, error:%d\n", WSAGetLastError());
 			socketer_close(self);
 
 			if (catomic_dec(&self->ref) < 1) {
@@ -95,7 +95,7 @@ void socket_recvdata(struct socketer *self, char *data, int len) {
 }
 
 /* set send event. */
-void socket_setup_sendevent(struct socketer *self) {
+void eventmgr_setup_socket_send_event(struct socketer *self) {
 	self->send_event.m_event = e_socket_io_event_write_end;
 	if (!PostQueuedCompletionStatus(s_iocp.completeport, 0, (ULONG_PTR)self, &self->send_event.m_overlap)) {
 		socketer_close(self);
@@ -109,7 +109,7 @@ void socket_setup_sendevent(struct socketer *self) {
 }
 
 /* set send data. */
-void socket_senddata(struct socketer *self, char *data, int len) {
+void eventmgr_setup_socket_send_data_event(struct socketer *self, char *data, int len) {
 	DWORD flags = 0;
 	DWORD w_length = len;
 	WSABUF buf;
@@ -130,7 +130,7 @@ void socket_senddata(struct socketer *self, char *data, int len) {
 	if (WSASend(self->sockfd, &buf, 1, &w_length, flags, &self->send_event.m_overlap, 0) == SOCKET_ERROR) {
 		/* overlapped operation failed to start. */
 		if (WSAGetLastError() != WSA_IO_PENDING) {
-			debuglog("socket_senddata error!, error:%d\n", WSAGetLastError());
+			debuglog("eventmgr_setup_socket_send_data_event error!, error:%d\n", WSAGetLastError());
 			socketer_close(self);
 
 			if (catomic_dec(&self->ref) < 1) {
@@ -156,7 +156,7 @@ static void _iocp_thread_run(void *data) {
 	 * 10000 --- wait time. ms.
 	 * INFINITE --- wait forever. 
 	 */
-	while (mgr->isrun) {
+	while (mgr->is_run) {
 		ol_ptr = NULL;
 		s = 0;
 		ov = NULL;
@@ -177,7 +177,7 @@ static void _iocp_thread_run(void *data) {
 					}
 
 
-					debuglog("read handle complete! line:%d  thread_id:%d\n", __LINE__, cthread_self_id());
+					debuglog("read handle complete! line:%d thread_id:%d\n", __LINE__, cthread_self_id());
 					socketer_on_recv(sser, (int)len);
 				}
 				break;
@@ -211,28 +211,32 @@ static void _iocp_thread_run(void *data) {
 
 /*
  * initialize event manager. 
- * socketnum --- socket total number. must greater than 1.
- * threadnum --- thread number, if less than 0, then start by the number of cpu threads 
+ * socketer_num --- socket total number. must greater than 1.
+ * thread_num --- thread number, if less than 0, then start by the number of cpu threads 
  */
-bool eventmgr_init(int socketnum, int threadnum) {
-	if (s_iocp.isinit)
+bool eventmgr_init(int socketer_num, int thread_num) {
+	if (s_iocp.is_init)
 		return false;
-	if (socketnum < 1)
+
+	if (socketer_num < 1)
 		return false;
-	if (threadnum <= 0)
-		threadnum = get_cpu_num();
-	s_iocp.threadnum = threadnum;
+
+	if (thread_num <= 0) {
+		thread_num = get_cpu_num();
+	}
+
+	s_iocp.thread_num = thread_num;
 
 	/* create complete port, fourthly parameter is 0. */
 	s_iocp.completeport = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, (ULONG_PTR)0, 0);
 	if (!s_iocp.completeport)
 		return false;
 
-	s_iocp.isinit = true;
-	s_iocp.isrun = true;
+	s_iocp.is_init = true;
+	s_iocp.is_run = true;
 
 	/* create iocp work thread. */
-	for (; threadnum > 0; --threadnum) {
+	for (; thread_num > 0; --thread_num) {
 		_beginthread(_iocp_thread_run, 0, &s_iocp);
 	}
 
@@ -249,9 +253,10 @@ bool eventmgr_init(int socketnum, int threadnum) {
  */
 void eventmgr_release() {
 	int i;
-	if (!s_iocp.isinit)
+	if (!s_iocp.is_init)
 		return;
-	for (i = 0; i < s_iocp.threadnum; ++i) {
+
+	for (i = 0; i < s_iocp.thread_num; ++i) {
 		struct overlappedstruct *cs;
 		struct socketer *sock;
 		cs = (struct overlappedstruct *)malloc(sizeof(struct overlappedstruct));
@@ -261,8 +266,10 @@ void eventmgr_release() {
 		/* let iocp work thread exit. */
 		PostQueuedCompletionStatus(s_iocp.completeport, 0, (ULONG_PTR)sock, &cs->m_overlap);
 	}
-	s_iocp.isrun = false;
-	s_iocp.isinit = false;
+
+	s_iocp.is_run = false;
+	s_iocp.is_init = false;
+
 	Sleep(500);
 	CloseHandle(s_iocp.completeport);
 	WSACleanup();

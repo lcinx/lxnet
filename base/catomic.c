@@ -51,11 +51,11 @@ int64 catomic_fetch_add(catomic *atom_value, int64 value) {
 
 int64 catomic_fetch_or(catomic *atom_value, int64 value) {
 #ifdef _MSC_VER
-	int64 old, newvalue;
+	int64 old, new_value;
 	do {
 		old = atom_value->counter;
-		newvalue = old | value;
-	} while (!win_catomic_compare_set64(&atom_value->counter, old, newvalue));
+		new_value = old | value;
+	} while (!win_catomic_compare_set64(&atom_value->counter, old, new_value));
 
 	return old;
 #else
@@ -65,11 +65,11 @@ int64 catomic_fetch_or(catomic *atom_value, int64 value) {
 
 int64 catomic_fetch_and(catomic *atom_value, int64 value) {
 #ifdef _MSC_VER
-	int64 old, newvalue;
+	int64 old, new_value;
 	do {
 		old = atom_value->counter;
-		newvalue = old & value;
-	} while (!win_catomic_compare_set64(&atom_value->counter, old, newvalue));
+		new_value = old & value;
+	} while (!win_catomic_compare_set64(&atom_value->counter, old, new_value));
 
 	return old;
 #else
@@ -79,13 +79,13 @@ int64 catomic_fetch_and(catomic *atom_value, int64 value) {
 
 int64 catomic_add_fetch(catomic *atom_value, int64 value) {
 #ifdef _MSC_VER
-	int64 old, newvalue;
+	int64 old, new_value;
 	do {
 		old = atom_value->counter;
-		newvalue = old + value;
-	} while (!win_catomic_compare_set64(&atom_value->counter, old, newvalue));
+		new_value = old + value;
+	} while (!win_catomic_compare_set64(&atom_value->counter, old, new_value));
 
-	return newvalue;
+	return new_value;
 #else
 	return __sync_add_and_fetch(&atom_value->counter, value);
 #endif
@@ -93,13 +93,13 @@ int64 catomic_add_fetch(catomic *atom_value, int64 value) {
 
 int64 catomic_or_fetch(catomic *atom_value, int64 value) {
 #ifdef _MSC_VER
-	int64 old, newvalue;
+	int64 old, new_value;
 	do {
 		old = atom_value->counter;
-		newvalue = old | value;
-	} while (!win_catomic_compare_set64(&atom_value->counter, old, newvalue));
+		new_value = old | value;
+	} while (!win_catomic_compare_set64(&atom_value->counter, old, new_value));
 
-	return newvalue;
+	return new_value;
 #else
 	return __sync_or_and_fetch(&atom_value->counter, value);
 #endif
@@ -107,13 +107,13 @@ int64 catomic_or_fetch(catomic *atom_value, int64 value) {
 
 int64 catomic_and_fetch(catomic *atom_value, int64 value) {
 #ifdef _MSC_VER
-	int64 old, newvalue;
+	int64 old, new_value;
 	do {
 		old = atom_value->counter;
-		newvalue = old & value;
-	} while (!win_catomic_compare_set64(&atom_value->counter, old, newvalue));
+		new_value = old & value;
+	} while (!win_catomic_compare_set64(&atom_value->counter, old, new_value));
 
-	return newvalue;
+	return new_value;
 #else
 	return __sync_and_and_fetch(&atom_value->counter, value);
 #endif
