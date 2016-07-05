@@ -697,13 +697,13 @@ void poolmgr_get_info(struct poolmgr *self, char *buf, size_t bufsize) {
 	time_buf[sizeof(time_buf) - 1] = '\0';
 
 	totalsize = self->block_size * self->node_total;
-	snprintf(buf, bufsize, _STR_HEAD, self->name, \
-	(uint64)self->node_pool_num, (uint64)self->max_node_pool_num, time_buf, \
+	snprintf(buf, bufsize, _STR_HEAD, self->name, 
+	(uint64)self->node_pool_num, (uint64)self->max_node_pool_num, time_buf, 
 	(uint64)self->alignment, 
-	(uint64)self->base_block_size, (uint64)self->block_size, \
-	(uint64)self->node_total, (uint64)self->node_free_total, \
-	(uint64)self->base_num, (uint64)self->current_maxnum, (uint64)self->next_multiple, \
-	(uint64)totalsize, (uint64)totalsize / 1024, (uint64)totalsize / (1024 * 1024), \
+	(uint64)self->base_block_size, (uint64)self->block_size, 
+	(uint64)self->node_total, (uint64)self->node_free_total, 
+	(uint64)self->base_num, (uint64)self->current_maxnum, (uint64)self->next_multiple, 
+	(uint64)totalsize, (uint64)totalsize / 1024, (uint64)totalsize / (1024 * 1024), 
 	(uint64)self->free_pool_num_for_shrink, self->free_node_ratio_for_shrink);
 #else
 	snprintf(buf, bufsize, "%s not use pools!\n", self->name);
