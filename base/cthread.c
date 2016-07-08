@@ -8,7 +8,7 @@
 #include <string.h>
 #include "cthread.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #include <process.h>
 #else
@@ -46,7 +46,7 @@ struct cthread_ {
 
 	unsigned int thread_id;
 
-#ifdef WIN32
+#ifdef _WIN32
 	HANDLE handle;
 	HANDLE event;
 #else
@@ -58,7 +58,7 @@ struct cthread_ {
 
 };
 
-#ifdef WIN32
+#ifdef _WIN32
 static unsigned __stdcall
 #else
 static void *
@@ -73,7 +73,7 @@ thread_run_func(void *data) {
 
 	self->state = eState_Exit;
 
-#ifdef WIN32
+#ifdef _WIN32
 	return 0;
 #else
 	return NULL;
@@ -102,7 +102,7 @@ int cthread_create(cthread *tid, void *udata, void (*thread_func)(cthread *)) {
 	/* first set. */
 	*tid = self;
 
-#ifdef WIN32
+#ifdef _WIN32
 	self->event = CreateEvent(NULL, FALSE, FALSE, NULL);
 	self->handle = (HANDLE)_beginthreadex(NULL, 0, thread_run_func, (void *)self, 0, NULL);
 #else
@@ -121,7 +121,7 @@ int cthread_create(cthread *tid, void *udata, void (*thread_func)(cthread *)) {
 
 	return 0;
 
-#ifndef WIN32
+#ifndef _WIN32
 err_do:
 	pthread_cond_destroy(&self->cond);
 	pthread_mutex_destroy(&self->mutex);
@@ -142,7 +142,7 @@ void cthread_release(cthread *tid) {
 
 	cthread_join(tid);
 
-#ifdef WIN32
+#ifdef _WIN32
 	if (self->handle)
 		CloseHandle(self->handle);
 
@@ -186,7 +186,7 @@ void cthread_suspend(cthread *tid) {
 
 	self = *tid;
 
-#ifdef WIN32
+#ifdef _WIN32
 	WaitForSingleObject(self->event, INFINITE);
 #else
 	pthread_mutex_lock(&self->mutex);
@@ -206,7 +206,7 @@ void cthread_resume(cthread *tid) {
 
 	self = *tid;
 
-#ifdef WIN32
+#ifdef _WIN32
 	SetEvent(self->event);
 #else
 	pthread_mutex_lock(&self->mutex);
@@ -223,7 +223,7 @@ void cthread_join(cthread *tid) {
 
 	self = *tid;
 
-#ifdef WIN32
+#ifdef _WIN32
 	WaitForSingleObject(self->handle, INFINITE);
 #else
 	pthread_join(self->handle, NULL);
@@ -232,7 +232,7 @@ void cthread_join(cthread *tid) {
 
 
 unsigned int cthread_self_id() {
-#ifdef WIN32
+#ifdef _WIN32
 	return (unsigned int)GetCurrentThreadId();
 #else
 	return (unsigned int)gettid();
@@ -240,7 +240,7 @@ unsigned int cthread_self_id() {
 }
 
 void cthread_self_sleep(unsigned int millisecond) {
-#ifdef WIN32
+#ifdef _WIN32
 	Sleep(millisecond);
 #else
 	usleep(millisecond * 1000);
@@ -251,7 +251,7 @@ void cthread_self_sleep(unsigned int millisecond) {
 
 struct cmutex_ {
 
-#ifdef WIN32
+#ifdef _WIN32
 	CRITICAL_SECTION mutex;
 #else
 	pthread_mutex_t mutex;
@@ -268,7 +268,7 @@ int cmutex_init(cmutex *mutex) {
 	if (!self)
 		return -1;
 
-#ifdef WIN32
+#ifdef _WIN32
 	InitializeCriticalSection(&self->mutex);
 #else
 	pthread_mutex_init(&self->mutex, 0);
@@ -285,7 +285,7 @@ void cmutex_destroy(cmutex *mutex) {
 
 	self = *mutex;
 
-#ifdef WIN32
+#ifdef _WIN32
 	DeleteCriticalSection(&self->mutex);
 #else
 	pthread_mutex_destroy(&self->mutex);
@@ -302,7 +302,7 @@ void cmutex_lock(cmutex *mutex) {
 
 	self = *mutex;
 
-#ifdef WIN32
+#ifdef _WIN32
 	EnterCriticalSection(&self->mutex);
 #else
 	pthread_mutex_lock(&self->mutex);
@@ -316,7 +316,7 @@ void cmutex_unlock(cmutex *mutex) {
 
 	self = *mutex;
 
-#ifdef WIN32
+#ifdef _WIN32
 	LeaveCriticalSection(&self->mutex);
 #else
 	pthread_mutex_unlock(&self->mutex);
@@ -330,7 +330,7 @@ int cmutex_trylock(cmutex *mutex) {
 
 	self = *mutex;
 
-#ifdef WIN32
+#ifdef _WIN32
 	if (!TryEnterCriticalSection(&self->mutex))
 		return -1;
 #else

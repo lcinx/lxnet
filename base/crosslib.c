@@ -6,7 +6,7 @@
 
 #include "crosslib.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 
 struct _tp_integer {

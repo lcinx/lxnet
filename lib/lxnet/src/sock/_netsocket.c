@@ -22,7 +22,7 @@
 #define debuglog(...)
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 static const int s_datalimit = 32*1024;
 #endif
 
@@ -116,7 +116,7 @@ static void socketer_init_send_buf(struct socketer *self) {
 
 static bool socketer_init(struct socketer *self, bool bigbuf) {
 
-#ifdef WIN32
+#ifdef _WIN32
 	memset(&self->recv_event, 0, sizeof(self->recv_event));
 	memset(&self->send_event, 0, sizeof(self->send_event));
 #else
@@ -641,7 +641,7 @@ void socketer_on_recv(struct socketer *self, int len) {
 	assert(catomic_read(&self->recvlock) == 1);
 	assert(len >= 0);
 
-#ifdef WIN32
+#ifdef _WIN32
 	if (len > 0) {
 		writebuf = buf_get_write_bufinfo(self->recvbuf);
 		if (writebuf.len < len || !writebuf.buf) {
@@ -668,7 +668,7 @@ void socketer_on_recv(struct socketer *self, int len) {
 				return;
 			}
 
-#ifndef WIN32
+#ifndef _WIN32
 			/* remove recv event. */
 			eventmgr_remove_socket_recv_event(self);
 #endif
@@ -718,7 +718,7 @@ void socketer_on_recv(struct socketer *self, int len) {
 
 				debuglog("recv func, socket is error!, so close it!\n");
 			} else {
-#ifdef WIN32
+#ifdef _WIN32
 				/* if > s_datalimit, then set is s_datalimit. */
 				if (writebuf.len > s_datalimit)
 					writebuf.len = s_datalimit;
@@ -744,7 +744,7 @@ void socketer_on_send(struct socketer *self, int len) {
 	assert(catomic_read(&self->sendlock) == 1);
 	assert(len >= 0);
 
-#ifdef WIN32
+#ifdef _WIN32
 	if (len > 0) {
 		buf_add_read(self->sendbuf, len);
 		debuglog("send :%d size\n", len);
@@ -759,7 +759,7 @@ void socketer_on_send(struct socketer *self, int len) {
 		assert(readbuf.len >= 0);
 		if (readbuf.len <= 0) {
 
-#ifndef WIN32
+#ifndef _WIN32
 			/* remove send event. */
 			eventmgr_remove_socket_send_event(self);
 #endif
@@ -796,7 +796,7 @@ void socketer_on_send(struct socketer *self, int len) {
 				}
 				debuglog("send func, socket is error!, so close it!\n");
 			} else {
-#ifdef WIN32
+#ifdef _WIN32
 				/* if > s_datalimit, then set is s_datalimit. */
 				if (readbuf.len > s_datalimit)
 					readbuf.len = s_datalimit;
@@ -845,7 +845,7 @@ void socketmgr_run() {
 		if (currenttime - sock->close_time < enum_list_close_delaytime)
 			return;
 
-#ifdef WIN32
+#ifdef _WIN32
 		if (catomic_dec(&sock->ref) != 0) {
 			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
 					sock, (int)catomic_read(&sock->recvlock), (int)catomic_read(&sock->sendlock), sock->sockfd, 
@@ -858,7 +858,7 @@ void socketmgr_run() {
 		if (sock != resock) {
 			log_error(" if (sock != resock)");
 			if (resock) {
-#ifdef WIN32
+#ifdef _WIN32
 				if (catomic_read(&resock->ref) != 0) {
 					log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
 							resock, (int)catomic_read(&resock->recvlock), (int)catomic_read(&resock->sendlock), resock->sockfd, 
@@ -869,7 +869,7 @@ void socketmgr_run() {
 			}
 		}
 
-#ifdef WIN32
+#ifdef _WIN32
 		if (catomic_read(&sock->ref) != 0)
 			log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
 					sock, (int)catomic_read(&sock->recvlock), (int)catomic_read(&sock->sendlock), sock->sockfd, 

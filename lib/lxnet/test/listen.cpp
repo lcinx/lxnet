@@ -4,7 +4,7 @@
 #include "msgbase.h"
 #include "log.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 	#include <windows.h>
 
 	#define delaytime(v)	Sleep(v)

@@ -12,7 +12,7 @@
 #include <assert.h>
 #include "log.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <direct.h>
 #include <io.h>
 #define my_mkdir _mkdir
@@ -159,7 +159,7 @@ int mymkdir_r(const char *directory) {
 			continue;
 
 		tmp[i] = '\0';
-#ifdef WIN32
+#ifdef _WIN32
 		if (access(tmp, 0) != 0)
 #else
 		if (access(tmp, F_OK) != 0)

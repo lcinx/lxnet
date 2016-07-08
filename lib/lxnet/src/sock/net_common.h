@@ -13,7 +13,7 @@ extern "C" {
 
 #include "platform_config.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #ifdef __GNUC__
 #if (_WIN32_WINNT < 0x0501)

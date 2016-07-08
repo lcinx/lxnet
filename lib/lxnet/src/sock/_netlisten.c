@@ -79,7 +79,7 @@ bool listener_listen(struct listener *self, unsigned short port, int backlog) {
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_flags = AI_PASSIVE;
-#ifdef WIN32
+#ifdef _WIN32
 	hints.ai_family = AF_INET;
 #else
 	hints.ai_family = AF_UNSPEC;

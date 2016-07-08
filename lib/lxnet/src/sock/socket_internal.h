@@ -14,7 +14,7 @@ extern "C" {
 #include "net_common.h"
 #include "catomic.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 struct overlappedstruct {
 	OVERLAPPED m_overlap;				/* overlap struct. */
 	int m_event;						/* event type for iocp. */
@@ -23,7 +23,7 @@ struct overlappedstruct {
 
 struct net_buf;
 struct socketer {
-#ifdef WIN32
+#ifdef _WIN32
 	struct overlappedstruct recv_event;
 	struct overlappedstruct send_event;
 #else

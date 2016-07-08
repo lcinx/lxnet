@@ -6,7 +6,7 @@
 
 #include "net_eventmgr.h"
 
-#if defined(WIN32)
+#if defined(_WIN32)
 	#include "win_eventmgr.c"
 #elif defined(__linux__)
 	#include "linux_eventmgr.c"

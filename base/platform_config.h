@@ -45,7 +45,7 @@ typedef uint8_t uint8;
 
 #endif	/* __cplusplus */
 
-#ifdef WIN32
+#ifdef _WIN32
 	#ifdef _MSC_VER
 		#define snprintf(buf, bufsize, fmt, ...)	\
 			(((buf)[(bufsize) - 1] = '\0'), _snprintf((buf), (size_t)(bufsize) - 1, fmt, __VA_ARGS__))

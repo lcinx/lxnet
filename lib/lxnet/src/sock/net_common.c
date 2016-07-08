@@ -6,7 +6,7 @@
 
 #include "net_common.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #ifdef _MSC_VER
 #pragma comment(lib, "ws2_32")
@@ -26,7 +26,7 @@ int socket_close(net_socket *sockfd) {
 	int res;
 	net_socket temp = *sockfd;
 	*sockfd = NET_INVALID_SOCKET;
-#ifdef WIN32
+#ifdef _WIN32
 	res = closesocket(temp);
 #else
 	res = close(temp);
@@ -35,7 +35,7 @@ int socket_close(net_socket *sockfd) {
 }
 
 static bool socket_set_nonblock(net_socket sockfd) {
-#ifdef WIN32
+#ifdef _WIN32
 	{
 		u_long nonblocking = 1;
 		ioctlsocket(sockfd, FIONBIO, &nonblocking);
@@ -79,7 +79,7 @@ bool socket_setopt_for_connect(net_socket sockfd) {
 }
 
 static bool set_reuseaddr(net_socket fd) {
-#ifdef WIN32
+#ifdef _WIN32
 	return true;
 #else
 	int reuseaddr = 1;
@@ -92,7 +92,7 @@ bool socket_setopt_for_listen(net_socket sockfd) {
 }
 
 int socket_can_read(net_socket fd) {
-#ifdef WIN32
+#ifdef _WIN32
 
 	fd_set set;
 	struct timeval tout;
@@ -113,7 +113,7 @@ int socket_can_read(net_socket fd) {
 }
 
 int socket_can_write(net_socket fd) {
-	#ifdef WIN32
+	#ifdef _WIN32
 
 	fd_set set;
 	struct timeval tout;
