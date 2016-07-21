@@ -196,7 +196,7 @@ static void _iocp_thread_run(void *data) {
 				break;
 			case e_socket_io_thread_shutdown: {
 					Sleep(100);
-					free((void*)s);
+					free((void *)s);
 					free(ov);
 					return;
 				}

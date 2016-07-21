@@ -60,7 +60,7 @@ bool socket_setopt_for_connect(net_socket sockfd) {
 	/* prohibit nagle. */
 	{
 		int bNoDelay = 1;
-		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char*)&bNoDelay, sizeof(int));
+		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&bNoDelay, sizeof(int));
 	}
 
 	{
@@ -72,7 +72,7 @@ bool socket_setopt_for_connect(net_socket sockfd) {
 
 	{
 		int bKeepAlive = 1;
-		setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, (char*)&bKeepAlive, sizeof(int));
+		setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, (char *)&bKeepAlive, sizeof(int));
 	}
 
 	return true;
