@@ -59,20 +59,20 @@ bool socket_setopt_for_connect(net_socket sockfd) {
 
 	/* prohibit nagle. */
 	{
-		int bNoDelay = 1;
-		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&bNoDelay, sizeof(int));
+		int no_delay = 1;
+		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (const void *)&no_delay, sizeof(no_delay));
 	}
 
 	{
 		struct linger ling;
 		ling.l_onoff = 1;
 		ling.l_linger = 0;
-		setsockopt(sockfd, SOL_SOCKET, SO_LINGER, (char *)&ling, sizeof(ling));
+		setsockopt(sockfd, SOL_SOCKET, SO_LINGER, (const void *)&ling, sizeof(ling));
 	}
 
 	{
-		int bKeepAlive = 1;
-		setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, (char *)&bKeepAlive, sizeof(int));
+		int keepalive = 1;
+		setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, (const void *)&keepalive, sizeof(keepalive));
 	}
 
 	return true;
@@ -83,7 +83,7 @@ static bool set_reuseaddr(net_socket fd) {
 	return true;
 #else
 	int reuseaddr = 1;
-	return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const void *) &reuseaddr, sizeof(int)) == 0;
+	return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const void *)&reuseaddr, sizeof(reuseaddr)) == 0;
 #endif
 }
 
@@ -113,7 +113,7 @@ int socket_can_read(net_socket fd) {
 }
 
 int socket_can_write(net_socket fd) {
-	#ifdef _WIN32
+#ifdef _WIN32
 
 	fd_set set;
 	struct timeval tout;
