@@ -40,9 +40,9 @@ void eventmgr_remove_socket_send_event(struct socketer *self);
 void eventmgr_setup_socket_send_data_event(struct socketer *self, char *data, int len);
 
 /*
- * initialize event manager. 
+ * initialize event manager.
  * socketer_num --- socket total number. must greater than 1.
- * thread_num --- thread number, if less than 0, then start by the number of cpu threads 
+ * thread_num --- thread number, if less than 0, then start by the number of cpu threads
  */
 bool eventmgr_init(int socketer_num, int thread_num);
 

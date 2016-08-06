@@ -16,13 +16,13 @@ extern "C" {
 
 
 /*
- * initialize network. 
- * big_buf_size --- big block size. 
+ * initialize network.
+ * big_buf_size --- big block size.
  * big_buf_num --- big block num.
  *
- * small_buf_size --- small block size. 
+ * small_buf_size --- small block size.
  * small_buf_num --- small block num.
- * listener_num --- listener object num. 
+ * listener_num --- listener object num.
  * socketer_num --- socketer object num.
  * thread_num --- network thread num, if less than 0, then start by the number of cpu threads .
  */

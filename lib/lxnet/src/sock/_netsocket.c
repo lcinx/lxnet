@@ -149,7 +149,7 @@ static void socketer_add_to_eventmgr(struct socketer *self) {
 }
 
 /*
- * create socketer. 
+ * create socketer.
  * bigbuf --- if is true, then is bigbuf; or else is smallbuf.
  */
 struct socketer *socketer_create(bool bigbuf) {
@@ -221,7 +221,7 @@ bool socketer_connect(struct socketer *self, const char *ip, short port) {
 		struct addrinfo hints;
 		struct addrinfo *ai_list, *cur;
 		int status;
-		char port_buf[16];
+		char port_buf[NI_MAXSERV];
 		int lasterror;
 
 		snprintf(port_buf, sizeof(port_buf), "%d", (int)port);

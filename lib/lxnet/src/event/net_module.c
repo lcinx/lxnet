@@ -11,19 +11,20 @@
 #include "net_pool.h"
 
 /*
- * initialize network. 
- * big_buf_size --- big block size. 
+ * initialize network.
+ * big_buf_size --- big block size.
  * big_buf_num --- big block num.
  *
- * small_buf_size --- small block size. 
+ * small_buf_size --- small block size.
  * small_buf_num --- small block num.
- * listener_num --- listener object num. 
+ * listener_num --- listener object num.
  * socketer_num --- socketer object num.
  * thread_num --- network thread num, if less than 0, then start by the number of cpu threads .
  */
 bool net_module_init(size_t big_buf_size, size_t big_buf_num, 
 					size_t small_buf_size, size_t small_buf_num, 
 					size_t listener_num, size_t socketer_num, int thread_num) {
+
 	if ((!bufmgr_init(big_buf_num, big_buf_size, small_buf_num, small_buf_size, socketer_num)) ||
 		(!eventmgr_init(socketer_num, thread_num)) || (!socketmgr_init()) ||
 		(!netpool_init(socketer_num, socketer_get_size(), listener_num, listener_get_size()))) {

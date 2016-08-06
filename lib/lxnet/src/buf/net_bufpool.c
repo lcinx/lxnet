@@ -37,7 +37,7 @@ static struct bufpool s_pool = {false};
  *
  * small_block_num --- is small block num.
  * small_block_size --- is small block size.
- * 
+ *
  * buf_num --- is buf num.
  * buf_size --- is buf size.
  */

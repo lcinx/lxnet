@@ -57,13 +57,13 @@ void listener_release(struct listener *self) {
 
 /*
  * port --- listen port.
- * backlog --- listen queue, max wait connect. 
+ * backlog --- listen queue, max wait connect.
  */
 bool listener_listen(struct listener *self, unsigned short port, int backlog) {
 	struct addrinfo hints;
 	struct addrinfo *ai_list, *cur;
 	int status;
-	char port_buf[16];
+	char port_buf[NI_MAXSERV];
 	assert(self != NULL);
 	assert(!self->is_free);
 	if (!self)
@@ -154,7 +154,7 @@ bool listener_can_accept(struct listener *self) {
 
 /*
  * accept new connect.
- * bigbuf --- accept after, create bigbuf or smallbuf. 
+ * bigbuf --- accept after, create bigbuf or smallbuf.
  */
 struct socketer *listener_accept(struct listener *self, bool bigbuf) {
 	int e;

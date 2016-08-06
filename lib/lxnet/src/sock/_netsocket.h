@@ -20,7 +20,7 @@ struct socketer;
 size_t socketer_get_size();
 
 /*
- * create socketer. 
+ * create socketer.
  * bigbuf --- if is true, then is bigbuf; or else is smallbuf.
  */
 struct socketer *socketer_create(bool bigbuf);

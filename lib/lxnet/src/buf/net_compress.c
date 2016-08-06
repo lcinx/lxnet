@@ -54,7 +54,7 @@ struct buf_info compressmgr_uncompressdata(char *uncompressbuf, int uncompressle
  * len --- is source data len.
  *
  * return compress result data info.
- * 
+ *
  * Attention: Will form a compressed data packet, plus the header length.
  */
 struct buf_info compressmgr_do_compressdata(char *compressbuf, char *quicklzbuf, char *data, int len) {

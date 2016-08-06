@@ -25,7 +25,7 @@ void listener_release(struct listener *self);
 
 /*
  * port --- listen port.
- * backlog --- listen queue, max wait connect. 
+ * backlog --- listen queue, max wait connect.
  */
 bool listener_listen(struct listener *self, unsigned short port, int backlog);
 
@@ -37,7 +37,7 @@ bool listener_can_accept(struct listener *self);
 
 /*
  * accept new connect.
- * bigbuf --- accept after, create bigbuf or smallbuf. 
+ * bigbuf --- accept after, create bigbuf or smallbuf.
  */
 struct socketer *listener_accept(struct listener *self, bool bigbuf);
 
