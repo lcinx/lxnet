@@ -1,3 +1,9 @@
+
+/*
+ * Copyright (C) lcinx
+ * lcinx@163.com
+ */
+
 #ifndef _H_LXNET_DATAINFO_H_
 #define _H_LXNET_DATAINFO_H_
 #include <time.h>

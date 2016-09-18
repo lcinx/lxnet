@@ -1,3 +1,9 @@
+
+/*
+ * Copyright (C) lcinx
+ * lcinx@163.com
+ */
+
 #ifndef _H_MSG_BASE_H_
 #define _H_MSG_BASE_H_
 #include <string.h>
