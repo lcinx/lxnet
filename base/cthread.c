@@ -17,8 +17,22 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 
+#ifdef __APPLE__
+
+static unsigned int get_thread_id() {
+	uint64_t thread_id = 0;
+	pthread_threadid_np(0, &thread_id);
+	return (unsigned int)thread_id;
+}
+
+#define gettid() get_thread_id()
+
+#else
+
 #ifdef SYS_gettid
 #define gettid() syscall(SYS_gettid)
+#endif
+
 #endif
 
 #endif

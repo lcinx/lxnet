@@ -4,6 +4,7 @@
  * lcinx@163.com
  */
 
+#include <time.h>
 #include "crosslib.h"
 
 #ifdef _WIN32
@@ -58,11 +59,12 @@ int get_cpu_num() {
 
 #else
 
-#include <time.h>
-#include <sys/time.h>
 #include <unistd.h>
 
+
 #ifdef __APPLE__
+
+#ifndef CLOCK_MONOTONIC
 
 #include <mach/mach_time.h>
 #define CLOCK_MONOTONIC 0
@@ -91,6 +93,8 @@ static int clock_gettime(int clk_id, struct timespec *t) {
 	t->tv_nsec = all_nsec % 1000000000;
 	return 0;
 }
+
+#endif
 
 #endif
 
