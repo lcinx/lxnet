@@ -29,7 +29,7 @@ void listener_release(struct listener *self);
  */
 bool listener_listen(struct listener *self, unsigned short port, int backlog);
 
-bool listener_isclose(struct listener *self);
+bool listener_is_close(struct listener *self);
 
 void listener_close(struct listener *self);
 

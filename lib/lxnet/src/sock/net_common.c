@@ -14,15 +14,13 @@
 
 #else
 
-#include <netinet/tcp.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
 
 #endif
 
 
-int socket_close(net_socket *sockfd) {
+int _socket_close_(net_socket *sockfd) {
 	int res;
 	net_socket temp = *sockfd;
 	*sockfd = NET_INVALID_SOCKET;

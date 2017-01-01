@@ -15,7 +15,12 @@ extern "C" {
 
 
 typedef struct {
-	volatile int64 counter;
+	volatile int64 counter
+
+#if !defined(_MSC_VER) && !defined(__LP64__)
+		__attribute__((aligned(8)))
+#endif
+		;
 } catomic;
 
 #define catomic_init(i)	{ (i) }

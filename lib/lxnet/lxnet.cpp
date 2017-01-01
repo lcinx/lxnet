@@ -165,7 +165,7 @@ void Listener::Close() {
 
 /* 测试是否已关闭 */
 bool Listener::IsClose() {
-	return listener_isclose(m_self);
+	return listener_is_close(m_self);
 }
 
 /* 在指定的监听socket上接受连接 */

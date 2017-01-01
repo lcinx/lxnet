@@ -124,7 +124,7 @@ bool listener_listen(struct listener *self, unsigned short port, int backlog) {
 	return true;
 }
 
-bool listener_isclose(struct listener *self) {
+bool listener_is_close(struct listener *self) {
 	assert(self != NULL);
 	assert(!self->is_free);
 	if (!self)

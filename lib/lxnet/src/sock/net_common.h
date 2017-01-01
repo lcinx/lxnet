@@ -24,11 +24,12 @@ extern "C" {
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#define net_socket SOCKET
-#define net_sock_len int
+#define net_socket			SOCKET
+#define net_sock_len		int
 #define NET_INVALID_SOCKET	INVALID_SOCKET
 
 #define NET_GetLastError()	WSAGetLastError()
+
 /* retry. */
 #define SOCKET_ERR_CONNECT_RETRIABLE(e)	\
 	((e) == WSAEWOULDBLOCK ||			\
@@ -57,13 +58,15 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#define net_socket int
-#define net_sock_len socklen_t
-#define NET_INVALID_SOCKET ((net_socket)(~0))
+#define net_socket			int
+#define net_sock_len		socklen_t
+#define NET_INVALID_SOCKET	((net_socket)(~0))
 
 #define NET_GetLastError()	errno
+
 /* retry. */
 #define SOCKET_ERR_CONNECT_RETRIABLE(e)	\
 	 ((e) == EINTR || (e) == EINPROGRESS)
@@ -84,7 +87,9 @@ extern "C" {
 #endif
 
 
-int socket_close(net_socket *sockfd);
+
+int _socket_close_(net_socket *sockfd);
+#define socket_close		_socket_close_
 
 bool socket_setopt_for_connect(net_socket sockfd);
 
