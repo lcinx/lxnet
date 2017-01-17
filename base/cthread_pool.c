@@ -369,7 +369,7 @@ struct cthread_pool *cthread_pool_create(int thread_num, void *udata,
 
 		cthread_list_push_back(&self->all_list, cinfo);
 
-		thread_num--;
+		--thread_num;
 	}
 
 	catomic_set(&self->run, 1);

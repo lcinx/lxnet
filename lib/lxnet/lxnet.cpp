@@ -278,9 +278,7 @@ void Socketer::SetEncryptDecryptFunction(void (*encryptfunc)(void *logicdata, ch
 
 static void encrypt_decrypt_as_key_do_func(void *logicdata, char *buf, int len) {
 	struct encrypt_info *o = (struct encrypt_info *)logicdata;
-
-	int i;
-	for (i = 0; i < len; i++) {
+	for (int i = 0; i < len; i++) {
 		if (o->nowidx >= o->maxidx)
 			o->nowidx = 0;
 

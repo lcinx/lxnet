@@ -155,9 +155,9 @@ static inline struct node *node_pool_pop_node(struct poolmgr *mgr, struct node_p
 	return NULL;
 
 ret:
-	mgr->node_free_total--;
+	--mgr->node_free_total;
 
-	self->free_num--;
+	--self->free_num;
 	nd->flag.pool_addr = self;
 
 #ifndef NDEBUG
@@ -175,11 +175,11 @@ static inline void node_pool_push_node(struct poolmgr *mgr, struct node_pool *se
 	nd->flag.debug_addr = NODE_IS_FREED_VALUE(mgr);
 #endif
 
-	mgr->node_free_total++;
+	++mgr->node_free_total;
 
 	nd->next = self->head;
 	self->head = nd;
-	self->free_num++;
+	++self->free_num;
 }
 
 static inline struct node_pool *node_pool_create(void *mem, size_t mem_size, 
@@ -234,9 +234,9 @@ static inline void poolmgr_push_to_list(struct poolmgr *mgr,
 
 	lt->head = self;
 
-	lt->num++;
+	++lt->num;
 
-	mgr->node_pool_num++;
+	++mgr->node_pool_num;
 	mgr->node_total += self->node_num;
 	mgr->node_free_total += self->free_num;
 
@@ -261,9 +261,9 @@ static inline void poolmgr_remove_from_list(struct poolmgr *mgr,
 	if (lt->head == self)
 		lt->head = self->next;
 
-	lt->num--;
+	--lt->num;
 
-	mgr->node_pool_num--;
+	--mgr->node_pool_num;
 	mgr->node_total -= self->node_num;
 	mgr->node_free_total -= self->free_num;
 
