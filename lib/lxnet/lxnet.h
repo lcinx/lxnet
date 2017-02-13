@@ -140,9 +140,9 @@ public:
 
 	/*
 	 * 发送数据，仅仅是把数据压入包队列中，
-	 * adddata为附加到pMsg后面的数据，当然会自动修改pMsg的长度，addsize指定adddata的长度
+	 * adddata为附加到msg后面的数据，当然会自动修改msg的长度，addsize指定adddata的长度
 	 */
-	bool SendMsg(Msg *pMsg, void *adddata = 0, size_t addsize = 0);
+	bool SendMsg(Msg *msg, void *adddata = 0, size_t addsize = 0);
 
 	/* 接收数据 */
 	Msg *GetMsg(char *buf = 0, size_t bufsize = 0);

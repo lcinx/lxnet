@@ -296,28 +296,26 @@ struct buf_info buf_get_write_bufinfo(struct net_buf *self) {
 static bool buf_try_parse_tgw(struct blocklist *lst, char **buf, int *len) {
 	const int max_check_size = 256;
 	char tgw_buf[] = "\r\n\r\n";
+	struct block *bk = NULL;
 	int find_idx = 0;
-	struct block *bk;
 	int num = 0;
-	int i;
-	int can_read_size;
-	char *f;
 
 	*buf = NULL;
 	*len = 0;
 	for (bk = lst->head; bk; bk = bk->next) {
-		f = block_get_readbuf(bk);
-		can_read_size = block_get_readsize(bk);
+		char *f = block_get_readbuf(bk);
+		int can_read_size = block_get_readsize(bk);
+		int i = 0;
 		for (i = 0; i < can_read_size; ++i) {
 			if (num >= max_check_size)
 				return false;
 
 			if (f[i] == tgw_buf[find_idx])
-				find_idx++;
+				++find_idx;
 			else
 				find_idx = 0;
 
-			num++;
+			++num;
 			if (find_idx == 4) {
 				blocklist_add_read(lst, num);
 				if (i + 1 < can_read_size) {

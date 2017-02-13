@@ -40,8 +40,8 @@ struct encrypt_info {
 		enum_encrypt_len = 32,
 	};
 
-	int maxidx;
-	int nowidx;
+	int max_idx;
+	int now_idx;
 	char buf[enum_encrypt_len];
 };
 
@@ -278,12 +278,12 @@ void Socketer::SetEncryptDecryptFunction(void (*encryptfunc)(void *logicdata, ch
 
 static void encrypt_decrypt_as_key_do_func(void *logicdata, char *buf, int len) {
 	struct encrypt_info *o = (struct encrypt_info *)logicdata;
-	for (int i = 0; i < len; i++) {
-		if (o->nowidx >= o->maxidx)
-			o->nowidx = 0;
+	for (int i = 0; i < len; ++i) {
+		if (o->now_idx >= o->max_idx)
+			o->now_idx = 0;
 
-		buf[i] ^= o->buf[o->nowidx];
-		o->nowidx++;
+		buf[i] ^= o->buf[o->now_idx];
+		++o->now_idx;
 	}
 }
 
@@ -298,16 +298,18 @@ void Socketer::SetEncryptKey(const char *key, int key_len) {
 		cspin_unlock(&s_infomgr.encrypt_lock);
 
 		if (m_encrypt) {
-			m_encrypt->maxidx = 0;
-			m_encrypt->nowidx = 0;
+			m_encrypt->max_idx = 0;
+			m_encrypt->now_idx = 0;
 			memset(m_encrypt->buf, 0, sizeof(m_encrypt->buf));
-			socketer_set_encrypt_function(m_self, encrypt_decrypt_as_key_do_func, encrypt_info_release, m_encrypt);
+			socketer_set_encrypt_function(m_self, 
+					encrypt_decrypt_as_key_do_func, encrypt_info_release, m_encrypt);
 		}
 	}
 
 	if (m_encrypt) {
-		m_encrypt->maxidx = key_len > encrypt_info::enum_encrypt_len ? encrypt_info::enum_encrypt_len : key_len;
-		memcpy(&m_encrypt->buf, key, m_encrypt->maxidx);
+		m_encrypt->max_idx = 
+			key_len > encrypt_info::enum_encrypt_len ? encrypt_info::enum_encrypt_len : key_len;
+		memcpy(&m_encrypt->buf, key, m_encrypt->max_idx);
 	}
 }
 
@@ -322,16 +324,18 @@ void Socketer::SetDecryptKey(const char *key, int key_len) {
 		cspin_unlock(&s_infomgr.encrypt_lock);
 
 		if (m_decrypt) {
-			m_decrypt->maxidx = 0;
-			m_decrypt->nowidx = 0;
+			m_decrypt->max_idx = 0;
+			m_decrypt->now_idx = 0;
 			memset(m_decrypt->buf, 0, sizeof(m_decrypt->buf));
-			socketer_set_decrypt_function(m_self, encrypt_decrypt_as_key_do_func, encrypt_info_release, m_decrypt);
+			socketer_set_decrypt_function(m_self, 
+					encrypt_decrypt_as_key_do_func, encrypt_info_release, m_decrypt);
 		}
 	}
 
 	if (m_decrypt) {
-		m_decrypt->maxidx = key_len > encrypt_info::enum_encrypt_len ? encrypt_info::enum_encrypt_len : key_len;
-		memcpy(&m_decrypt->buf, key, m_decrypt->maxidx);
+		m_decrypt->max_idx = 
+			key_len > encrypt_info::enum_encrypt_len ? encrypt_info::enum_encrypt_len : key_len;
+		memcpy(&m_decrypt->buf, key, m_decrypt->max_idx);
 	}
 }
 
@@ -419,10 +423,10 @@ bool Socketer::SendTGWInfo(const char *domain, int port) {
 
 /*
  * 发送数据，仅仅是把数据压入包队列中，
- * adddata为附加到pMsg后面的数据，当然会自动修改pMsg的长度，addsize指定adddata的长度
+ * adddata为附加到msg后面的数据，当然会自动修改msg的长度，addsize指定adddata的长度
  */
-bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
-	if (!pMsg)
+bool Socketer::SendMsg(Msg *msg, void *adddata, size_t addsize) {
+	if (!msg)
 		return false;
 
 	if (adddata && addsize == 0) {
@@ -435,16 +439,16 @@ bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 		return false;
 	}
 
-	if (pMsg->GetLength() < (int)sizeof(Msg))
+	if (msg->GetLength() < (int)sizeof(Msg))
 		return false;
 
-	if (pMsg->GetLength() + addsize >= _MAX_MSG_LEN) {
-		assert(false && "if (pMsg->GetLength() + addsize >= _MAX_MSG_LEN)");
-		log_error("	if (pMsg->GetLength() + addsize >= _MAX_MSG_LEN)");
+	if (msg->GetLength() + addsize >= _MAX_MSG_LEN) {
+		assert(false && "if (msg->GetLength() + addsize >= _MAX_MSG_LEN)");
+		log_error("	if (msg->GetLength() + addsize >= _MAX_MSG_LEN)");
 		return false;
 	}
 
-	if (socketer_send_is_limit(m_self, pMsg->GetLength() + addsize)) {
+	if (socketer_send_is_limit(m_self, msg->GetLength() + addsize)) {
 		Close();
 		return false;
 	}
@@ -452,39 +456,39 @@ bool Socketer::SendMsg(Msg *pMsg, void *adddata, size_t addsize) {
 	bool res = false;
 	if (adddata && addsize != 0) {
 		bool res1, res2;
-		int onesend = pMsg->GetLength();
-		pMsg->SetLength(onesend + addsize);
-		res1 = socketer_send_msg(m_self, pMsg, onesend);
+		int onesend = msg->GetLength();
+		msg->SetLength(onesend + addsize);
+		res1 = socketer_send_msg(m_self, msg, onesend);
 
 		/*
 		 * 这里切记要修改回去。
 		 * 例：对于同一个包遍历发送给一个列表，然后每次都附带不同尾巴。。。这种情景，那么必须如此恢复。
 		 */
-		pMsg->SetLength(onesend);
+		msg->SetLength(onesend);
 		res2 = socketer_send_msg(m_self, adddata, addsize);
 		res = (res1 && res2);
 	} else {
-		res = socketer_send_msg(m_self, pMsg, pMsg->GetLength());
+		res = socketer_send_msg(m_self, msg, msg->GetLength());
 	}
 
 	if (res) {
-		on_send_msg(m_infomgr, 1, pMsg->GetLength() + addsize);
+		on_send_msg(m_infomgr, 1, msg->GetLength() + addsize);
 	}
 	return res;
 }
 
 /* 接收数据 */
 Msg *Socketer::GetMsg(char *buf, size_t bufsize) {
-	Msg *pMsg = (Msg *)socketer_get_msg(m_self, buf, bufsize);
-	if (pMsg) {
-		if (pMsg->GetLength() < (int)sizeof(Msg)) {
+	Msg *msg = (Msg *)socketer_get_msg(m_self, buf, bufsize);
+	if (msg) {
+		if (msg->GetLength() < (int)sizeof(Msg)) {
 			Close();
 			return NULL;
 		}
 
-		on_recv_msg(m_infomgr, 1, pMsg->GetLength());
+		on_recv_msg(m_infomgr, 1, msg->GetLength());
 	}
-	return pMsg;
+	return msg;
 }
 
 /* 发送数据 */
@@ -612,7 +616,7 @@ const char *net_get_memory_info(char *buf, size_t buflen) {
 
 	if (buf[index - 1] != '\n') {
 		buf[index] = '\n';
-		index++;
+		++index;
 	}
 
 	snprintf(&buf[index], buflen - 1 - index, "%s", 

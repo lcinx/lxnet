@@ -47,7 +47,7 @@ int main() {
 	newclient->SendMsg(&sendpack);
 	newclient->CheckSend();
 	newclient->CheckRecv();
-	sendnum++;
+	++sendnum;
 
 	while (1) {
 		recvpack = (MessagePack *)newclient->GetMsg();
@@ -60,7 +60,7 @@ int main() {
 			//}
 			newclient->SendMsg(&sendpack);
 			newclient->CheckSend();
-			sendnum++;
+			++sendnum;
 			if (sendnum == 10000) {
 				end = get_millisecond();
 				printf("end - begin:%d\n", (int)(end - begin));

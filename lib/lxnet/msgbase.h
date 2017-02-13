@@ -513,7 +513,7 @@ private:
 	}
 
 	inline void __on_error() {
-		m_error_num++;
+		++m_error_num;
 
 		if (m_enable_assert) {
 			assert(false && "error!");

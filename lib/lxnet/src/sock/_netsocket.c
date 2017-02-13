@@ -88,14 +88,14 @@ size_t socketer_get_size() {
 static const char default_key = 0xae;
 static void default_decrypt_func(void *logicdata, char *buf, int len) {
 	int i;
-	for (i = 0; i < len; i++) {
+	for (i = 0; i < len; ++i) {
 		buf[i] ^= default_key;
 	}
 }
 
 static void default_encrypt_func(void *logicdata, char *buf, int len) {
 	int i;
-	for (i = 0; i < len; i++) {
+	for (i = 0; i < len; ++i) {
 		buf[i] ^= default_key;
 	}
 }
