@@ -1,0 +1,163 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Source Files\base">
+      <UniqueIdentifier>{406ddf50-5896-4076-a64f-785672eba25d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\base\buf">
+      <UniqueIdentifier>{7cacea87-12e5-4f34-a01c-504d5d028a5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src">
+      <UniqueIdentifier>{26ca1929-4264-4049-a2aa-7b1ce5c4a0a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\buf">
+      <UniqueIdentifier>{f541622e-e0f1-4258-8b28-98d746a12c47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\event">
+      <UniqueIdentifier>{1cb26b9f-8f26-45c4-9fe6-8b440d3f8bb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\sock">
+      <UniqueIdentifier>{781f0634-d2d9-4314-bc85-e2bec1410b90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\3rd">
+      <UniqueIdentifier>{fe5a7775-0b92-40bc-a0a2-180d5b0409aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\3rd\quicklz">
+      <UniqueIdentifier>{9606dba1-a17c-4677-bbd1-26b2e624199a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\base\catomic.c">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\base\crosslib.c">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\base\cthread.c">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\base\log.c">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\base\pool.c">
+      <Filter>Source Files\base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\base\buf\block_list.c">
+      <Filter>Source Files\base\buf</Filter>
+    </ClCompile>
+    <ClCompile Include="lxnet.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\buf\net_buf.c">
+      <Filter>Source Files\src\buf</Filter>
+    </ClCompile>
+    <ClCompile Include="src\buf\net_bufpool.c">
+      <Filter>Source Files\src\buf</Filter>
+    </ClCompile>
+    <ClCompile Include="src\buf\net_compress.c">
+      <Filter>Source Files\src\buf</Filter>
+    </ClCompile>
+    <ClCompile Include="src\buf\net_thread_buf.c">
+      <Filter>Source Files\src\buf</Filter>
+    </ClCompile>
+    <ClCompile Include="src\event\net_eventmgr.c">
+      <Filter>Source Files\src\event</Filter>
+    </ClCompile>
+    <ClCompile Include="src\event\net_module.c">
+      <Filter>Source Files\src\event</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sock\_netlisten.c">
+      <Filter>Source Files\src\sock</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sock\_netsocket.c">
+      <Filter>Source Files\src\sock</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sock\net_common.c">
+      <Filter>Source Files\src\sock</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sock\net_pool.c">
+      <Filter>Source Files\src\sock</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd\quicklz\quicklz.c">
+      <Filter>Source Files\3rd\quicklz</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\base\catomic.h">
+      <Filter>Source Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\crosslib.h">
+      <Filter>Source Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\cthread.h">
+      <Filter>Source Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\log.h">
+      <Filter>Source Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\pool.h">
+      <Filter>Source Files\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\buf\block.h">
+      <Filter>Source Files\base\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\buf\block_list.h">
+      <Filter>Source Files\base\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\buf\block_list_func.h">
+      <Filter>Source Files\base\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\base\buf\buf_info.h">
+      <Filter>Source Files\base\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="lxnet.h">
+      <Filter>Source Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="msgbase.h">
+      <Filter>Source Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\buf\net_buf.h">
+      <Filter>Source Files\src\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="src\buf\net_bufpool.h">
+      <Filter>Source Files\src\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="src\buf\net_compress.h">
+      <Filter>Source Files\src\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="src\buf\net_crypt.h">
+      <Filter>Source Files\src\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="src\buf\net_thread_buf.h">
+      <Filter>Source Files\src\buf</Filter>
+    </ClInclude>
+    <ClInclude Include="src\event\net_eventmgr.h">
+      <Filter>Source Files\src\event</Filter>
+    </ClInclude>
+    <ClInclude Include="src\event\net_module.h">
+      <Filter>Source Files\src\event</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sock\_netlisten.h">
+      <Filter>Source Files\src\sock</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sock\_netsocket.h">
+      <Filter>Source Files\src\sock</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sock\net_common.h">
+      <Filter>Source Files\src\sock</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sock\net_pool.h">
+      <Filter>Source Files\src\sock</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sock\socket_internal.h">
+      <Filter>Source Files\src\sock</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\quicklz\quicklz.h">
+      <Filter>Source Files\3rd\quicklz</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -1,7 +1,7 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lxnet", "lxnet\lxnet.vcproj", "{CB583C72-DDA2-4F0B-9838-21F853F4CF3A}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lxnet", "lxnet\lxnet.vcxproj", "{CB583C72-DDA2-4F0B-9838-21F853F4CF3A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
