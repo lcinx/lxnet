@@ -26,29 +26,29 @@ static __inline int64 __GetSecondCount__() {
 
 /* get current millisecond time */
 int64 high_millisecond_() {
-	double tmp;
+	double temp;
 	LARGE_INTEGER liCurrent;
 	QueryPerformanceCounter(&liCurrent);
-	tmp = (double)liCurrent.QuadPart / (double)__GetSecondCount__();
-	return (int64)(tmp * 1000);
+	temp = (double)liCurrent.QuadPart / (double)__GetSecondCount__();
+	return (int64)(temp * 1000);
 }
 
 /* get current microsecond time */
 int64 high_microsecond_() {
-	double tmp;
+	double temp;
 	LARGE_INTEGER liCurrent;
 	QueryPerformanceCounter(&liCurrent);
-	tmp = (double)liCurrent.QuadPart / (double)__GetSecondCount__();
-	return (int64)(tmp * 1000000);
+	temp = (double)liCurrent.QuadPart / (double)__GetSecondCount__();
+	return (int64)(temp * 1000000);
 }
 
 /* get current nanosecond time */
 int64 high_nanosecond_() {
-	double tmp;
+	double temp;
 	LARGE_INTEGER liCurrent;
 	QueryPerformanceCounter(&liCurrent);
-	tmp = (double)liCurrent.QuadPart / (double)__GetSecondCount__();
-	return (int64)(tmp * 1000000000);
+	temp = (double)liCurrent.QuadPart / (double)__GetSecondCount__();
+	return (int64)(temp * 1000000000);
 }
 
 int get_cpu_num() {

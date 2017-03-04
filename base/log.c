@@ -134,41 +134,41 @@ static void logobj_init(struct logobj *self) {
 
 int mymkdir_r(const char *directory) {
 	int i, len;
-	char tmp[1024 * 8] = {0};
-	if (!strncpy(tmp, directory, sizeof(tmp) - 1))
+	char temp[1024 * 8] = {0};
+	if (!strncpy(temp, directory, sizeof(temp) - 1))
 		return -1;
 
-	tmp[sizeof(tmp) - 1] = '\0';
-	len = (int)strlen(tmp);
-	if (len >= (int)sizeof(tmp) - 1)
+	temp[sizeof(temp) - 1] = '\0';
+	len = (int)strlen(temp);
+	if (len >= (int)sizeof(temp) - 1)
 		return -2;
 
-	if (tmp[len - 1] != '/') {
-		tmp[len] = '/';
-		tmp[len + 1] = '\0';
+	if (temp[len - 1] != '/') {
+		temp[len] = '/';
+		temp[len + 1] = '\0';
 		len += 1;
 	}
 
-	if (tmp[0] == '.')
+	if (temp[0] == '.')
 		i = 1;
 	else
 		i = 0;
 
 	for (i += 1; i < len; ++i) {
-		if (tmp[i] != '/')
+		if (temp[i] != '/')
 			continue;
 
-		tmp[i] = '\0';
+		temp[i] = '\0';
 #ifdef _WIN32
-		if (access(tmp, 0) != 0)
+		if (access(temp, 0) != 0)
 #else
-		if (access(tmp, F_OK) != 0)
+		if (access(temp, F_OK) != 0)
 #endif
 		{
-			if (my_mkdir(tmp) != 0)
+			if (my_mkdir(temp) != 0)
 				return -3;
 		}
-		tmp[i] = '/';
+		temp[i] = '/';
 	}
 
 	return 0;

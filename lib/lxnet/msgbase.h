@@ -176,9 +176,9 @@ struct MessagePack:public Msg {
 
 	bool PushLBlock(const void *data, size_t size) {
 		if (data) {
-			uint32 tmpsize = (uint32)size;
-			if (CanPush(sizeof(tmpsize) + size)) {
-				__write_data(&tmpsize, sizeof(tmpsize));
+			uint32 temp_size = (uint32)size;
+			if (CanPush(sizeof(temp_size) + size)) {
+				__write_data(&temp_size, sizeof(temp_size));
 				__write_data(data, size);
 				return true;
 			}
@@ -197,9 +197,9 @@ struct MessagePack:public Msg {
 		if (str_size > max_push)
 			str_size = max_push;
 
-		uint16 tmpsize = (uint16)str_size;
-		if (CanPush(sizeof(tmpsize) + str_size)) {
-			__write_data(&tmpsize, sizeof(tmpsize));
+		uint16 temp_size = (uint16)str_size;
+		if (CanPush(sizeof(temp_size) + str_size)) {
+			__write_data(&temp_size, sizeof(temp_size));
 			__write_data(str, str_size);
 			return true;
 		}
@@ -227,9 +227,9 @@ struct MessagePack:public Msg {
 		if (str_size > max_push)
 			str_size = max_push;
 
-		uint32 tmpsize = (uint32)str_size;
-		if (CanPush(sizeof(tmpsize) + str_size)) {
-			__write_data(&tmpsize, sizeof(tmpsize));
+		uint32 temp_size = (uint32)str_size;
+		if (CanPush(sizeof(temp_size) + str_size)) {
+			__write_data(&temp_size, sizeof(temp_size));
 			__write_data(str, str_size);
 			return true;
 		}

@@ -332,7 +332,7 @@ static bool buf_try_parse_tgw(struct blocklist *lst, char **buf, int *len) {
 
 /* add write position. */
 void buf_add_write(struct net_buf *self, char *buf, int len) {
-	char *tmpbuf = buf;
+	char *temp_buf = buf;
 	int newlen = len;
 	struct blocklist *lst;
 	assert(len > 0);
@@ -345,14 +345,14 @@ void buf_add_write(struct net_buf *self, char *buf, int len) {
 		lst = &self->logiclist;
 
 	if (self->use_tgw && (!self->already_do_tgw)) {
-		if (buf_try_parse_tgw(lst, &tmpbuf, &newlen))
+		if (buf_try_parse_tgw(lst, &temp_buf, &newlen))
 			self->already_do_tgw = true;
 	}
 
 	/* decrypt opt. */
 	if (buf_is_use_decrypt(self)) {
-		if (tmpbuf && (newlen > 0))
-			self->dofunc(self->do_logicdata, tmpbuf, newlen);
+		if (temp_buf && (newlen > 0))
+			self->dofunc(self->do_logicdata, temp_buf, newlen);
 	}
 
 	/* end change data size. */
