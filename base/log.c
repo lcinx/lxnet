@@ -160,7 +160,7 @@ int mymkdir_r(const char *directory) {
 
 		temp[i] = '\0';
 #ifdef _WIN32
-		if (access(temp, 0) != 0)
+		if (_access(temp, 0) != 0)
 #else
 		if (access(temp, F_OK) != 0)
 #endif

@@ -175,25 +175,25 @@ void blocklist_add_write(struct blocklist *self, int len) {
 	catomic_fetch_add(&self->datasize, len);
 }
 
-bool blocklist_put_data(struct blocklist *self, const void *data, int data_len) {
+bool blocklist_put_data(struct blocklist *self, const void *data, int datalen) {
 	int writesize, putsize;
 	const char *data_str = (const char *)data;
 	assert(self != NULL);
 	assert(data != NULL);
-	assert(data_len > 0);
+	assert(datalen > 0);
 	assert(self->can_write_size >= 0);
-	if (data_len <= 0)
+	if (datalen <= 0)
 		return false;
 
 	writesize = 0;
 	putsize = 0;
-	while (writesize < data_len) {
+	while (writesize < datalen) {
 		if (!blocklist_check_alloc_block(self)) {
 			assert(false && "why create new block failed? error!");
 			return false;
 		}
 
-		putsize = block_put(self->tail, (void *)&data_str[writesize], data_len - writesize);
+		putsize = block_put(self->tail, (void *)&data_str[writesize], datalen - writesize);
 		assert(putsize > 0);
 
 		assert(self->can_write_size >= putsize);
@@ -204,24 +204,24 @@ bool blocklist_put_data(struct blocklist *self, const void *data, int data_len) 
 		catomic_fetch_add(&self->datasize, putsize);
 	}
 
-	assert(writesize == data_len);
+	assert(writesize == datalen);
 	return true;
 }
 
-bool blocklist_put_message(struct blocklist *self, const void *data, int data_len) {
+bool blocklist_put_message(struct blocklist *self, const void *data, int datalen) {
 	assert(self != NULL);
 	assert(data != NULL);
-	assert(data_len > 0);
-	assert(data_len <= self->message_maxlen && 
+	assert(datalen > 0);
+	assert(datalen <= self->message_maxlen && 
 			"need put data length greater than message max length, error!");
 
-	if (data_len > self->message_maxlen)
+	if (datalen > self->message_maxlen)
 		return false;
 
 	if (!self->custom_put_func) {
-		return blocklist_put_data(self, data, data_len);
+		return blocklist_put_data(self, data, datalen);
 	} else {
-		return self->custom_put_func(blocklist_put_data, self, data, data_len);
+		return self->custom_put_func(blocklist_put_data, self, data, datalen);
 	}
 }
 

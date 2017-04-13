@@ -66,9 +66,9 @@ struct buf_info blocklist_get_write_bufinfo(struct blocklist *self);
 
 void blocklist_add_write(struct blocklist *self, int len);
 
-bool blocklist_put_data(struct blocklist *self, const void *data, int data_len);
+bool blocklist_put_data(struct blocklist *self, const void *data, int datalen);
 
-bool blocklist_put_message(struct blocklist *self, const void *data, int data_len);
+bool blocklist_put_message(struct blocklist *self, const void *data, int datalen);
 
 
 
