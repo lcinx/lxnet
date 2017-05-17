@@ -11,7 +11,6 @@
 extern "C" {
 #endif
 
-#include <stddef.h>
 #include "platform_config.h"
 
 struct blocklist;

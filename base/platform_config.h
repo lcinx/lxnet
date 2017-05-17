@@ -7,31 +7,39 @@
 #ifndef _H_CROSS_PLATFORM_CONFIG_H_
 #define _H_CROSS_PLATFORM_CONFIG_H_
 
-#ifdef _MSC_VER
-typedef signed __int64 int64;
-typedef signed __int32 int32;
-typedef signed __int16 int16;
-typedef signed __int8 int8;
 
-typedef unsigned __int64 uint64;
-typedef unsigned __int32 uint32;
-typedef unsigned __int16 uint16;
+#ifndef _CROSS_PLATFORM_INT_TYPE_CONFIG_
+
+#ifdef _MSC_VER
+typedef signed __int8 int8;
+typedef signed __int16 int16;
+typedef signed __int32 int32;
+typedef signed __int64 int64;
+
 typedef unsigned __int8 uint8;
+typedef unsigned __int16 uint16;
+typedef unsigned __int32 uint32;
+typedef unsigned __int64 uint64;
 #else
 #include <stdint.h>
-typedef int64_t int64;
-typedef int32_t int32;
-typedef int16_t int16;
 typedef int8_t int8;
-typedef uint64_t uint64;
-typedef uint32_t uint32;
-typedef uint16_t uint16;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int64_t int64;
+
 typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
 #endif
 
-#ifndef __cplusplus
+#define _CROSS_PLATFORM_INT_TYPE_CONFIG_
+#endif
+
 
 #include <stddef.h>
+
+#ifndef __cplusplus
 
 #ifdef __GNUC__
 	#include <stdbool.h>
@@ -48,7 +56,7 @@ typedef uint8_t uint8;
 #ifdef _WIN32
 	#ifdef _MSC_VER
 		#define snprintf(buf, bufsize, fmt, ...)	\
-			(((buf)[(bufsize) - 1] = '\0'), _snprintf((buf), (size_t)(bufsize) - 1, fmt, __VA_ARGS__))
+			(((buf)[(bufsize) - 1] = '\0'), _snprintf((buf), (size_t)(bufsize) - 1, fmt, ##__VA_ARGS__))
 
 		#define safe_localtime(timep, tm_result)	(localtime_s((tm_result), (timep)), (tm_result))
 		#define safe_gmtime(timep, tm_result)		(gmtime_s((tm_result), (timep)), (tm_result))
