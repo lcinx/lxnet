@@ -104,7 +104,7 @@ int64 high_millisecond_() {
 	struct timespec ts;
 	int64 res;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	res = (int64)(ts.tv_sec * 1000) + (int64)(ts.tv_nsec / 1000000);
+	res = (int64)ts.tv_sec * 1000 + (int64)ts.tv_nsec / 1000000;
 	return res;
 }
 
@@ -113,7 +113,7 @@ int64 high_microsecond_() {
 	struct timespec ts;
 	int64 res;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	res = (int64)(ts.tv_sec * 1000000) + (int64)(ts.tv_nsec / 1000);
+	res = (int64)ts.tv_sec * 1000000 + (int64)ts.tv_nsec / 1000;
 	return res;
 }
 
@@ -122,7 +122,7 @@ int64 high_nanosecond_() {
 	struct timespec ts;
 	int64 res;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	res = (int64)(ts.tv_sec * 1000000000) + (int64)ts.tv_nsec;
+	res = (int64)ts.tv_sec * 1000000000 + (int64)ts.tv_nsec;
 	return res;
 }
 
