@@ -153,6 +153,9 @@ public:
 	/* 接收数据 */
 	const void *GetData(char *buf, size_t bufsize, int *datalen);
 
+	/* 查指定数据的结尾字节数(用于行分隔等) */
+	int FindDataEndSize(const char *data, size_t datalen);
+
 	/* 触发真正的发送数据 */
 	void CheckSend();
 

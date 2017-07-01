@@ -86,6 +86,8 @@ void blocklist_add_read(struct blocklist *self, int len);
 
 bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, int *read_len);
 
+int blocklist_find_data_end_size(struct blocklist *self, const char *data, int datalen);
+
 /*
  * if get new message succeed, return message length.
  * if do not gather together enough for a message, return 0.

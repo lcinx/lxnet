@@ -502,6 +502,15 @@ void *socketer_get_data(struct socketer *self, char *buf, size_t bufsize, int *d
 	return data;
 }
 
+int socketer_find_data_end_size(struct socketer *self, const char *data, int datalen) {
+	assert(self != NULL);
+	if (!self)
+		return -1;
+
+	socketer_init_recv_buf(self);
+	return buf_find_data_end_size(self->recvbuf, data, datalen);
+}
+
 /* set recv event. */
 void socketer_check_recv(struct socketer *self) {
 	assert(self != NULL);

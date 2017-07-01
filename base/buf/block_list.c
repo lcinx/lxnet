@@ -315,6 +315,64 @@ bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, int *re
 	return false;
 }
 
+static inline bool find_data_from_all_block(struct block *bk, 
+					int idx_offset, const char *data, int datalen) {
+
+	for (; bk; bk = bk->next) {
+		char *temp = block_get_readbuf(bk);
+		int can_check_size = block_get_readsize(bk) - idx_offset;
+
+		if (can_check_size >= datalen) {
+			return memcmp(&temp[idx_offset], data, datalen) == 0;
+		}
+
+		if (can_check_size > 0) {
+			if (memcmp(&temp[idx_offset], data, can_check_size) != 0)
+				return false;
+		}
+
+		idx_offset = 0;
+		data += can_check_size;
+		datalen -= can_check_size;
+	}
+
+	return false;
+}
+
+int blocklist_find_data_end_size(struct blocklist *self, const char *data, int datalen) {
+	struct block *bk;
+	int check_size = 0;
+	int max_check = blocklist_get_datasize(self);
+	assert(self != NULL);
+	assert(data != NULL);
+	assert(datalen > 0);
+	if (!data || datalen <= 0)
+		return -1;
+
+	if (max_check < datalen)
+		return 0;
+
+	for (bk = self->head; bk; bk = bk->next) {
+		int idx_offset = 0;
+		int can_check_size = min(block_get_readsize(bk), max_check - check_size);
+		for (; idx_offset < can_check_size; ++idx_offset) {
+			if (find_data_from_all_block(bk, idx_offset, data, datalen)) {
+				return check_size + datalen;
+			}
+
+			++check_size;
+
+			if (max_check - check_size < datalen) {
+				return 0;
+			}
+
+			assert(max_check > check_size);
+		}
+	}
+
+	return 0;
+}
+
 /*
  * if get new message succeed, return message length.
  * if do not gather together enough for a message, return 0.

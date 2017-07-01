@@ -63,6 +63,8 @@ void *socketer_get_msg(struct socketer *self, char *buf, size_t bufsize);
 
 void *socketer_get_data(struct socketer *self, char *buf, size_t bufsize, int *datalen);
 
+int socketer_find_data_end_size(struct socketer *self, const char *data, int datalen);
+
 /* set recv event. */
 void socketer_check_recv(struct socketer *self);
 

@@ -141,7 +141,7 @@ static void buf_init(struct net_buf *self, bool is_bigbuf) {
 struct net_buf *buf_create(bool bigbuf) {
 	struct net_buf *self = (struct net_buf *)bufpool_create_net_buf();
 	if (!self) {
-		log_error("	if (!self)");
+		log_error("if (!self)");
 		return NULL;
 	}
 	buf_init(self, bigbuf);
@@ -584,6 +584,15 @@ char *buf_get_data(struct net_buf *self, bool *need_close, char *buf, int bufsiz
 
 	return buf;
 }
+
+/* find data end size from the buffer. */
+int buf_find_data_end_size(struct net_buf *self, const char *data, int datalen) {
+	if (!self)
+		return -1;
+
+	return blocklist_find_data_end_size(&self->logiclist, data, datalen);
+}
+
 
 /*
  * create and init buf pool.

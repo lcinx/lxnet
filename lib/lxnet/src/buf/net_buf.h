@@ -107,6 +107,9 @@ char *buf_get_message(struct net_buf *self, bool *need_close, char *buf, size_t 
 /* get data from the buffer, if error, then need_close is true. */
 char *buf_get_data(struct net_buf *self, bool *need_close, char *buf, int bufsize, int *datalen);
 
+/* find data end size from the buffer. */
+int buf_find_data_end_size(struct net_buf *self, const char *data, int datalen);
+
 
 /*
  * create and init buf pool.

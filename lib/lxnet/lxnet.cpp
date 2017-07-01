@@ -501,7 +501,7 @@ bool Socketer::SendData(const void *data, size_t datasize) {
 		return false;
 	}
 
-	bool res = socketer_send_data(m_self, (void *)data, datasize);
+	bool res = socketer_send_data(m_self, (void *)data, (int)datasize);
 	if (res) {
 		on_send_msg(m_infomgr, 0, datasize);
 	}
@@ -515,6 +515,11 @@ const void *Socketer::GetData(char *buf, size_t bufsize, int *datalen) {
 		on_recv_msg(m_infomgr, 0, *datalen);
 	}
 	return data;
+}
+
+/* 查指定数据的结尾字节数(用于行分隔等) */
+int Socketer::FindDataEndSize(const char *data, size_t datalen) {
+	return socketer_find_data_end_size(m_self, data, (int)datalen);
 }
 
 /* 触发真正的发送数据 */
