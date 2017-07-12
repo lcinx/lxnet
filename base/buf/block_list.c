@@ -342,7 +342,7 @@ static inline bool find_data_from_all_block(struct block *bk,
 int blocklist_find_data_end_size(struct blocklist *self, const char *data, int datalen) {
 	struct block *bk;
 	int check_size = 0;
-	int max_check = blocklist_get_datasize(self);
+	int max_check = (int)blocklist_get_datasize(self);
 	assert(self != NULL);
 	assert(data != NULL);
 	assert(datalen > 0);
