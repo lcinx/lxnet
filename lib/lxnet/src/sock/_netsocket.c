@@ -23,7 +23,7 @@
 #endif
 
 #ifdef _WIN32
-static const int s_datalimit = 32*1024;
+static const int s_datalimit = 32 * 1024;
 #endif
 
 enum e_control_value {
@@ -729,12 +729,15 @@ void socketer_on_recv(struct socketer *self, int len) {
 			} else {
 #ifdef _WIN32
 				/* if > s_datalimit, then set is s_datalimit. */
+				writebuf = buf_get_write_bufinfo(self->recvbuf);
 				if (writebuf.len > s_datalimit)
 					writebuf.len = s_datalimit;
 
 				/* set recv event. */
-				eventmgr_setup_socket_recv_data_event(self, writebuf.buf, writebuf.len);
-				debuglog("setup recv event...\n");
+				if (writebuf.len > 0) {
+					eventmgr_setup_socket_recv_data_event(self, writebuf.buf, writebuf.len);
+					debuglog("setup recv event...\n");
+				}
 #endif
 			}
 			/* return. !!! */
