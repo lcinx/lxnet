@@ -737,6 +737,18 @@ void socketer_on_recv(struct socketer *self, int len) {
 				if (writebuf.len > 0) {
 					eventmgr_setup_socket_recv_data_event(self, writebuf.buf, writebuf.len);
 					debuglog("setup recv event...\n");
+				} else {
+					if (catomic_dec(&self->ref) < 1) {
+						log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+								self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+								(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
+					}
+
+					if (catomic_dec(&self->recvlock) != 0) {
+						log_error("%x socket recvlock:%d, sendlock:%d, fd:%d, ref:%d, thread_id:%d, connect:%d, deleted:%d", 
+								self, (int)catomic_read(&self->recvlock), (int)catomic_read(&self->sendlock), self->sockfd, 
+								(int)catomic_read(&self->ref), cthread_self_id(), self->connected, self->deleted);
+					}
 				}
 #endif
 			}

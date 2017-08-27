@@ -237,12 +237,14 @@ bool blocklist_put_message(struct blocklist *self, const void *data, int datalen
  */
 struct buf_info blocklist_get_read_bufinfo(struct blocklist *self) {
 	struct buf_info readbuf;
+	int max_readsize = (int)blocklist_get_datasize(self);
+
 	readbuf.buf = NULL;
 	readbuf.len = 0;
 
-	if (blocklist_get_datasize(self) > 0) {
+	if (max_readsize > 0) {
 		readbuf.buf = block_get_readbuf(self->head);
-		readbuf.len = block_get_readsize(self->head);
+		readbuf.len = min(block_get_readsize(self->head), max_readsize);
 	}
 
 	return readbuf;
@@ -251,7 +253,7 @@ struct buf_info blocklist_get_read_bufinfo(struct blocklist *self) {
 void blocklist_add_read(struct blocklist *self, int len) {
 	assert(self != NULL);
 	assert(len > 0);
-	assert(catomic_read(&self->datasize) >= len);
+	assert(blocklist_get_datasize(self) >= len);
 
 	/* add block read position. */
 	block_add_read(self->head, len);
@@ -301,10 +303,10 @@ bool blocklist_get_data(struct blocklist *self, char *buf, int buf_size, int *re
 	assert(self != NULL);
 	assert(buf != NULL);
 	assert(buf_size > 0);
-	assert(catomic_read(&self->datasize) > 0);
+	assert(blocklist_get_datasize(self) > 0);
 
 	*read_len = 0;
-	needread = (int)min(buf_size, catomic_read(&self->datasize));
+	needread = (int)min(buf_size, blocklist_get_datasize(self));
 	assert(needread > 0);
 
 	if (blocklist_get_data_by_size(self, buf, buf_size, needread) == needread) {
@@ -436,9 +438,9 @@ int blocklist_get_message(struct blocklist *self, char *buf, int buf_size) {
 
 	} else {
 		return self->custom_get_func(blocklist_get_data_by_size, self, 
-									 catomic_read(&self->datasize),
-									 &self->is_new_message, &self->message_len,
-									 buf, buf_size);
+									blocklist_get_datasize(self), 
+									&self->is_new_message, &self->message_len, 
+									buf, buf_size);
 	}
 }
 
