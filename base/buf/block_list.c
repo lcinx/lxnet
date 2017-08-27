@@ -236,9 +236,8 @@ bool blocklist_put_message(struct blocklist *self, const void *data, int datalen
  * ================================================================================
  */
 struct buf_info blocklist_get_read_bufinfo(struct blocklist *self) {
-	struct buf_info readbuf;
 	int max_readsize = (int)blocklist_get_datasize(self);
-
+	struct buf_info readbuf;
 	readbuf.buf = NULL;
 	readbuf.len = 0;
 
