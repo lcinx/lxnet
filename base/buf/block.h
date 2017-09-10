@@ -14,7 +14,7 @@ extern "C" {
 #include <string.h>
 #include <assert.h>
 #include "platform_config.h"
-#include "buf_info.h"
+#include "buf/buf_info.h"
 
 #ifndef min
 #define min(a, b)	(((a) < (b)) ? (a) : (b))
