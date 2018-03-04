@@ -48,10 +48,6 @@ static void *threadlocal_getbuf(struct thread_localuse self[_MAX_SAFE_THREAD_NUM
 	unsigned int current_thread_id = cthread_self_id();
 	int index;
 	for (index = 0; index < _MAX_SAFE_THREAD_NUM; ++index) {
-		/* it insert from 0, so if thread_id is 0, then is can use. */
-		if (self[index].thread_id == 0)
-			break;
-
 		if (self[index].thread_id == current_thread_id) {
 			if (self[index].buf == NULL) {
 				log_error("if (self[index].buf == NULL)");

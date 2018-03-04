@@ -97,6 +97,7 @@ int mymkdir_r(const char *directory) {
 static void logobj_reset(struct logobj *self) {
 	self->last_time = 0;
 	self->last_split_time = 0;
+	memset(self->last_filename, 0, sizeof(self->last_filename));
 }
 
 static void logobj_set_directory(struct logobj *self, const char *directory) {
@@ -198,6 +199,8 @@ static inline void logobj_close(struct logobj *self) {
 		fclose(self->fp);
 		self->fp = NULL;
 	}
+
+	logobj_reset(self);
 }
 
 static void logobj_init(struct logobj *self) {
@@ -508,7 +511,9 @@ void filelog_release(struct filelog *self) {
 		logobj_close(&self->log_group[i]);
 	}
 
-	free(self);
+	if (self != g_filelog_obj_) {
+		free(self);
+	}
 }
 
 void _filelog_set_directory_(struct filelog *self, int type, const char *directory) {
