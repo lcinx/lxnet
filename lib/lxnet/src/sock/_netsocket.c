@@ -440,7 +440,6 @@ bool socketer_send_data(struct socketer *self, void *data, int len) {
  */
 bool socketer_send_is_limit(struct socketer *self, size_t len) {
 	assert(self != NULL);
-	assert(len < _MAX_MSG_LEN);
 	if (!self)
 		return true;
 

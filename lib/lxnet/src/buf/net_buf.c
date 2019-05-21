@@ -235,7 +235,6 @@ int buf_get_data_size(struct net_buf *self) {
 
 /* push len, if is more than the limit, return true. */
 bool buf_add_is_limit(struct net_buf *self, size_t len) {
-	assert(len < _MAX_MSG_LEN);
 	if (!self)
 		return true;
 	if (self->io_limit_size == 0)
