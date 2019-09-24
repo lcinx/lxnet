@@ -5,13 +5,10 @@
  */
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 #include "pool.h"
 #include "log.h"
-#include "platform_config.h"
 
 #ifndef NDEBUG
 #define NODE_IS_USED_VALUE(mgr) ((mgr) - (0x000000AB))
@@ -73,7 +70,7 @@ struct poolmgr {
 	size_t alignment;
 	size_t block_size;
 	size_t base_num;
-	size_t current_maxnum;
+	size_t current_max_num;
 	size_t next_multiple;
 
 	/* node pool info. */
@@ -284,21 +281,21 @@ static inline void poolmgr_release_node_pool_from_list(struct poolmgr *mgr, stru
 
 static inline struct node_pool *poolmgr_create_node_pool(struct poolmgr *self) {
 	struct node_pool *np;
-	size_t current_maxnum, total_mem_size;
+	size_t current_max_num, total_mem_size;
 	void *mem;
 
 	/* if next_multiple is zero, then only has one sub pool. */
 	if (self->next_multiple == 0)
 		return NULL;
 
-	current_maxnum = self->current_maxnum * self->next_multiple;
+	current_max_num = self->current_max_num * self->next_multiple;
 
-	assert(((self->block_size * current_maxnum) / self->block_size) == current_maxnum && 
+	assert(((self->block_size * current_max_num) / self->block_size) == current_max_num && 
 			"poolmgr_create_node_pool exist overflow!");
 
 	total_mem_size = F_THIS_POOL_ALIGNMENT_SIZE + 
 					 F_THIS_POOL_ALIGNMENT(sizeof(struct node_pool)) + 
-					 self->block_size * current_maxnum;
+					 self->block_size * current_max_num;
 
 	mem = malloc(total_mem_size);
 	if (!mem) {
@@ -307,9 +304,9 @@ static inline struct node_pool *poolmgr_create_node_pool(struct poolmgr *self) {
 		return NULL;
 	}
 
-	self->current_maxnum = current_maxnum;
+	self->current_max_num = current_max_num;
 
-	np = node_pool_create(mem, total_mem_size, self->block_size, current_maxnum);
+	np = node_pool_create(mem, total_mem_size, self->block_size, current_max_num);
 	poolmgr_push_to_list(self, &self->free_list, np);
 	return np;
 }
@@ -435,7 +432,7 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 	assert(alignment_check(alignment) && "poolmgr_create alignment is error!");
 	assert(num != 0);
 	assert(name != NULL);
-	if (size == 0 || !alignment_check(alignment) || num == 0 || name == NULL)
+	if (size == 0 || !alignment_check(alignment) || num == 0 || name == NULL || strlen(name) > 63)
 		return NULL;
 
 	oldsize = size;
@@ -484,7 +481,7 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 	self->alignment = alignment;
 	self->block_size = size;
 	self->base_num = num;
-	self->current_maxnum = num;
+	self->current_max_num = num;
 	self->next_multiple = next_multiple;
 
 	self->node_pool_num = 0;
@@ -495,7 +492,7 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 	self->node_free_total = 0;
 
 	self->free_pool_num_for_shrink = 1;
-	self->free_node_ratio_for_shrink = 0.618f;
+	self->free_node_ratio_for_shrink = 0.618;
 
 	listobj_init(&self->full_use_list, enum_full_use);
 	listobj_init(&self->portion_use_list, enum_portion_use);
@@ -669,46 +666,35 @@ void poolmgr_free_object(struct poolmgr *self, void *bk) {
 
 }
 
-#define _STR_HEAD "\n%s:\n\
-<<<<<<<<<<<<<<<<<< poolmgr info begin <<<<<<<<<<<<<<<<<\n\
-pools have pool num:" _FORMAT_64U_NUM "\n\
-pools max pool num:" _FORMAT_64U_NUM "\ttime:%s\n\
-base alignment:" _FORMAT_64U_NUM "\n\
-base object size:" _FORMAT_64U_NUM "\tobject size:" _FORMAT_64U_NUM "\n\
-object total num: [" _FORMAT_64U_NUM "]\tobject current num: [" _FORMAT_64U_NUM "]\n\
-base num:" _FORMAT_64U_NUM "\tcurrent max num:" _FORMAT_64U_NUM "\tnext_multiple:" _FORMAT_64U_NUM "\n\
-memory total: " _FORMAT_64U_NUM "(byte), " _FORMAT_64U_NUM "(kb), " _FORMAT_64U_NUM "(mb)\n\
-shrink arg: free pool num:" _FORMAT_64U_NUM ", free node ratio:%.3f\n\
->>>>>>>>>>>>>>>>>> poolmgr info end >>>>>>>>>>>>>>>>>>>\n"
-void poolmgr_get_info(struct poolmgr *self, char *buf, size_t bufsize) {
-
-#ifndef NOTUSE_POOL
-	size_t totalsize;
-	char time_buf[64] = {0};
-	struct tm tm_result;
-	struct tm *currTM;
-	if (!self || !buf || bufsize == 0)
+void poolmgr_get_info(struct poolmgr *self, struct poolmgr_info *info) {
+	if (!self || !info)
 		return;
 
-	currTM = safe_localtime(&self->max_node_pool_time, &tm_result);
-	snprintf(time_buf, sizeof(time_buf) - 1, "%d-%02d-%02d %02d:%02d:%02d", 
-			currTM->tm_year + 1900, currTM->tm_mon + 1, currTM->tm_mday, 
-			currTM->tm_hour, currTM->tm_min, currTM->tm_sec);
-	time_buf[sizeof(time_buf) - 1] = '\0';
+	memset(info, 0, sizeof(*info));
 
-	totalsize = self->block_size * self->node_total;
-	snprintf(buf, bufsize, _STR_HEAD, self->name, 
-	(uint64)self->node_pool_num, (uint64)self->max_node_pool_num, time_buf, 
-	(uint64)self->alignment, 
-	(uint64)self->base_block_size, (uint64)self->block_size, 
-	(uint64)self->node_total, (uint64)self->node_free_total, 
-	(uint64)self->base_num, (uint64)self->current_maxnum, (uint64)self->next_multiple, 
-	(uint64)totalsize, (uint64)totalsize / 1024, (uint64)totalsize / (1024 * 1024), 
-	(uint64)self->free_pool_num_for_shrink, self->free_node_ratio_for_shrink);
-#else
-	snprintf(buf, bufsize, "%s not use pools!\n", self->name);
+#ifndef NOTUSE_POOL
+	strncpy(info->name, self->name, sizeof(info->name) - 1);
+	info->name[sizeof(info->name) - 1] = '\0';
+
+	info->pool_num = self->node_pool_num;
+	info->max_pool_num = self->max_node_pool_num;
+	info->max_pool_num_time = self->max_node_pool_time;
+
+	info->base_num = self->base_num;
+	info->current_max_num = self->current_max_num;
+	info->next_multiple = self->next_multiple;
+
+	info->alignment = self->alignment;
+	info->base_object_size = self->base_block_size;
+	info->object_size = self->block_size;
+
+	info->object_total_num = self->node_total;
+	info->object_current_num = self->node_free_total;
+
+	info->memory_total_bytes = self->block_size * self->node_total;
+
+	info->shrink_free_pool_num = self->free_pool_num_for_shrink;
+	info->shrink_free_object_ratio = self->free_node_ratio_for_shrink;
 #endif
-
-	buf[bufsize - 1] = 0;
 }
 

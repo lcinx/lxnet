@@ -4,11 +4,11 @@
  * lcinx@163.com
  */
 
-#include <string.h>
 #include "net_module.h"
 #include "net_buf.h"
 #include "net_eventmgr.h"
 #include "net_pool.h"
+#include "pool.h"
 
 /*
  * initialize network.
@@ -48,11 +48,12 @@ void net_module_run() {
 }
 
 /* get network memory info. */
-void net_module_get_memory_info(char *buf, size_t bufsize) {
+size_t net_module_get_memory_info(struct poolmgr_info *array, size_t num) {
 	size_t index = 0;
-	bufmgr_get_memory_info(buf, bufsize - 1);
-	index = strlen(buf);
-	netpool_get_memory_info(&buf[index], bufsize - 1 - index);
-	buf[bufsize - 1] = 0;
+	if (!array || num < 1)
+		return 0;
+
+	index = bufmgr_get_memory_info(&array[index], num - index);
+	return index + netpool_get_memory_info(&array[index], num - index);
 }
 

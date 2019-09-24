@@ -29,6 +29,7 @@ struct block_size {
 	size_t big_block_size;
 	size_t small_block_size;
 };
+
 static struct block_size s_block_info;
 
 
@@ -144,6 +145,7 @@ struct net_buf *buf_create(bool bigbuf) {
 		log_error("if (!self)");
 		return NULL;
 	}
+
 	buf_init(self, bigbuf);
 	return self;
 }
@@ -157,6 +159,7 @@ void buf_set_do_func(struct net_buf *self, dofunc_f func,
 	assert(func != NULL);
 	if (!self || !func)
 		return;
+
 	self->dofunc = func;
 	self->release_logicdata = release_logicdata;
 	self->do_logicdata = logicdata;
@@ -166,6 +169,7 @@ void buf_set_do_func(struct net_buf *self, dofunc_f func,
 void buf_release(struct net_buf *self) {
 	if (!self)
 		return;
+
 	buf_real_release(self);
 	bufpool_release_net_buf(self);
 }
@@ -173,9 +177,9 @@ void buf_release(struct net_buf *self) {
 
 /* set buf handle limit size. */
 void buf_set_limit_size(struct net_buf *self, int limit_len) {
-	assert(limit_len > 0);
 	if (!self)
 		return;
+
 	if (limit_len <= 0)
 		self->io_limit_size = 0;
 	else
@@ -185,36 +189,42 @@ void buf_set_limit_size(struct net_buf *self, int limit_len) {
 void buf_use_compress(struct net_buf *self) {
 	if (!self)
 		return;
+
 	self->compress_falg = enum_compress;
 }
 
 void buf_use_uncompress(struct net_buf *self) {
 	if (!self)
 		return;
+
 	self->compress_falg = enum_uncompress;
 }
 
 void buf_use_encrypt(struct net_buf *self) {
 	if (!self)
 		return;
+
 	self->crypt_falg = enum_encrypt;
 }
 
 void buf_use_decrypt(struct net_buf *self) {
 	if (!self)
 		return;
+
 	self->crypt_falg = enum_decrypt;
 }
 
 void buf_use_tgw(struct net_buf *self) {
 	if (!self)
 		return;
+
 	self->use_tgw = true;
 }
 
 void buf_set_raw_datasize(struct net_buf *self, size_t size) {
 	if (!self)
 		return;
+
 	self->raw_size_for_encrypt = size;
 	self->raw_size_for_compress = size;
 }
@@ -237,12 +247,15 @@ int buf_get_data_size(struct net_buf *self) {
 bool buf_add_is_limit(struct net_buf *self, size_t len) {
 	if (!self)
 		return true;
+
 	if (self->io_limit_size == 0)
 		return false;
+
 	/* limit compare as io datasize or logic datasize. */
 	if ((self->io_limit_size <= blocklist_get_datasize(&self->iolist)) || 
 			(self->io_limit_size <= (blocklist_get_datasize(&self->logiclist) + len)))
 		return true;
+
 	return false;
 }
 
@@ -250,12 +263,15 @@ bool buf_add_is_limit(struct net_buf *self, size_t len) {
 static bool buf_islimit(struct net_buf *self) {
 	if (!self)
 		return true;
+
 	if (self->io_limit_size == 0)
 		return false;
+
 	/* limit compare as io datasize or logic datasize. */
 	if (self->io_limit_size <= blocklist_get_datasize(&self->logiclist) || 
 			self->io_limit_size <= blocklist_get_datasize(&self->iolist))
 		return true;
+
 	return false;
 }
 
@@ -268,6 +284,7 @@ bool buf_can_not_recv(struct net_buf *self) {
 bool buf_can_not_send(struct net_buf *self) {
 	if (!self)
 		return true;
+
 	return ((blocklist_get_datasize(&self->iolist) <= 0) &&
 			(blocklist_get_datasize(&self->logiclist) <= 0));
 }
@@ -286,6 +303,7 @@ struct buf_info buf_get_write_bufinfo(struct net_buf *self) {
 
 	if (buf_islimit(self))
 		return writebuf;
+
 	if (buf_is_use_uncompress(self))
 		return blocklist_get_write_bufinfo(&self->iolist);
 	else
@@ -364,6 +382,7 @@ void buf_add_write(struct net_buf *self, char *buf, int len) {
 bool buf_recv_end_do(struct net_buf *self) {
 	if (!self)
 		return false;
+
 	if (buf_is_use_uncompress(self)) {
 		/* get a compress packet, uncompress it, and then push the queue. */
 		struct blocklist *lst = &self->iolist;
@@ -381,7 +400,8 @@ bool buf_recv_end_do(struct net_buf *self) {
 
 			if (res < 0) {
 				if (s_enable_errorlog) {
-					log_error("msg length error. max message len:%d, message len:%d", (int)lst->message_maxlen, (int)lst->message_len);
+					log_error("msg length error. max message len:%d, message len:%d", 
+							blocklist_get_message_maxlen(lst), blocklist_get_message_len(lst));
 				}
 				return false;
 			}
@@ -458,6 +478,7 @@ void buf_add_read(struct net_buf *self, int len) {
 	assert(len > 0);
 	if (!self)
 		return;
+
 	if (buf_is_use_compress(self))
 		blocklist_add_read(&self->iolist, len);
 	else
@@ -468,6 +489,7 @@ void buf_add_read(struct net_buf *self, int len) {
 void buf_send_before_do(struct net_buf *self) {
 	if (!self)
 		return;
+
 	if (buf_is_use_compress(self)) {
 		/* get all can read data, compress it. (compress data header is compress function do.) */
 		bool pushresult = false;
@@ -477,7 +499,7 @@ void buf_send_before_do(struct net_buf *self) {
 		char *quicklzbuf = threadbuf_get_quicklz_buf();
 		for (;;) {
 			srcbuf = blocklist_get_read_bufinfo(&self->logiclist);
-			srcbuf.len = min(srcbuf.len, self->logiclist.message_maxlen);
+			srcbuf.len = min(srcbuf.len, blocklist_get_message_maxlen(&self->logiclist));
 			assert(srcbuf.len >= 0);
 			if ((srcbuf.len <= 0) || (!srcbuf.buf))
 				break;
@@ -498,8 +520,9 @@ void buf_send_before_do(struct net_buf *self) {
 			assert(resbuf.len > 0);
 			pushresult = blocklist_put_data(&self->iolist, resbuf.buf, resbuf.len);
 			assert(pushresult);
-			if (!pushresult)
+			if (!pushresult) {
 				log_error("if (!pushresult)");
+			}
 			blocklist_add_read(&self->logiclist, srcbuf.len);
 		}
 	}
@@ -511,6 +534,7 @@ bool buf_put_message(struct net_buf *self, const void *msg_data, int len) {
 	assert(len > 0);
 	if (!self || (len <= 0))
 		return false;
+
 	return blocklist_put_message(&self->logiclist, msg_data, len);
 }
 
@@ -520,6 +544,7 @@ bool buf_put_data(struct net_buf *self, const void *data, int len) {
 	assert(len > 0);
 	if (!self || (len <= 0))
 		return false;
+
 	return blocklist_put_data(&self->logiclist, data, len);
 }
 
@@ -529,6 +554,7 @@ char *buf_get_message(struct net_buf *self, bool *need_close, char *buf, size_t 
 	int res;
 	if (!self || !need_close)
 		return NULL;
+
 	if (self->use_tgw && (!self->already_do_tgw))
 		return NULL;
 
@@ -552,7 +578,9 @@ char *buf_get_message(struct net_buf *self, bool *need_close, char *buf, size_t 
 	} else {
 		*need_close = true;
 		if (s_enable_errorlog) {
-			log_error("msg length error. max message len:%d, message len:%d", (int)self->logiclist.message_maxlen, (int)self->logiclist.message_len);
+			log_error("msg length error. max message len:%d, message len:%d", 
+					blocklist_get_message_maxlen(&self->logiclist), 
+					blocklist_get_message_len(&self->logiclist));
 		}
 		return NULL;
 	}
@@ -563,6 +591,7 @@ char *buf_get_data(struct net_buf *self, bool *need_close, char *buf, int bufsiz
 	struct blocklist *lst;
 	if (!self || !need_close)
 		return NULL;
+
 	if (self->use_tgw && (!self->already_do_tgw))
 		return NULL;
 
@@ -635,8 +664,8 @@ void bufmgr_release() {
 }
 
 /* get some buf memroy info. */
-void bufmgr_get_memory_info(char *buf, size_t bufsize) {
-	bufpool_get_memory_info(buf, bufsize);
+size_t bufmgr_get_memory_info(struct poolmgr_info *array, size_t num) {
+	return bufpool_get_memory_info(array, num);
 }
 
 /* enable/disable errorlog, and return before value. */

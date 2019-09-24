@@ -143,7 +143,7 @@ void filelog_release(struct filelog *self);
 
 #define _filelog_write_arg_(self, type, file, function, line, fmt, ...)	\
 	do {																\
-		char temp_buf[1024 * 8] = {0};									\
+		char temp_buf[8 * 1024] = {0};									\
 		_format_prefix_string_(self, type,								\
 				temp_buf, sizeof(temp_buf), file, function, line);		\
 		_filelog_write_(self, type,										\
@@ -198,7 +198,7 @@ void filelog_release(struct filelog *self);
 
 #define debug_print_call(fmt, ...)										\
 	do {																\
-		char temp_buf[1024 * 8] = {0};									\
+		char temp_buf[8 * 1024] = {0};									\
 		_format_prefix_string_(0, -1, temp_buf, sizeof(temp_buf),		\
 				__FILE__, __FUNCTION__, __LINE__);						\
 		_log_printf_(enum_debug_print_call,								\

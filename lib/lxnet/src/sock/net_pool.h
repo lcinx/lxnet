@@ -34,8 +34,11 @@ void *netpool_create_listener();
 
 void netpool_release_listener(void *self);
 
+
+struct poolmgr_info;
+
 /* get net some pool info. */
-void netpool_get_memory_info(char *buf, size_t bufsize);
+size_t netpool_get_memory_info(struct poolmgr_info *array, size_t num);
 
 #ifdef __cplusplus
 }

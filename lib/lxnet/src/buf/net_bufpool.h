@@ -42,8 +42,11 @@ void *bufpool_create_net_buf();
 
 void bufpool_release_net_buf(void *self);
 
+
+struct poolmgr_info;
+
 /* get buf pool memory info. */
-void bufpool_get_memory_info(char *buf, size_t buf_size);
+size_t bufpool_get_memory_info(struct poolmgr_info *array, size_t num);
 
 #ifdef __cplusplus
 }

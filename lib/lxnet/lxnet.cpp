@@ -72,9 +72,9 @@ static bool infomgr_init(size_t socketer_num, size_t listener_num) {
 	s_infomgr.encrypt_pool = poolmgr_create(sizeof(struct encrypt_info), 8, socketer_num * 2, 1, 
 																		"encrypt buffer pool");
 	s_infomgr.socket_pool = poolmgr_create(sizeof(lxnet::Socketer), 8, socketer_num, 1, 
-																	"Socketer obj pool");
+																	"Socketer object pool");
 	s_infomgr.listen_pool = poolmgr_create(sizeof(lxnet::Listener), 8, listener_num, 1, 
-																	"Listen obj pool");
+																	"Listen object pool");
 	if (!s_infomgr.socket_pool || !s_infomgr.encrypt_pool || !s_infomgr.listen_pool) {
 		poolmgr_release(s_infomgr.socket_pool);
 		poolmgr_release(s_infomgr.encrypt_pool);
@@ -442,9 +442,11 @@ bool Socketer::SendMsg(Msg *msg, void *adddata, size_t addsize) {
 	if (msg->GetLength() < (int)sizeof(Msg))
 		return false;
 
-	if (msg->GetLength() + addsize >= _MAX_MSG_LEN) {
-		assert(false && "if (msg->GetLength() + addsize >= _MAX_MSG_LEN)");
-		log_error("	if (msg->GetLength() + addsize >= _MAX_MSG_LEN)");
+	if (msg->GetLength() + (int)addsize > MessagePack::message_max_length) {
+		assert(false && "msg->GetLength() + addsize > MessagePack::message_max_length");
+		log_error("msg->GetLength() + addsize > MessagePack::message_max_length, "
+						"msg length:%d, msg type:%d, addsize:%d", 
+						(int)msg->GetLength(), (int)msg->GetType(), (int)addsize);
 		return false;
 	}
 
@@ -588,47 +590,28 @@ void net_run() {
 }
 
 /* 获取socket对象池，listen对象池，大块池，小块池的使用情况 */
-const char *net_get_memory_info(char *buf, size_t buflen) {
-	if (!buf || buflen < 8000)
-		return NULL;
+size_t net_get_memory_info(struct poolmgr_info *array, size_t num) {
+	if (!array || num < 8)
+		return 0;
 
 	size_t index = 0;
 
-	snprintf(&buf[index], buflen - 1 - index, "%s", 
-			"lxnet lib memory pool info:\n<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
-	index = strlen(buf);
-
 	cspin_lock(&s_infomgr.encrypt_lock);
-	poolmgr_get_info(s_infomgr.encrypt_pool, &buf[index], buflen - 1 - index);
+	poolmgr_get_info(s_infomgr.encrypt_pool, &array[index]);
 	cspin_unlock(&s_infomgr.encrypt_lock);
-
-	index = strlen(buf);
+	++index;
 
 	cspin_lock(&s_infomgr.socket_lock);
-	poolmgr_get_info(s_infomgr.socket_pool, &buf[index], buflen - 1 - index);
+	poolmgr_get_info(s_infomgr.socket_pool, &array[index]);
 	cspin_unlock(&s_infomgr.socket_lock);
-
-	index = strlen(buf);
+	++index;
 
 	cspin_lock(&s_infomgr.listen_lock);
-	poolmgr_get_info(s_infomgr.listen_pool, &buf[index], buflen - 1 - index);
+	poolmgr_get_info(s_infomgr.listen_pool, &array[index]);
 	cspin_unlock(&s_infomgr.listen_lock);
+	++index;
 
-	index = strlen(buf);
-	net_module_get_memory_info(&buf[index], buflen - 1 - index);
-
-	index = strlen(buf);
-
-	if (buf[index - 1] != '\n') {
-		buf[index] = '\n';
-		++index;
-	}
-
-	snprintf(&buf[index], buflen - 1 - index, "%s", 
-			"<+++++++++++++++++++++++++++++++++++++++++++++++++++++>");
-
-	buf[buflen - 1] = '\0';
-	return buf;
+	return index + net_module_get_memory_info(&array[index], num - index);
 }
 
 
@@ -663,12 +646,12 @@ struct datainfomgr *DataInfoMgr_CreateObj() {
 
 	memset(infomgr, 0, sizeof(*infomgr));
 
-	time_t curtm = time(NULL);
+	time_t now = time(NULL);
 	for (int i = 0; i < enum_netdata_end; ++i) {
-		infomgr->data_table[i].tm_send_msg_num = curtm;
-		infomgr->data_table[i].tm_recv_msg_num = curtm;
-		infomgr->data_table[i].tm_send_bytes = curtm;
-		infomgr->data_table[i].tm_recv_bytes = curtm;
+		infomgr->data_table[i].send_msg_num_time = now;
+		infomgr->data_table[i].recv_msg_num_time = now;
+		infomgr->data_table[i].send_bytes_time = now;
+		infomgr->data_table[i].recv_bytes_time = now;
 	}
 
 	return infomgr;
@@ -693,28 +676,27 @@ void DataInfoMgr_Run(struct datainfomgr *infomgr) {
 
 	infomgr->last_time = currenttime;
 
-	time_t curtm = time(NULL);
 	struct datainfo *max_info = &infomgr->data_table[enum_netdata_max];
 	struct datainfo *now_info = &infomgr->data_table[enum_netdata_now];
 
 	if (max_info->send_msg_num < now_info->send_msg_num) {
 		max_info->send_msg_num = now_info->send_msg_num;
-		max_info->tm_send_msg_num = curtm;
+		max_info->send_msg_num_time = time(NULL);
 	}
 
 	if (max_info->recv_msg_num < now_info->recv_msg_num) {
 		max_info->recv_msg_num = now_info->recv_msg_num;
-		max_info->tm_recv_msg_num = curtm;
+		max_info->recv_msg_num_time = time(NULL);
 	}
 
 	if (max_info->send_bytes < now_info->send_bytes) {
 		max_info->send_bytes = now_info->send_bytes;
-		max_info->tm_send_bytes = curtm;
+		max_info->send_bytes_time = time(NULL);
 	}
 
 	if (max_info->recv_bytes < now_info->recv_bytes) {
 		max_info->recv_bytes = now_info->recv_bytes;
-		max_info->tm_recv_bytes = curtm;
+		max_info->recv_bytes_time = time(NULL);
 	}
 
 	now_info->send_msg_num = 0;
@@ -723,78 +705,12 @@ void DataInfoMgr_Run(struct datainfomgr *infomgr) {
 	now_info->recv_bytes = 0;
 }
 
-//获取当前时间。格式为"2010-09-16 23:20:20"
-static const char *get_current_time_str(time_t tval, char *buf, size_t buflen) {
-	if (buflen < 32)
-		return "null";
+/* 获取网络数据统计对象 */
+struct datainfomgr *GetDataInfoMgr() {
+	if (s_datainfo_need_release)
+		return s_datainfomgr;
 
-	struct tm tm_result;
-	struct tm *now = safe_localtime(&tval, &tm_result);
-	snprintf(buf, buflen - 1, "%d-%02d-%02d %02d:%02d:%02d", 
-				now->tm_year + 1900, now->tm_mon + 1, now->tm_mday, 
-				now->tm_hour, now->tm_min, now->tm_sec);
-	buf[buflen - 1] = '\0';
-	return buf;
-}
-
-/* 获取网络数据统计信息 */
-const char *GetNetDataAllInfo(char *buf, size_t buflen, struct datainfomgr *infomgr) {
-	if (!buf || buflen < 4000)
-		return NULL;
-
-	if (!infomgr)
-		infomgr = s_datainfomgr;
-
-	if (!infomgr)
-		return NULL;
-
-	struct datainfo *totalinfo = &infomgr->data_table[enum_netdata_total];
-	struct datainfo *max_info = &infomgr->data_table[enum_netdata_max];
-	struct datainfo *now_info = &infomgr->data_table[enum_netdata_now];
-
-	double num_unit = 1000 * 1000;
-	double bytes_unit = 1024 * 1024;
-	double total_send_msg_num = double(totalinfo->send_msg_num / num_unit);
-	double total_send_bytes = double(totalinfo->send_bytes / bytes_unit);
-	double total_recv_msg_num = double(totalinfo->recv_msg_num / num_unit);
-	double total_recv_bytes = double(totalinfo->recv_bytes / bytes_unit);
-
-	double max_send_msg_num = (double)max_info->send_msg_num;
-	double max_send_bytes = (double)max_info->send_bytes / bytes_unit;
-	double max_recv_msg_num = (double)max_info->recv_msg_num;
-	double max_recv_bytes = (double)max_info->recv_bytes / bytes_unit;
-
-	double now_send_msg_num = (double)now_info->send_msg_num;
-	double now_send_bytes = (double)now_info->send_bytes / bytes_unit;
-	double now_recv_msg_num = (double)now_info->recv_msg_num;
-	double now_recv_bytes = (double)now_info->recv_bytes / bytes_unit;
-
-	char buf_send_msg_num[128] = {0};
-	char buf_send_bytes[128] = {0};
-	char buf_recv_msg_num[128] = {0};
-	char buf_recv_bytes[128] = {0};
-	get_current_time_str(max_info->tm_send_msg_num, buf_send_msg_num, sizeof(buf_send_msg_num));
-	get_current_time_str(max_info->tm_send_bytes, buf_send_bytes, sizeof(buf_send_bytes));
-	get_current_time_str(max_info->tm_recv_msg_num, buf_recv_msg_num, sizeof(buf_recv_msg_num));
-	get_current_time_str(max_info->tm_recv_bytes, buf_recv_bytes, sizeof(buf_recv_bytes));
-
-	snprintf(buf, buflen - 1, 
-			"total:\n"
-				"\tsend msg num:%.6fM, send bytes:%.6fMB\n"
-				"\trecv msg num:%.6fM, recv bytes:%.6fMB\n"
-			"max:\n"
-				"\tsend msg num:%.0f, time:%s\n\tsend bytes:%.6fMB, time:%s\n"
-				"\trecv msg num:%.0f, time:%s\n\trecv bytes:%.6fMB, time:%s\n"
-			"now:\n"
-				"\tsend msg num:%.0f, send bytes:%.6fMB\n"
-				"\trecv msg num:%.0f, recv bytes:%.6fMB\n", 
-			total_send_msg_num, total_send_bytes, total_recv_msg_num, total_recv_bytes, 
-			max_send_msg_num, buf_send_msg_num, max_send_bytes, buf_send_bytes, 
-			max_recv_msg_num, buf_recv_msg_num, max_recv_bytes, buf_recv_bytes, 
-			now_send_msg_num, now_send_bytes, now_recv_msg_num, now_recv_bytes);
-
-	buf[buflen - 1] = '\0';
-	return buf;
+	return NULL;
 }
 
 }

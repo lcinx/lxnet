@@ -36,8 +36,11 @@ void net_module_release();
 /* network run. */
 void net_module_run();
 
+
+struct poolmgr_info;
+
 /* get network memory info. */
-void net_module_get_memory_info(char *buf, size_t bufsize);
+size_t net_module_get_memory_info(struct poolmgr_info *array, size_t num);
 
 #ifdef __cplusplus
 }

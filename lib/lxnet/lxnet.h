@@ -11,7 +11,7 @@
 struct Msg;
 struct socketer;
 struct listener;
-struct datainfo;
+struct poolmgr_info;
 struct datainfomgr;
 struct encrypt_info;
 
@@ -189,7 +189,7 @@ void net_release();
 void net_run();
 
 /* 获取socket对象池，listen对象池，大块池，小块池的使用情况 */
-const char *net_get_memory_info(char *buf, size_t buflen);
+size_t net_get_memory_info(struct poolmgr_info *array, size_t num);
 
 
 /* 启用/禁用接受的连接导致的错误日志，并返回之前的值 */
@@ -216,8 +216,8 @@ void DataInfoMgr_ReleaseObj(struct datainfomgr *infomgr);
 /* 执行网络数据统计相关操作 */
 void DataInfoMgr_Run(struct datainfomgr *infomgr);
 
-/* 获取网络数据统计信息 */
-const char *GetNetDataAllInfo(char *buf, size_t buflen, struct datainfomgr *infomgr = NULL);
+/* 获取网络数据统计对象 */
+struct datainfomgr *GetDataInfoMgr();
 
 }
 

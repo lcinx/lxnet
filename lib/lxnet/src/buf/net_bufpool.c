@@ -4,11 +4,10 @@
  * lcinx@163.com
  */
 
-#include <string.h>
 #include <assert.h>
+#include "net_bufpool.h"
 #include "cthread.h"
 #include "pool.h"
-#include "net_bufpool.h"
 
 struct bufpool {
 	bool is_init;
@@ -53,11 +52,11 @@ bool bufpool_init(size_t big_block_num, size_t big_block_size,
 		return false;
 
 	s_pool.big_block_pool = poolmgr_create(big_block_size, 8, big_block_num, 1, 
-																"big_block_pools");
+																"big block pools");
 	s_pool.small_block_pool = poolmgr_create(small_block_size, 8, small_block_num, 1, 
-																"small_block_pools");
+																"small block pools");
 
-	s_pool.buf_pool = poolmgr_create(buf_size, 8, buf_num, 1, "bufpools");
+	s_pool.buf_pool = poolmgr_create(buf_size, 8, buf_num, 1, "buf pools");
 	if (!s_pool.big_block_pool || !s_pool.small_block_pool || !s_pool.buf_pool) {
 		poolmgr_release(s_pool.big_block_pool);
 		poolmgr_release(s_pool.small_block_pool);
@@ -169,24 +168,26 @@ void bufpool_release_net_buf(void *self) {
 }
 
 /* get buf pool memory info. */
-void bufpool_get_memory_info(char *buf, size_t buf_size) {
+size_t bufpool_get_memory_info(struct poolmgr_info *array, size_t num) {
 	size_t index = 0;
-	cspin_lock(&s_pool.big_lock);
-	poolmgr_get_info(s_pool.big_block_pool, buf, buf_size - 1);
-	cspin_unlock(&s_pool.big_lock);
+	if (!array || num < 3)
+		return 0;
 
-	index = strlen(buf);
+	cspin_lock(&s_pool.big_lock);
+	poolmgr_get_info(s_pool.big_block_pool, &array[index]);
+	cspin_unlock(&s_pool.big_lock);
+	++index;
 
 	cspin_lock(&s_pool.small_lock);
-	poolmgr_get_info(s_pool.small_block_pool, &buf[index], buf_size - 1 - index);
+	poolmgr_get_info(s_pool.small_block_pool, &array[index]);
 	cspin_unlock(&s_pool.small_lock);
-
-	index = strlen(buf);
+	++index;
 
 	cspin_lock(&s_pool.buf_lock);
-	poolmgr_get_info(s_pool.buf_pool, &buf[index], buf_size - 1 - index);
+	poolmgr_get_info(s_pool.buf_pool, &array[index]);
 	cspin_unlock(&s_pool.buf_lock);
+	++index;
 
-	buf[buf_size - 1] = 0;
+	return index;
 }
 

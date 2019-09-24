@@ -5,10 +5,9 @@
  */
 
 #include <assert.h>
-#include <string.h>
+#include "net_pool.h"
 #include "cthread.h"
 #include "pool.h"
-#include "net_pool.h"
 
 struct netpool {
 	bool is_init;
@@ -41,8 +40,8 @@ bool netpool_init(size_t socketer_num, size_t socketer_size, size_t listener_num
 		(listener_num == 0) || (listener_size == 0))
 		return false;
 
-	s_netpool.socketer_pool = poolmgr_create(socketer_size, 8, socketer_num, 1, "socketer_pools");
-	s_netpool.listener_pool = poolmgr_create(listener_size, 8, listener_num, 1, "listener_pools");
+	s_netpool.socketer_pool = poolmgr_create(socketer_size, 8, socketer_num, 1, "socketer pools");
+	s_netpool.listener_pool = poolmgr_create(listener_size, 8, listener_num, 1, "listener pools");
 	if (!s_netpool.socketer_pool || !s_netpool.listener_pool) {
 		poolmgr_release(s_netpool.socketer_pool);
 		poolmgr_release(s_netpool.listener_pool);
@@ -126,18 +125,21 @@ void netpool_release_listener(void *self) {
 }
 
 /* get net some pool info. */
-void netpool_get_memory_info(char *buf, size_t bufsize) {
+size_t netpool_get_memory_info(struct poolmgr_info *array, size_t num) {
 	size_t index = 0;
-	cspin_lock(&s_netpool.socketer_lock);
-	poolmgr_get_info(s_netpool.socketer_pool, buf, bufsize - 1);
-	cspin_unlock(&s_netpool.socketer_lock);
+	if (!array || num < 2)
+		return 0;
 
-	index = strlen(buf);
+	cspin_lock(&s_netpool.socketer_lock);
+	poolmgr_get_info(s_netpool.socketer_pool, &array[index]);
+	cspin_unlock(&s_netpool.socketer_lock);
+	++index;
 
 	cspin_lock(&s_netpool.listener_lock);
-	poolmgr_get_info(s_netpool.listener_pool, &buf[index], bufsize - 1 - index);
+	poolmgr_get_info(s_netpool.listener_pool, &array[index]);
 	cspin_unlock(&s_netpool.listener_lock);
+	++index;
 
-	buf[bufsize - 1] = 0;
+	return index;
 }
 

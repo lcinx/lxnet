@@ -543,10 +543,8 @@ void socketer_set_recv_limit(struct socketer *self, int size) {
 	if (!self)
 		return;
 
-	if (size > 0) {
-		socketer_init_recv_buf(self);
-		buf_set_limit_size(self->recvbuf, size);
-	}
+	socketer_init_recv_buf(self);
+	buf_set_limit_size(self->recvbuf, size);
 }
 
 /* set send data limit. */
@@ -555,10 +553,8 @@ void socketer_set_send_limit(struct socketer *self, int size) {
 	if (!self)
 		return;
 
-	if (size > 0) {
-		socketer_init_send_buf(self);
-		buf_set_limit_size(self->sendbuf, size);
-	}
+	socketer_init_send_buf(self);
+	buf_set_limit_size(self->sendbuf, size);
 }
 
 void socketer_use_compress(struct socketer *self) {

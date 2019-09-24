@@ -97,15 +97,15 @@ void blocklist_release(struct blocklist *self) {
 }
 
 void blocklist_set_message_custom_arg(struct blocklist *self, 
-		int message_maxlen, put_message_func pfunc, get_message_func gfunc) {
+		int message_maxlen, put_message_func put_func, get_message_func get_func) {
 
 	assert(message_maxlen > 0);
 	if (message_maxlen <= 0)
 		return;
 
 	self->message_maxlen = message_maxlen;
-	self->custom_put_func = pfunc;
-	self->custom_get_func = gfunc;
+	self->custom_put_func = put_func;
+	self->custom_get_func = get_func;
 }
 
 static inline struct block *blocklist_create_block(struct blocklist *self) {
@@ -406,7 +406,8 @@ int blocklist_get_message(struct blocklist *self, char *buf, int buf_size) {
 		}
 
 		/* check message length. */
-		if (self->message_len < length_len || self->message_len > buf_size) {
+		if (self->message_len > buf_size || 
+			self->message_len < length_len || self->message_len > self->message_maxlen) {
 			assert(false && "new message length is invalid, error!");
 			return -1;
 		}

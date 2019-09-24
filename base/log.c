@@ -53,7 +53,7 @@ static bool s_debug_print_show[enum_debug_max] = {true, true, true};
 
 int mymkdir_r(const char *directory) {
 	int i, len;
-	char temp[1024 * 8] = {0};
+	char temp[8 * 1024] = {0};
 	if (!directory || !strncpy(temp, directory, sizeof(temp) - 1))
 		return -1;
 
@@ -289,7 +289,7 @@ void _format_prefix_string_(struct filelog *log, int type,
 	}
 
 	if (file) {
-		assert(bufsize >= 1024 * 8);
+		assert(bufsize >= 8 * 1024);
 
 		if (append_time) {
 			snprintf(buf, bufsize - 1, 
@@ -330,7 +330,7 @@ void _log_printf_(int type, const char *fmt, ...) {
 		return;
 
 	{
-		char temp_buf[1024 * 32] = {0};
+		char temp_buf[32 * 1024] = {0};
 		va_list args, temp;
 		const char *prefix;
 		va_start(args, fmt);
@@ -470,7 +470,7 @@ void _filelog_write_(struct filelog *self, int type, const char *fmt, ...) {
 	}
 
 	if (info->fp) {
-		char temp_buf[1024 * 32] = {0};
+		char temp_buf[32 * 1024] = {0};
 		va_list args, temp;
 		const char *prefix;
 		va_start(args, fmt);

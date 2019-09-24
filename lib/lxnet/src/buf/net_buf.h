@@ -16,7 +16,7 @@ extern "C" {
 #include "net_crypt.h"
 
 /* max packet size --- 136K. */
-#define _MAX_MSG_LEN (1024 * 136)
+#define _MAX_MSG_LEN (136 * 1024)
 struct net_buf;
 
 /*
@@ -129,8 +129,11 @@ bool bufmgr_init(size_t big_buf_num, size_t big_buf_size,
 /* release some buf. */
 void bufmgr_release();
 
+
+struct poolmgr_info;
+
 /* get some buf memroy info. */
-void bufmgr_get_memory_info(char *buf, size_t bufsize);
+size_t bufmgr_get_memory_info(struct poolmgr_info *array, size_t num);
 
 /* enable/disable errorlog, and return before value. */
 bool buf_set_enable_errorlog(bool flag);

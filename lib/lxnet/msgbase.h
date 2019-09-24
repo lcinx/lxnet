@@ -34,16 +34,19 @@ struct Msg {
 struct MessagePack:public Msg {
 	enum {
 		//消息最大长度
-		e_thismessage_max_size = 1024 * 128 - sizeof(Msg),
+		message_max_length = 128 * 1024,
+
+		//消息体最大长度
+		message_data_max_length = message_max_length - sizeof(Msg),
 
 		//字符串最大长度(用无符号16位记录长度)
-		e_string_max_length = USHRT_MAX,
+		string_max_length = USHRT_MAX,
 
 		//大字符串最大长度(用无符号32位记录长度)
-		e_bigstring_max_length = e_thismessage_max_size - 4,
+		big_string_max_length = message_data_max_length - 4,
 	};
 
-	char m_buf[e_thismessage_max_size];
+	char m_buf[message_data_max_length];
 	size_t m_index;			//当前索引
 	int m_maxindex;			//最大索引值	主要是用于读时
 	int m_error_num;		//出错次数
@@ -67,8 +70,8 @@ struct MessagePack:public Msg {
 	}
 
 	void SetIndex(size_t idx) {
-		if (idx >= e_thismessage_max_size)
-			idx = e_thismessage_max_size - 1;
+		if (idx >= message_data_max_length)
+			idx = message_data_max_length - 1;
 
 		if ((int)idx < 0)
 			idx = 0;
@@ -100,7 +103,7 @@ struct MessagePack:public Msg {
 	}
 
 	bool CanPush(size_t size) {
-		if (m_index + size <= e_thismessage_max_size)
+		if (m_index + size <= message_data_max_length)
 			return true;
 		return false;
 	}
@@ -188,8 +191,8 @@ struct MessagePack:public Msg {
 		return false;
 	}
 
-	bool PushLString(const char *str, size_t str_size, size_t max_push = e_string_max_length) {
-		if (!str || str_size > e_string_max_length || max_push > e_string_max_length) {
+	bool PushLString(const char *str, size_t str_size, size_t max_push = string_max_length) {
+		if (!str || str_size > string_max_length || max_push > string_max_length) {
 			__on_error();
 			return false;
 		}
@@ -208,7 +211,7 @@ struct MessagePack:public Msg {
 		return false;
 	}
 
-	bool PushString(const char *str, size_t max_push = e_string_max_length) {
+	bool PushString(const char *str, size_t max_push = string_max_length) {
 		if (!str) {
 			__on_error();
 			return false;
@@ -218,8 +221,8 @@ struct MessagePack:public Msg {
 		return PushLString(str, str_size, max_push);
 	}
 
-	bool PushLBigString(const char *str, size_t str_size, size_t max_push = e_bigstring_max_length) {
-		if (!str || str_size > e_bigstring_max_length || max_push > e_bigstring_max_length) {
+	bool PushLBigString(const char *str, size_t str_size, size_t max_push = big_string_max_length) {
+		if (!str || str_size > big_string_max_length || max_push > big_string_max_length) {
 			__on_error();
 			return false;
 		}
@@ -238,7 +241,7 @@ struct MessagePack:public Msg {
 		return false;
 	}
 
-	bool PushBigString(const char *str, size_t max_push = e_bigstring_max_length) {
+	bool PushBigString(const char *str, size_t max_push = big_string_max_length) {
 		if (!str) {
 			__on_error();
 			return false;
@@ -255,7 +258,7 @@ struct MessagePack:public Msg {
 			return false;
 		}
 
-		if ((index + size) > e_thismessage_max_size) {
+		if ((index + size) > message_data_max_length) {
 			__on_error();
 			return false;
 		}
@@ -392,7 +395,7 @@ struct MessagePack:public Msg {
 		uint16 size = 0;
 		if (CanGet(sizeof(size))) {
 			__read_data(&size, sizeof(size));
-			if (size > e_string_max_length) {
+			if (size > string_max_length) {
 				__on_error();
 				return NULL;
 			}
@@ -420,7 +423,7 @@ struct MessagePack:public Msg {
 		uint16 size = 0;
 		if (CanGet(sizeof(size))) {
 			__read_data(&size, sizeof(size));
-			if (size > e_string_max_length) {
+			if (size > string_max_length) {
 				buf[0] = '\0';
 				__on_error();
 				return false;
@@ -444,7 +447,7 @@ struct MessagePack:public Msg {
 		uint32 size = 0;
 		if (CanGet(sizeof(size))) {
 			__read_data(&size, sizeof(size));
-			if (size > e_bigstring_max_length) {
+			if (size > big_string_max_length) {
 				__on_error();
 				return NULL;
 			}
@@ -472,7 +475,7 @@ struct MessagePack:public Msg {
 		uint32 size = 0;
 		if (CanGet(sizeof(size))) {
 			__read_data(&size, sizeof(size));
-			if (size > e_bigstring_max_length) {
+			if (size > big_string_max_length) {
 				buf[0] = '\0';
 				__on_error();
 				return false;

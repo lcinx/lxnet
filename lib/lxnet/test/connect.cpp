@@ -18,7 +18,7 @@
 
 int main() {
 
-	if (!lxnet::net_init(512, 1, 1024 * 32, 100, 1, 4, 1)) {
+	if (!lxnet::net_init(512, 1, 32 * 1024, 100, 1, 4, 1)) {
 		printf("init network error!\n");
 		system("pause");
 		return 0;
@@ -36,7 +36,7 @@ int main() {
 
 	MessagePack sendpack;
 	MessagePack *recvpack;
-	char neirong[1024 * 30]="a1234567";
+	char neirong[30 * 1024]="a1234567";
 	//char recvneirong[32 * 1024];
 	int size = sizeof(neirong);
 	sendpack.PushBlock(neirong, size);

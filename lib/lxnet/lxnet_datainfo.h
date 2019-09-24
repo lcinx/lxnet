@@ -21,10 +21,10 @@ struct datainfo {
 	int64 recv_msg_num;
 	int64 send_bytes;
 	int64 recv_bytes;
-	time_t tm_send_msg_num;
-	time_t tm_recv_msg_num;
-	time_t tm_send_bytes;
-	time_t tm_recv_bytes;
+	time_t send_msg_num_time;
+	time_t recv_msg_num_time;
+	time_t send_bytes_time;
+	time_t recv_bytes_time;
 };
 
 struct datainfomgr {
