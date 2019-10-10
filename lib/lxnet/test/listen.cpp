@@ -16,7 +16,17 @@
 #endif
 
 
-int main() {
+int main(int argc, char *argv[]) {
+
+	int port = 0;
+
+	if (argc == 2) {
+		sscanf(argv[1], "%d", &port);
+	}
+
+	if (port <= 0 || port >= 0xffff)
+		port = 30012;
+
 
 	if (!lxnet::net_init(512, 1, 32 * 1024, 100, 1, 4, 1)) {
 		printf("init network error!\n");
@@ -25,12 +35,12 @@ int main() {
 	}
 
 	lxnet::Listener *list = lxnet::Listener::Create();
-	if (!list || !list->Listen(30012, 10)) {
+	if (!list || !list->Listen(port, 10)) {
 		printf("listen error\n");
 		return 0;
 	}
 
-	printf("listen succeed!\n");
+	printf("listen port on %d succeed!\n", port);
 
 	MessagePack sendpack;
 	MessagePack *recvpack;

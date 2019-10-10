@@ -16,7 +16,23 @@
 #endif
 
 
-int main() {
+int main(int argc, char *argv[]) {
+
+	const char *ip = NULL;
+	int port = 0;
+
+	if (argc == 3) {
+		ip = argv[1];
+		sscanf(argv[2], "%d", &port);
+	}
+
+	if (!ip) {
+		ip = "127.0.0.1";
+	}
+
+	if (port <= 0 || port >= 0xffff)
+		port = 30012;
+
 
 	if (!lxnet::net_init(512, 1, 32 * 1024, 100, 1, 4, 1)) {
 		printf("init network error!\n");
@@ -28,11 +44,13 @@ int main() {
 	//newclient->UseUncompress();
 	//newclient->UseCompress();
 
-	while (!newclient->Connect("127.0.0.1", 30012)) {
+	printf("try connect to %s:%d\n", ip, port);
+
+	while (!newclient->Connect(ip, port)) {
 		delaytime(100);
 	}
 
-	printf("connect succeed!\n");
+	printf("connect %s:%d succeed!\n", ip, port);
 
 	MessagePack sendpack;
 	MessagePack *recvpack;
