@@ -13,7 +13,6 @@
 #include "net_buf.h"
 #include "pool.h"
 #include "msgbase.h"
-#include "log.h"
 #include "crosslib.h"
 #include "lxnet_datainfo.h"
 
@@ -444,9 +443,6 @@ bool Socketer::SendMsg(Msg *msg, void *adddata, size_t addsize) {
 
 	if (msg->GetLength() + (int)addsize > MessagePack::message_max_length) {
 		assert(false && "msg->GetLength() + addsize > MessagePack::message_max_length");
-		log_error("msg->GetLength() + addsize > MessagePack::message_max_length, "
-						"msg length:%d, msg type:%d, addsize:%d", 
-						(int)msg->GetLength(), (int)msg->GetType(), (int)addsize);
 		return false;
 	}
 
