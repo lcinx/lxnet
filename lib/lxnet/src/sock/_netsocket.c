@@ -256,10 +256,8 @@ bool socketer_connect(struct socketer *self, const char *ip, short port) {
 
 		freeaddrinfo(ai_list);
 
-		if (self->sockfd == NET_INVALID_SOCKET) {
-			log_error("socketer connect, but is invalid socket!, error!");
+		if (self->sockfd == NET_INVALID_SOCKET)
 			return false;
-		}
 
 		self->try_connect_time = s_mgr.currenttime;
 	}
