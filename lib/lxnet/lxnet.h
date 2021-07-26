@@ -14,6 +14,7 @@ struct listener;
 struct poolmgr_info;
 struct datainfomgr;
 struct encrypt_info;
+struct proxy_info;
 
 namespace lxnet {
 
@@ -97,7 +98,10 @@ public:
 	 * 设置加密/解密函数， 以及特殊用途的参与加密/解密逻辑的数据。
 	 * 若加密/解密函数为NULL，则保持默认。
 	 */
-	void SetEncryptDecryptFunction(void (*encryptfunc)(void *logicdata, char *buf, int len), void (*release_encrypt_logicdata)(void *), void *encrypt_logicdata, void (*decryptfunc)(void *logicdata, char *buf, int len), void (*release_decrypt_logicdata)(void *), void *decrypt_logicdata);
+	void SetEncryptDecryptFunction(void (*encryptfunc)(void *logicdata, char *buf, int len), 
+									void (*release_encrypt_logicdata)(void *), void *encrypt_logicdata, 
+									void (*decryptfunc)(void *logicdata, char *buf, int len), 
+									void (*release_decrypt_logicdata)(void *), void *decrypt_logicdata);
 
 	/* 设置加密key */
 	void SetEncryptKey(const char *key, int key_len);
@@ -111,8 +115,14 @@ public:
 	/* (启用解密) */
 	void UseDecrypt();
 
-	/* 启用TGW接入 */
-	void UseTGW();
+	/* 设置代理接入参数 */
+	void SetProxyParam(const char *proxy_end_char, int proxy_end_char_len);
+
+	/* 获取代理数据 */
+	const char *GetProxyData();
+
+	/* 启用/禁用代理接入 */
+	void UseProxy(bool flag);
 
 	/* 连接指定的服务器 */
 	bool Connect(const char *ip, short port);
@@ -132,11 +142,8 @@ public:
 	/* 获取接收缓冲中待读取的字节数(若为0表示目前无数据可读) */
 	int GetRecvBufferByteSize();
 
-	/* 对as3发送策略文件 */
-	bool SendPolicyData();
-
-	/* 发送TGW信息头 */
-	bool SendTGWInfo(const char *domain, int port);
+	/* 设置发送指定字节的原始数据(发送时指定字节的数据不执行压缩、加密操作) */
+	void SetSendRawDataSize(int size);
 
 	/*
 	 * 发送数据，仅仅是把数据压入包队列中，
@@ -166,6 +173,7 @@ public:
 	struct datainfomgr *m_infomgr;
 	struct encrypt_info *m_encrypt;
 	struct encrypt_info *m_decrypt;
+	struct proxy_info *m_proxy;
 	struct socketer *m_self;
 };
 

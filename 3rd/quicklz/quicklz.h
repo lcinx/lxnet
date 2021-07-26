@@ -34,7 +34,7 @@
 
 	// Guarantees that decompression of corrupted data cannot crash. Decreases decompression
 	// speed 10-20%. Compression speed not affected.
-	//#define QLZ_MEMORY_SAFE
+	#define QLZ_MEMORY_SAFE
 #endif
 
 #define QLZ_VERSION_MAJOR 1
@@ -136,6 +136,7 @@ extern "C" {
 #endif
 
 // Public functions of QuickLZ
+size_t qlz_size_header(const char *source);
 size_t qlz_size_decompressed(const char *source);
 size_t qlz_size_compressed(const char *source);
 size_t qlz_compress(const void *source, char *destination, size_t size, qlz_state_compress *state);

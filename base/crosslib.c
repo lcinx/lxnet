@@ -8,6 +8,11 @@
 #include "crosslib.h"
 
 #ifdef _WIN32
+
+#ifdef _MSC_VER
+#pragma comment(lib, "winmm.lib")
+#endif
+
 #include <windows.h>
 
 struct _tp_integer {
@@ -20,6 +25,8 @@ static __inline int64 __GetSecondCount__() {
 	if (0 == s_larget_int.is_init) {
 		QueryPerformanceFrequency(&s_larget_int.liCounter);
 		s_larget_int.is_init = 1;
+
+		timeBeginPeriod(1);
 	}
 	return s_larget_int.liCounter.QuadPart;
 }

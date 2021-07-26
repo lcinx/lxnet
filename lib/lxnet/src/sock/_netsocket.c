@@ -574,7 +574,9 @@ void socketer_use_uncompress(struct socketer *self) {
 }
 
 /* set encrypt function and logic data. */
-void socketer_set_encrypt_function(struct socketer *self, dofunc_f encrypt_func, void (*release_logicdata)(void *), void *logicdata) {
+void socketer_set_encrypt_function(struct socketer *self, 
+		dofunc_f encrypt_func, void (*release_logicdata)(void *), void *logicdata) {
+
 	assert(self != NULL);
 	if (!self || !encrypt_func)
 		return;
@@ -584,7 +586,9 @@ void socketer_set_encrypt_function(struct socketer *self, dofunc_f encrypt_func,
 }
 
 /* set encrypt function and logic data. */
-void socketer_set_decrypt_function(struct socketer *self, dofunc_f decrypt_func, void (*release_logicdata)(void *), void *logicdata) {
+void socketer_set_decrypt_function(struct socketer *self, 
+		dofunc_f decrypt_func, void (*release_logicdata)(void *), void *logicdata) {
+
 	assert(self != NULL);
 	if (!self || !decrypt_func)
 		return;
@@ -611,16 +615,26 @@ void socketer_use_decrypt(struct socketer *self) {
 	buf_use_decrypt(self->recvbuf);
 }
 
-void socketer_use_tgw(struct socketer *self) {
+void socketer_use_proxy(struct socketer *self, bool flag) {
 	assert(self != NULL);
 	if (!self)
 		return;
 
 	socketer_init_recv_buf(self);
-	buf_use_tgw(self->recvbuf);
+	buf_use_proxy(self->recvbuf, flag);
 }
 
-void socketer_set_raw_datasize(struct socketer *self, size_t size) {
+void socketer_set_proxy_param(struct socketer *self, 
+		const char *proxy_end_char, size_t proxy_end_char_len, char *proxy_buff, size_t proxy_buff_len) {
+	assert(self != NULL);
+	if (!self)
+		return;
+
+	socketer_init_recv_buf(self);
+	buf_set_proxy_param(self->recvbuf, proxy_end_char, proxy_end_char_len, proxy_buff, proxy_buff_len);
+}
+
+void socketer_set_raw_datasize(struct socketer *self, int size) {
 	assert(self != NULL);
 	if (!self)
 		return;

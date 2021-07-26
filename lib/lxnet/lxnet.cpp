@@ -23,6 +23,9 @@ struct infomgr {
 	struct poolmgr *encrypt_pool;
 	cspin encrypt_lock;
 
+	struct poolmgr *proxy_pool;
+	cspin proxy_lock;
+
 	struct poolmgr *socket_pool;
 	cspin socket_lock;
 
@@ -43,6 +46,17 @@ struct encrypt_info {
 	int now_idx;
 	char buf[enum_encrypt_len];
 };
+
+struct proxy_info {
+	enum {
+		enum_proxy_end_char_len = 8,
+		enum_proxy_buff_len = 128,
+	};
+
+	char proxy_end_char[enum_proxy_end_char_len];
+	char proxy_buff[enum_proxy_buff_len];
+};
+
 
 static inline void on_send_msg(struct datainfomgr *infomgr, size_t msg_num, size_t len) {
 	if (infomgr) {
@@ -70,18 +84,24 @@ static bool infomgr_init(size_t socketer_num, size_t listener_num) {
 
 	s_infomgr.encrypt_pool = poolmgr_create(sizeof(struct encrypt_info), 8, socketer_num * 2, 1, 
 																		"encrypt buffer pool");
+	s_infomgr.proxy_pool = poolmgr_create(sizeof(struct proxy_info), 8, socketer_num, 1, 
+																		"proxy info pool");
 	s_infomgr.socket_pool = poolmgr_create(sizeof(lxnet::Socketer), 8, socketer_num, 1, 
 																	"Socketer object pool");
 	s_infomgr.listen_pool = poolmgr_create(sizeof(lxnet::Listener), 8, listener_num, 1, 
 																	"Listen object pool");
-	if (!s_infomgr.socket_pool || !s_infomgr.encrypt_pool || !s_infomgr.listen_pool) {
+	if (!s_infomgr.encrypt_pool || !s_infomgr.proxy_pool || 
+			!s_infomgr.listen_pool || !s_infomgr.socket_pool) {
 		poolmgr_release(s_infomgr.socket_pool);
-		poolmgr_release(s_infomgr.encrypt_pool);
 		poolmgr_release(s_infomgr.listen_pool);
+
+		poolmgr_release(s_infomgr.encrypt_pool);
+		poolmgr_release(s_infomgr.proxy_pool);
 		return false;
 	}
 
 	cspin_init(&s_infomgr.encrypt_lock);
+	cspin_init(&s_infomgr.proxy_lock);
 	cspin_init(&s_infomgr.socket_lock);
 	cspin_init(&s_infomgr.listen_lock);
 	s_infomgr.is_init = true;
@@ -92,13 +112,30 @@ static void infomgr_release() {
 	if (!s_infomgr.is_init)
 		return;
 
-	s_infomgr.is_init = false;
 	poolmgr_release(s_infomgr.socket_pool);
-	poolmgr_release(s_infomgr.encrypt_pool);
 	poolmgr_release(s_infomgr.listen_pool);
-	cspin_destroy(&s_infomgr.encrypt_lock);
+	poolmgr_release(s_infomgr.encrypt_pool);
+	poolmgr_release(s_infomgr.proxy_pool);
 	cspin_destroy(&s_infomgr.socket_lock);
 	cspin_destroy(&s_infomgr.listen_lock);
+	cspin_destroy(&s_infomgr.encrypt_lock);
+	cspin_destroy(&s_infomgr.proxy_lock);
+
+	s_infomgr.is_init = false;
+}
+
+struct encrypt_info *encrypt_info_create() {
+	struct encrypt_info *info = NULL;
+	cspin_lock(&s_infomgr.encrypt_lock);
+	info = (struct encrypt_info *)poolmgr_alloc_object(s_infomgr.encrypt_pool);
+	cspin_unlock(&s_infomgr.encrypt_lock);
+
+	if (info) {
+		info->max_idx = 0;
+		info->now_idx = 0;
+		memset(info->buf, 0, sizeof(info->buf));
+	}
+	return info;
 }
 
 static void encrypt_info_release(void *info) {
@@ -108,6 +145,27 @@ static void encrypt_info_release(void *info) {
 	cspin_lock(&s_infomgr.encrypt_lock);
 	poolmgr_free_object(s_infomgr.encrypt_pool, info);
 	cspin_unlock(&s_infomgr.encrypt_lock);
+}
+
+struct proxy_info *proxy_info_create() {
+	struct proxy_info *info = NULL;
+	cspin_lock(&s_infomgr.proxy_lock);
+	info = (struct proxy_info *)poolmgr_alloc_object(s_infomgr.proxy_pool);
+	cspin_unlock(&s_infomgr.proxy_lock);
+
+	if (info) {
+		memset(info, 0, sizeof(*info));
+	}
+	return info;
+}
+
+static void proxy_info_release(struct proxy_info *info) {
+	if (!s_infomgr.is_init)
+		return;
+
+	cspin_lock(&s_infomgr.proxy_lock);
+	poolmgr_free_object(s_infomgr.proxy_pool, info);
+	cspin_unlock(&s_infomgr.proxy_lock);
 }
 
 
@@ -184,6 +242,7 @@ Socketer *Listener::Accept(bool bigbuf) {
 	self->m_infomgr = s_datainfomgr;
 	self->m_encrypt = NULL;
 	self->m_decrypt = NULL;
+	self->m_proxy = NULL;
 	self->m_self = sock;
 	return self;
 }
@@ -217,6 +276,7 @@ Socketer *Socketer::Create(bool bigbuf) {
 	self->m_infomgr = s_datainfomgr;
 	self->m_encrypt = NULL;
 	self->m_decrypt = NULL;
+	self->m_proxy = NULL;
 	self->m_self = so;
 	return self;
 }
@@ -234,6 +294,11 @@ void Socketer::Release(Socketer *self) {
 	self->m_infomgr = NULL;
 	self->m_encrypt = NULL;
 	self->m_decrypt = NULL;
+
+	if (self->m_proxy) {
+		proxy_info_release(self->m_proxy);
+		self->m_proxy = NULL;
+	}
 
 	cspin_lock(&s_infomgr.socket_lock);
 	poolmgr_free_object(s_infomgr.socket_pool, self);
@@ -270,7 +335,11 @@ void Socketer::UseUncompress() {
  * 设置加密/解密函数， 以及特殊用途的参与加密/解密逻辑的数据。
  * 若加密/解密函数为NULL，则保持默认。
  */
-void Socketer::SetEncryptDecryptFunction(void (*encryptfunc)(void *logicdata, char *buf, int len), void (*release_encrypt_logicdata)(void *), void *encrypt_logicdata, void (*decryptfunc)(void *logicdata, char *buf, int len), void (*release_decrypt_logicdata)(void *), void *decrypt_logicdata) {
+void Socketer::SetEncryptDecryptFunction(void (*encryptfunc)(void *logicdata, char *buf, int len), 
+									void (*release_encrypt_logicdata)(void *), void *encrypt_logicdata, 
+									void (*decryptfunc)(void *logicdata, char *buf, int len), 
+									void (*release_decrypt_logicdata)(void *), void *decrypt_logicdata) {
+
 	socketer_set_encrypt_function(m_self, encryptfunc, release_encrypt_logicdata, encrypt_logicdata);
 	socketer_set_decrypt_function(m_self, decryptfunc, release_decrypt_logicdata, decrypt_logicdata);
 }
@@ -292,14 +361,8 @@ void Socketer::SetEncryptKey(const char *key, int key_len) {
 		return;
 
 	if (!m_encrypt) {
-		cspin_lock(&s_infomgr.encrypt_lock);
-		m_encrypt = (struct encrypt_info *)poolmgr_alloc_object(s_infomgr.encrypt_pool);
-		cspin_unlock(&s_infomgr.encrypt_lock);
-
+		m_encrypt = encrypt_info_create();
 		if (m_encrypt) {
-			m_encrypt->max_idx = 0;
-			m_encrypt->now_idx = 0;
-			memset(m_encrypt->buf, 0, sizeof(m_encrypt->buf));
 			socketer_set_encrypt_function(m_self, 
 					encrypt_decrypt_as_key_do_func, encrypt_info_release, m_encrypt);
 		}
@@ -318,14 +381,8 @@ void Socketer::SetDecryptKey(const char *key, int key_len) {
 		return;
 
 	if (!m_decrypt) {
-		cspin_lock(&s_infomgr.encrypt_lock);
-		m_decrypt = (struct encrypt_info *)poolmgr_alloc_object(s_infomgr.encrypt_pool);
-		cspin_unlock(&s_infomgr.encrypt_lock);
-
+		m_decrypt = encrypt_info_create();
 		if (m_decrypt) {
-			m_decrypt->max_idx = 0;
-			m_decrypt->now_idx = 0;
-			memset(m_decrypt->buf, 0, sizeof(m_decrypt->buf));
 			socketer_set_decrypt_function(m_self, 
 					encrypt_decrypt_as_key_do_func, encrypt_info_release, m_decrypt);
 		}
@@ -348,9 +405,36 @@ void Socketer::UseDecrypt() {
 	socketer_use_decrypt(m_self);
 }
 
-/* 启用TGW接入 */
-void Socketer::UseTGW() {
-	socketer_use_tgw(m_self);
+/* 设置代理接入参数 */
+void Socketer::SetProxyParam(const char *proxy_end_char, int proxy_end_char_len) {
+	if (!proxy_end_char || proxy_end_char_len <= 0)
+		return;
+
+	if (m_proxy || proxy_end_char_len > proxy_info::enum_proxy_end_char_len)
+		return;
+
+	m_proxy = proxy_info_create();
+	if (!m_proxy)
+		return;
+
+	memcpy(&m_proxy->proxy_end_char, proxy_end_char, proxy_end_char_len);
+
+	socketer_set_proxy_param(m_self, 
+			m_proxy->proxy_end_char, (size_t)proxy_end_char_len, 
+			m_proxy->proxy_buff, sizeof(m_proxy->proxy_buff) - 1);
+}
+
+/* 获取代理数据 */
+const char *Socketer::GetProxyData() {
+	if (!m_proxy)
+		return NULL;
+
+	return m_proxy->proxy_buff;
+}
+
+/* 启用/禁用代理接入 */
+void Socketer::UseProxy(bool flag) {
+	socketer_use_proxy(m_self, flag);
 }
 
 /* 连接指定的服务器 */
@@ -383,41 +467,9 @@ int Socketer::GetRecvBufferByteSize() {
 	return socketer_get_recv_buffer_byte_size(m_self);
 }
 
-/* 对as3发送策略文件 */
-bool Socketer::SendPolicyData() {
-	//as3套接字策略文件
-	char buf[512] = "<cross-domain-policy> <allow-access-from domain=\"*\" secure=\"false\" to-ports=\"*\"/> </cross-domain-policy> ";
-	size_t datasize = strlen(buf);
-	if (socketer_send_is_limit(m_self, datasize)) {
-		Close();
-		return false;
-	}
-
-	bool res = socketer_send_msg(m_self, buf, datasize + 1);
-	if (res) {
-		on_send_msg(m_infomgr, 0, datasize + 1);
-	}
-	return res;
-}
-
-/* 发送TGW信息头 */
-bool Socketer::SendTGWInfo(const char *domain, int port) {
-	char buf[1024] = {0};
-	size_t datasize;
-	snprintf(buf, sizeof(buf) - 1, "tgw_l7_forward\r\nHost: %s:%d\r\n\r\n", domain, port);
-	buf[sizeof(buf) - 1] = '\0';
-	datasize = strlen(buf);
-	if (socketer_send_is_limit(m_self, datasize)) {
-		Close();
-		return false;
-	}
-
-	socketer_set_raw_datasize(m_self, datasize);
-	bool res = socketer_send_msg(m_self, buf, datasize);
-	if (res) {
-		on_send_msg(m_infomgr, 0, datasize);
-	}
-	return res;
+/* 设置发送指定字节的原始数据(发送时指定字节的数据不执行压缩、加密操作) */
+void Socketer::SetSendRawDataSize(int size) {
+	socketer_set_raw_datasize(m_self, size);
 }
 
 /*

@@ -28,8 +28,8 @@ struct net_buf *buf_create(bool bigbuf);
 /*
  * set buf encrypt function or decrypt function, and some logic data.
  */
-void buf_set_do_func(struct net_buf *self, dofunc_f func, 
-		void (*release_logicdata)(void *logicdata), void *logicdata);
+void buf_set_do_func(struct net_buf *self, 
+		dofunc_f func, void (*release_logicdata)(void *logicdata), void *logicdata);
 
 /* release buf. */
 void buf_release(struct net_buf *self);
@@ -45,9 +45,12 @@ void buf_use_encrypt(struct net_buf *self);
 
 void buf_use_decrypt(struct net_buf *self);
 
-void buf_use_tgw(struct net_buf *self);
+void buf_use_proxy(struct net_buf *self, bool flag);
 
-void buf_set_raw_datasize(struct net_buf *self, size_t size);
+void buf_set_proxy_param(struct net_buf *self, 
+		const char *proxy_end_char, size_t proxy_end_char_len, char *proxy_buff, size_t proxy_buff_len);
+
+void buf_set_raw_datasize(struct net_buf *self, int size);
 
 int buf_get_now_data_size(struct net_buf *self);
 

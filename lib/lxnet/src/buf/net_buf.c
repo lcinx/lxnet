@@ -37,11 +37,17 @@ struct net_buf {
 	bool is_bigbuf;				/* big or small flag. */
 	char compress_falg;
 	char crypt_falg;
-	bool use_tgw;
-	volatile bool already_do_tgw;
+	bool use_proxy;
+	volatile bool already_do_proxy;
 
-	size_t raw_size_for_encrypt;
-	size_t raw_size_for_compress;
+	const char *proxy_end_char;
+	size_t proxy_end_char_len;
+	char *proxy_buff;
+	size_t proxy_buff_len;
+
+
+	int raw_size_for_encrypt;
+	int raw_size_for_compress;
 
 	dofunc_f dofunc;
 	void (*release_logicdata)(void *logicdata);
@@ -71,6 +77,11 @@ static inline bool buf_is_use_decrypt(struct net_buf *self) {
 }
 
 static void buf_real_release(struct net_buf *self) {
+
+	self->proxy_end_char = NULL;
+	self->proxy_end_char_len = 0;
+	self->proxy_buff = NULL;
+	self->proxy_buff_len = 0;
 
 	if (self->release_logicdata && self->do_logicdata) {
 		self->release_logicdata(self->do_logicdata);
@@ -106,8 +117,13 @@ static void buf_init(struct net_buf *self, bool is_bigbuf) {
 	self->is_bigbuf = is_bigbuf;
 	self->compress_falg = enum_unknow;
 	self->crypt_falg = enum_unknow;
-	self->use_tgw = false;
-	self->already_do_tgw = false;
+	self->use_proxy = false;
+	self->already_do_proxy = false;
+
+	self->proxy_end_char = NULL;
+	self->proxy_end_char_len = 0;
+	self->proxy_buff = NULL;
+	self->proxy_buff_len = 0;
 
 	self->raw_size_for_encrypt = 0;
 	self->raw_size_for_compress = 0;
@@ -214,15 +230,27 @@ void buf_use_decrypt(struct net_buf *self) {
 	self->crypt_falg = enum_decrypt;
 }
 
-void buf_use_tgw(struct net_buf *self) {
+void buf_use_proxy(struct net_buf *self, bool flag) {
 	if (!self)
 		return;
 
-	self->use_tgw = true;
+	self->use_proxy = flag;
 }
 
-void buf_set_raw_datasize(struct net_buf *self, size_t size) {
-	if (!self)
+void buf_set_proxy_param(struct net_buf *self, 
+		const char *proxy_end_char, size_t proxy_end_char_len, char *proxy_buff, size_t proxy_buff_len) {
+
+	if (!self || !proxy_end_char || !proxy_buff)
+		return;
+
+	self->proxy_end_char = proxy_end_char;
+	self->proxy_end_char_len = proxy_end_char_len;
+	self->proxy_buff = proxy_buff;
+	self->proxy_buff_len = proxy_buff_len;
+}
+
+void buf_set_raw_datasize(struct net_buf *self, int size) {
+	if (!self || size < 0)
 		return;
 
 	self->raw_size_for_encrypt = size;
@@ -310,30 +338,38 @@ struct buf_info buf_get_write_bufinfo(struct net_buf *self) {
 		return blocklist_get_write_bufinfo(&self->logiclist);
 }
 
-static bool buf_try_parse_tgw(struct blocklist *lst, char **buf, int *len) {
-	const int max_check_size = 256;
-	char tgw_buf[] = "\r\n\r\n";
+static bool buf_try_parse_proxy(struct net_buf *self, struct blocklist *lst, char **buf, int *len) {
+	const char *end_char_buf = self->proxy_end_char;
+	const int end_char_size = self->proxy_end_char_len;
+	char *proxy_buff = self->proxy_buff;
+	const int proxy_buff_len = self->proxy_buff_len;
 	struct block *bk = NULL;
 	int find_idx = 0;
 	int num = 0;
 
 	*buf = NULL;
 	*len = 0;
+
+	if (!end_char_buf || !proxy_buff)
+		return false;
+
 	for (bk = lst->head; bk; bk = bk->next) {
 		char *f = block_get_readbuf(bk);
 		int can_read_size = block_get_readsize(bk);
 		int i = 0;
 		for (i = 0; i < can_read_size; ++i) {
-			if (num >= max_check_size)
+			if (num >= proxy_buff_len)
 				return false;
 
-			if (f[i] == tgw_buf[find_idx])
+			if (f[i] == end_char_buf[find_idx])
 				++find_idx;
 			else
 				find_idx = 0;
 
+			proxy_buff[num] = f[i];
+
 			++num;
-			if (find_idx == 4) {
+			if (find_idx == end_char_size) {
 				blocklist_add_read(lst, num);
 				if (i + 1 < can_read_size) {
 					*buf = &f[i + 1];
@@ -361,9 +397,12 @@ void buf_add_write(struct net_buf *self, char *buf, int len) {
 	else
 		lst = &self->logiclist;
 
-	if (self->use_tgw && (!self->already_do_tgw)) {
-		if (buf_try_parse_tgw(lst, &temp_buf, &newlen))
-			self->already_do_tgw = true;
+	blocklist_add_write(lst, len);
+
+
+	if (self->use_proxy && (!self->already_do_proxy)) {
+		if (buf_try_parse_proxy(self, lst, &temp_buf, &newlen))
+			self->already_do_proxy = true;
 	}
 
 	/* decrypt opt. */
@@ -371,9 +410,6 @@ void buf_add_write(struct net_buf *self, char *buf, int len) {
 		if (temp_buf && (newlen > 0))
 			self->dofunc(self->do_logicdata, temp_buf, newlen);
 	}
-
-	/* end change data size. */
-	blocklist_add_write(lst, len);
 }
 
 /*
@@ -555,7 +591,7 @@ char *buf_get_message(struct net_buf *self, bool *need_close, char *buf, size_t 
 	if (!self || !need_close)
 		return NULL;
 
-	if (self->use_tgw && (!self->already_do_tgw))
+	if (self->use_proxy && (!self->already_do_proxy))
 		return NULL;
 
 	if (!buf || bufsize <= 0) {
@@ -592,7 +628,7 @@ char *buf_get_data(struct net_buf *self, bool *need_close, char *buf, int bufsiz
 	if (!self || !need_close)
 		return NULL;
 
-	if (self->use_tgw && (!self->already_do_tgw))
+	if (self->use_proxy && (!self->already_do_proxy))
 		return NULL;
 
 	if (!buf || bufsize <= 0 || !datalen)
