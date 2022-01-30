@@ -207,7 +207,7 @@ void socketer_release(struct socketer *self) {
 	socketmgr_add_to_wait(self);
 }
 
-bool socketer_connect(struct socketer *self, const char *ip, short port) {
+bool socketer_connect(struct socketer *self, const char *ip, unsigned short port) {
 	assert(self != NULL);
 	assert(ip != NULL);
 	if (!self || !ip || 0 == port)
@@ -816,7 +816,7 @@ void socketer_on_send(struct socketer *self, int len) {
 			debuglog("send :%d size\n", res);
 		} else {
 			int lasterror = NET_GetLastError();
-			if (!SOCKET_ERR_RW_RETRIABLE(lasterror)) {
+			if (!SOCKET_ERR_RW_RETRIABLE(lasterror) && res != 0) {
 				/* error, close socket. */
 				socketer_close(self);
 

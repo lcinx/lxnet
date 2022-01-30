@@ -125,7 +125,7 @@ public:
 	void UseProxy(bool flag);
 
 	/* 连接指定的服务器 */
-	bool Connect(const char *ip, short port);
+	bool Connect(const char *ip, unsigned short port);
 
 	/* 关闭用于连接的socket对象 */
 	void Close();

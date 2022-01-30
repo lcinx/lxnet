@@ -30,7 +30,7 @@ struct socketer *socketer_create_for_accept(bool bigbuf, void *sockfd);
 /* release socketer */
 void socketer_release(struct socketer *self);
 
-bool socketer_connect(struct socketer *self, const char *ip, short port);
+bool socketer_connect(struct socketer *self, const char *ip, unsigned short port);
 
 void socketer_close(struct socketer *self);
 

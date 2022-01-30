@@ -438,7 +438,7 @@ void Socketer::UseProxy(bool flag) {
 }
 
 /* 连接指定的服务器 */
-bool Socketer::Connect(const char *ip, short port) {
+bool Socketer::Connect(const char *ip, unsigned short port) {
 	return socketer_connect(m_self, ip, port);
 }
 
