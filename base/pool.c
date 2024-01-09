@@ -142,6 +142,7 @@ static inline struct node *node_pool_pop_node(struct poolmgr *mgr, struct node_p
 		goto ret;
 	} else {
 		assert(self->current_pos <= self->end);
+		assert(self->block_size > sizeof(struct node));
 		if (self->current_pos + self->block_size <= self->end) {
 			nd = (struct node *)(self->current_pos + self->block_size - sizeof(struct node));
 			self->current_pos += self->block_size;
@@ -437,11 +438,9 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 
 	oldsize = size;
 
-	size += sizeof(struct node_flag);
+	size += sizeof(struct node);
 
 	size = F_MAKE_ALIGNMENT(size, alignment);
-	if (size < sizeof(struct node))
-		size = sizeof(struct node);
 
 	assert(((size * num) / num) == size && "poolmgr_create exist overflow!");
 
