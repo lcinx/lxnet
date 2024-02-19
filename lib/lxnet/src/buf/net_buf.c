@@ -35,8 +35,8 @@ static struct block_size s_block_info;
 
 struct net_buf {
 	bool is_bigbuf;				/* big or small flag. */
-	char compress_falg;
-	char crypt_falg;
+	char compress_flag;
+	char crypt_flag;
 	bool use_proxy;
 	volatile bool already_do_proxy;
 
@@ -61,19 +61,19 @@ struct net_buf {
 };
 
 static inline bool buf_is_use_compress(struct net_buf *self) {
-	return (self->compress_falg == enum_compress);
+	return (self->compress_flag == enum_compress);
 }
 
 static inline bool buf_is_use_uncompress(struct net_buf *self) {
-	return (self->compress_falg == enum_uncompress);
+	return (self->compress_flag == enum_uncompress);
 }
 
 static inline bool buf_is_use_encrypt(struct net_buf *self) {
-	return (self->crypt_falg == enum_encrypt);
+	return (self->crypt_flag == enum_encrypt);
 }
 
 static inline bool buf_is_use_decrypt(struct net_buf *self) {
-	return (self->crypt_falg == enum_decrypt);
+	return (self->crypt_flag == enum_decrypt);
 }
 
 static void buf_real_release(struct net_buf *self) {
@@ -115,8 +115,8 @@ static void buf_init(struct net_buf *self, bool is_bigbuf) {
 	assert(self != NULL);
 
 	self->is_bigbuf = is_bigbuf;
-	self->compress_falg = enum_unknow;
-	self->crypt_falg = enum_unknow;
+	self->compress_flag = enum_unknow;
+	self->crypt_flag = enum_unknow;
 	self->use_proxy = false;
 	self->already_do_proxy = false;
 
@@ -206,28 +206,28 @@ void buf_use_compress(struct net_buf *self) {
 	if (!self)
 		return;
 
-	self->compress_falg = enum_compress;
+	self->compress_flag = enum_compress;
 }
 
 void buf_use_uncompress(struct net_buf *self) {
 	if (!self)
 		return;
 
-	self->compress_falg = enum_uncompress;
+	self->compress_flag = enum_uncompress;
 }
 
 void buf_use_encrypt(struct net_buf *self) {
 	if (!self)
 		return;
 
-	self->crypt_falg = enum_encrypt;
+	self->crypt_flag = enum_encrypt;
 }
 
 void buf_use_decrypt(struct net_buf *self) {
 	if (!self)
 		return;
 
-	self->crypt_falg = enum_decrypt;
+	self->crypt_flag = enum_decrypt;
 }
 
 void buf_use_proxy(struct net_buf *self, bool flag) {
@@ -456,11 +456,14 @@ bool buf_recv_end_do(struct net_buf *self) {
 				log_error("uncompress buf is too small!");
 				return false;
 			}
+
 			assert(resbuf.len > 0);
 			pushresult = blocklist_put_data(&self->logiclist, resbuf.buf, resbuf.len);
 			assert(pushresult);
 			if (!pushresult) {
-				log_error("if (!pushresult)");
+				if (s_enable_errorlog) {
+					log_error("if (!pushresult)");
+				}
 				return false;
 			}
 		}

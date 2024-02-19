@@ -438,6 +438,8 @@ struct poolmgr *poolmgr_create(size_t size, size_t alignment,
 
 	oldsize = size;
 
+	size = F_MAKE_ALIGNMENT(size, alignment);
+
 	size += sizeof(struct node);
 
 	size = F_MAKE_ALIGNMENT(size, alignment);
@@ -650,7 +652,7 @@ void poolmgr_free_object(struct poolmgr *self, void *bk) {
 	if (!self || !bk)
 		return;
 
-	nd = (struct node *)((char *)bk + self->block_size - sizeof(struct node));
+	nd = (struct node *)((char *)bk + (self->block_size - sizeof(struct node)));
 	np = (struct node_pool *)nd->flag.pool_addr;
 
 	/* check bk is in this free list ? */
